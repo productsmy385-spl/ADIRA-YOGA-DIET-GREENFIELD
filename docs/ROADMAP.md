@@ -1,0 +1,91 @@
+# Roadmap
+
+Nineteen phases. Each one is explained, implemented, tested, built, security-reviewed,
+and documented before the next begins. A phase with critical failures blocks the next.
+
+> **Numbering.** This file counts the foundation as **Phase 0**, matching the original
+> brief. The Master Knowledge Base v2.0 (§32) counts the same nineteen phases from
+> **1**, so every v2.0 number is one higher: v2.0's "2. Database" is Phase 1 here, and
+> v2.0's "17. Security" is Phase 16. The phases themselves are identical. This file's
+> numbering is the one used by every cross-reference in `docs/`, `decisions/`, and source
+> comments — renumbering would invalidate all of them, so the offset is documented
+> instead.
+
+| # | Phase | Status |
+|---|---|---|
+| 0 | Architecture, security model, schema design, infrastructure | **complete** |
+| 1 | Railway PostgreSQL — provision, apply migrations | next |
+| 2 | Authentication — passkeys, OTP, sessions | |
+| 3 | Authorization, RBAC, multi-tenancy enforcement + isolation suites | |
+| 4 | Service and repository layers | |
+| 5 | Customer dashboard | |
+| 6 | Yoga engine | |
+| 7 | Diet engine | |
+| 8 | Admin / consultant dashboard | |
+| 9 | Owner dashboards — platform and organization | |
+| 10 | Notifications | |
+| 11 | Reports + job queue drain | |
+| 12 | ImageKit media | |
+| 13 | Import / export | |
+| 14 | PWA install, icon set | |
+| 15 | 3D yoga experience | |
+| 16 | Security hardening — CSP, rate limiting, dependency scanning | |
+| 17 | Performance and accessibility | |
+| 18 | Production deployment | |
+
+## Phase 0 — what was delivered
+
+- Next.js 16, TypeScript strict, Tailwind v4, Node pinned to 24.x
+- Design tokens in one file; hex literals in `src/` are a lint error
+- Two identity domains, in schema and in code
+- Rank rules (`canActOn`, `canAssignRole`), pure and exhaustively tested
+- `001_foundation.sql` — tenancy, identity, sessions, assignments, jobs, audit log
+- Migration runner: forward-only, checksum-verified, advisory-locked, runs pre-deploy
+- Environment validated at boot; verified that a missing secret fails the build
+- Vitest with the pool and parallelism rules that avoid known lock contention
+- CI running lint, typecheck, test, build
+- `railway.json` committed; security headers; health endpoint
+- Documentation and seven ADRs
+
+**Not** delivered, deliberately: any authentication, any dashboard, any feature surface.
+The schema is authored but not applied.
+
+## Cross-cutting work with a named home
+
+These are easy to assume are handled. They are not, and each has an owner:
+
+| Concern | Phase |
+|---|---|
+| Content-Security-Policy | 16 |
+| Rate limiting — auth paths / general | 2 / 16 |
+| Cross-tenant, IDOR, BOLA test suites | 3 |
+| Raster + maskable icon set | 14 |
+| Internationalisation (Telugu, Hindi, Kannada, Tamil, Malayalam) | after 5, before 8 |
+| Dependency scanning in CI | 16 |
+| Backup and restore rehearsal | 18 |
+| Accessibility audit and token contrast verification | 17 |
+
+## Documentation still owed
+
+Master Knowledge Base v2.0 §34 specifies a `docs/` set that includes `YOGA.md`,
+`DIET.md`, `ACTIVITY.md`, `REPORTING.md`, `NOTIFICATIONS.md`, `IMAGEKIT.md`, and
+`PWA.md`. None exist yet, deliberately: each documents a subsystem that has not been
+built, and an empty file created to complete a set is worse than an absent one — it reads
+as coverage. Each arrives with the phase that builds its subsystem.
+
+v2.0 §34 also names four ADRs by topic (`authentication`, `database`, `multitenancy`,
+`railway`). The seven ADRs in `decisions/` cover that ground at finer grain and are cited
+by filename from source comments, lint rules, and migration headers; they are not renamed
+to match, because renaming would break those citations.
+
+## Open questions
+
+1. **The official logo.** Working from a redrawn placeholder — see `docs/BRANDING.md`.
+2. **Billing.** The supplied poster shows "Subscription & Billing" on the owner
+   dashboard; the written brief never mentions it. Not in the Phase 0 schema. Needs a
+   decision before Phase 9.
+3. **Linear team.** Not yet recorded. The workspace has TempleOS (`TEM`) and Marketives
+   (`MAR`); neither obviously owns a new wellness product.
+4. **Messaging.** The poster shows consultant↔customer messaging on both dashboards. The
+   brief lists notifications but not conversations. If messaging is real, it needs its
+   own schema and probably its own phase.

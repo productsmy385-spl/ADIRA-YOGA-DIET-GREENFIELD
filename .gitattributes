@@ -1,0 +1,13 @@
+# Normalise line endings in the repository to LF, whatever the working copy uses.
+# Without this, a Windows checkout commits CRLF and every file looks entirely rewritten
+# to anyone on another platform — and to CI.
+* text=auto eol=lf
+
+# Binary-ish assets git should not touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch supersedes an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: lint · typecheck · test · build
+    runs-on: ubuntu-latest
+
+    # A real PostgreSQL, so the database-dependent suites actually run rather than
+    # skipping. Enum parity in particular only protects anything where a database
+    # exists — skipping it in CI would leave it protecting nothing at all.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: adira_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Values are dummies, but they are REAL values: the environment is validated at
+      # boot, so the build genuinely exercises that path rather than skipping it.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/adira_test
+      SQL_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/adira_test
+      SESSION_SECRET: ci-session-secret-not-a-real-secret-000000000000
+      OWNER_SESSION_SECRET: ci-owner-secret-not-a-real-secret-1111111111
+      CRON_SECRET: ci-cron-secret-not-a-real-secret-22222222222
+      APP_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_NAME: Adira
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Applies migrations to the service database. Doubles as a real test of the
+      # migration runner: if a migration is malformed or misordered, CI fails here
+      # rather than at deploy time.
+      - name: Migrate
+        run: npm run migrate
+
+      # Idempotency: a second run must apply nothing. Cheap, and it catches a runner
+      # that fails to record what it applied.
+      - name: Migrate again (must be a no-op)
+        run: |
+          output=$(npm run migrate --silent)
+          echo "$output"
+          echo "$output" | grep -q "Up to date" || {
+            echo "::error::Re-running migrations was not a no-op"
+            exit 1
+          }
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
