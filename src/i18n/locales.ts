@@ -8,10 +8,48 @@
  * See decisions/ADR-010 for why the locale lives in a cookie rather than a URL prefix.
  */
 
+/**
+ * Every locale the product intends to support. The architecture is built for all of
+ * them — this is the list §26 asks for.
+ */
 export const LOCALES = ["en", "te", "hi", "kn", "ta", "ml"] as const;
 export type Locale = (typeof LOCALES)[number];
 
-export const DEFAULT_LOCALE: Locale = "en";
+/**
+ * Locales that actually have a message catalogue in `messages/`.
+ *
+ * This exists because the two lists are not the same, and conflating them is a 500.
+ * Resolution used to return any locale in `LOCALES`, after which `request.ts` imported
+ * `messages/${locale}.json` — so a browser sending `Accept-Language: te-IN` resolved to
+ * Telugu, the import failed, and the page returned HTTP 500. Every unit test passed,
+ * because the resolver was doing exactly what it was asked to do.
+ *
+ * Advertising a language we cannot render is worse than not offering it: the reader
+ * either gets an error page, or gets English sitting under a Telugu label, which is a
+ * more confusing failure than an honest absence.
+ *
+ * **Add a locale here only when `messages/<locale>.json` exists.** `messages.test.ts`
+ * enforces that.
+ */
+export const AVAILABLE_LOCALES = ["en"] as const satisfies readonly Locale[];
+export type AvailableLocale = (typeof AVAILABLE_LOCALES)[number];
+
+export function isAvailableLocale(value: unknown): value is AvailableLocale {
+  return (
+    typeof value === "string" && (AVAILABLE_LOCALES as readonly string[]).includes(value)
+  );
+}
+
+/**
+ * The fallback every resolution path ends at.
+ *
+ * Typed `AvailableLocale`, not `Locale`, and declared after that type deliberately. The
+ * default is the one locale that must always render — typing it as the wider `Locale`
+ * would let a future edit point the fallback at a language with no catalogue, which is
+ * the exact 500 that `AVAILABLE_LOCALES` exists to prevent, reintroduced at the one
+ * place nothing else can catch it.
+ */
+export const DEFAULT_LOCALE: AvailableLocale = "en";
 
 /** Cookie name. Read on the server, written on the client when a user chooses. */
 export const LOCALE_COOKIE = "adira-locale";
@@ -118,14 +156,37 @@ export interface LocaleSources {
  * Unknown values at any level fall through rather than throwing. A stale cookie naming a
  * locale that has since been removed must not break the page.
  */
-export function resolveLocale(sources: LocaleSources): Locale {
-  if (isLocale(sources.userPreference)) return sources.userPreference;
-  if (isLocale(sources.cookie)) return sources.cookie;
+export function resolveLocale(
+  sources: LocaleSources,
+  /**
+   * Which locales can actually be rendered. Injected so the priority rules can be tested
+   * against a multi-locale set — with only English shipped, every ordering assertion
+   * would otherwise collapse to "en" and prove nothing. This is also the code path that
+   * begins to matter the day a second catalogue lands.
+   */
+  available: readonly Locale[] = AVAILABLE_LOCALES,
+): Locale {
+  const isAvailable = (value: unknown): value is Locale =>
+    typeof value === "string" && (available as readonly string[]).includes(value);
 
-  const fromHeader = parseAcceptLanguage(sources.acceptLanguage);
-  if (fromHeader.length > 0) return fromHeader[0];
+  // Availability is checked HERE, at resolution, rather than inside parseAcceptLanguage.
+  //
+  // Parsing a header and deciding what we can render are separate questions, and pushing
+  // availability down into the parser would mean its tests could only ever exercise
+  // English — losing coverage of subtag collapsing and q-ordering, which is the part
+  // most likely to be wrong.
+  //
+  // Every check is against AVAILABLE_LOCALES, not LOCALES. A preference for a language
+  // we intend to support but have not yet translated falls through to the next source,
+  // and ultimately to English — which is what the reader would have got anyway, minus
+  // the error page.
+  if (isAvailable(sources.userPreference)) return sources.userPreference;
+  if (isAvailable(sources.cookie)) return sources.cookie;
 
-  if (isLocale(sources.organizationLocale)) return sources.organizationLocale;
+  const fromHeader = parseAcceptLanguage(sources.acceptLanguage).find(isAvailable);
+  if (fromHeader) return fromHeader;
+
+  if (isAvailable(sources.organizationLocale)) return sources.organizationLocale;
 
   return DEFAULT_LOCALE;
 }

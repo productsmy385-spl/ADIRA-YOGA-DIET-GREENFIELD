@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  AVAILABLE_LOCALES,
   DEFAULT_LOCALE,
   isLocale,
   LOCALE_DIRECTION,
@@ -84,6 +85,12 @@ describe("parseAcceptLanguage", () => {
 });
 
 describe("resolveLocale", () => {
+  // The priority rules are exercised against a hypothetical fully-translated product.
+  // With only English shipped, every ordering assertion would collapse to "en" and
+  // prove nothing — and this is the code path that starts mattering the day a second
+  // catalogue lands.
+  const ALL = LOCALES;
+
   it("falls back to English when nothing is known", () => {
     expect(resolveLocale({})).toBe(DEFAULT_LOCALE);
   });
@@ -92,31 +99,34 @@ describe("resolveLocale", () => {
   // preference outranks the cookie on the device they happen to be using.
   it("prefers the user's saved preference above everything", () => {
     expect(
-      resolveLocale({
-        userPreference: "ta",
-        cookie: "hi",
-        acceptLanguage: "kn",
-        organizationLocale: "ml",
-      }),
+      resolveLocale(
+        {
+          userPreference: "ta",
+          cookie: "hi",
+          acceptLanguage: "kn",
+          organizationLocale: "ml",
+        },
+        ALL,
+      ),
     ).toBe("ta");
   });
 
   it("uses the cookie when there is no saved preference", () => {
-    expect(resolveLocale({ cookie: "kn", acceptLanguage: "hi" })).toBe("kn");
+    expect(resolveLocale({ cookie: "kn", acceptLanguage: "hi" }, ALL)).toBe("kn");
   });
 
   it("uses Accept-Language when there is no explicit choice", () => {
-    expect(resolveLocale({ acceptLanguage: "ml-IN,en;q=0.5" })).toBe("ml");
+    expect(resolveLocale({ acceptLanguage: "ml-IN,en;q=0.5" }, ALL)).toBe("ml");
   });
 
   // A member of a Telugu-speaking studio whose browser is set to a language we do not
   // support should get Telugu, not English.
   it("falls back to the organisation's locale before English", () => {
-    expect(resolveLocale({ acceptLanguage: "fr", organizationLocale: "te" })).toBe("te");
+    expect(resolveLocale({ acceptLanguage: "fr", organizationLocale: "te" }, ALL)).toBe("te");
   });
 
   it("prefers Accept-Language over the organisation default", () => {
-    expect(resolveLocale({ acceptLanguage: "hi", organizationLocale: "te" })).toBe("hi");
+    expect(resolveLocale({ acceptLanguage: "hi", organizationLocale: "te" }, ALL)).toBe("hi");
   });
 
   // A stale cookie naming a locale that has since been removed must not break the page.
@@ -132,7 +142,48 @@ describe("resolveLocale", () => {
   });
 
   it("ignores an empty-string preference", () => {
-    expect(resolveLocale({ userPreference: "", cookie: "hi" })).toBe("hi");
+    expect(resolveLocale({ userPreference: "", cookie: "hi" }, ALL)).toBe("hi");
+  });
+});
+
+/**
+ * The regression suite for a bug that reached a running server.
+ *
+ * `resolveLocale` used to return any *supported* locale. `request.ts` then imported
+ * `messages/${locale}.json`, so a browser sending `Accept-Language: te-IN` resolved to
+ * Telugu, the import failed, and the page returned HTTP 500 — while every unit test
+ * passed, because the resolver was doing exactly what it had been told to do.
+ */
+describe("resolveLocale — only returns locales that can actually be rendered", () => {
+  it.each(LOCALES.filter((l) => !AVAILABLE_LOCALES.includes(l as never)))(
+    "does not resolve to %s, which has no catalogue",
+    (locale) => {
+      expect(resolveLocale({ acceptLanguage: locale })).toBe(DEFAULT_LOCALE);
+      expect(resolveLocale({ cookie: locale })).toBe(DEFAULT_LOCALE);
+      expect(resolveLocale({ userPreference: locale })).toBe(DEFAULT_LOCALE);
+      expect(resolveLocale({ organizationLocale: locale })).toBe(DEFAULT_LOCALE);
+    },
+  );
+
+  // The exact header that produced the 500.
+  it("serves English to a Telugu browser rather than failing", () => {
+    expect(resolveLocale({ acceptLanguage: "te-IN,te;q=0.9,en;q=0.8" })).toBe("en");
+  });
+
+  // The header still parses correctly — availability filtering happens at resolution,
+  // so the parser keeps its full behaviour and its coverage.
+  it("still parses locales it cannot yet render", () => {
+    expect(parseAcceptLanguage("te-IN,hi;q=0.9")).toEqual(["te", "hi"]);
+  });
+
+  it("prefers a lower-priority language it can render over a preferred one it cannot", () => {
+    expect(resolveLocale({ acceptLanguage: "ta;q=0.9,en;q=0.1" })).toBe("en");
+  });
+
+  it("every available locale resolves to itself", () => {
+    for (const locale of AVAILABLE_LOCALES) {
+      expect(resolveLocale({ cookie: locale })).toBe(locale);
+    }
   });
 });
 

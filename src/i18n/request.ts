@@ -16,6 +16,18 @@ import { DEFAULT_LOCALE, LOCALE_COOKIE, resolveLocale } from "./locales";
  * the cookie at sign-in instead, which keeps this resolution synchronous and cheap while
  * still honouring the choice.
  */
+async function loadMessages(locale: string) {
+  try {
+    return (await import(`../../messages/${locale}.json`)).default;
+  } catch {
+    console.error(
+      `[i18n] No message catalogue for "${locale}". Falling back to ${DEFAULT_LOCALE}. ` +
+        `A locale must not be listed in AVAILABLE_LOCALES until messages/${locale}.json exists.`,
+    );
+    return (await import(`../../messages/${DEFAULT_LOCALE}.json`)).default;
+  }
+}
+
 export default getRequestConfig(async () => {
   const [cookieStore, headerList] = await Promise.all([cookies(), headers()]);
 
@@ -26,9 +38,11 @@ export default getRequestConfig(async () => {
 
   return {
     locale,
-    // Only English exists today. When a second catalogue lands, this import stays the
-    // same shape — the catalogues are the change, not this file.
-    messages: (await import(`../../messages/${locale}.json`)).default,
+    // Belt and braces. `resolveLocale` only returns locales that have a catalogue, so
+    // this import should never fail — but it did once, returning HTTP 500 to any
+    // browser sending `Accept-Language: te-IN`, and a missing translation file must
+    // degrade to English rather than take the page down.
+    messages: await loadMessages(locale),
     // A missing translation falls back to English rather than rendering the raw key.
     // Showing "customer.dashboard.greeting" to a person is worse than showing English.
     onError() {},
