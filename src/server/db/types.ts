@@ -61,6 +61,10 @@ export const OTP_STATUS_VALUES = [
 ] as const;
 export type OtpStatusValue = (typeof OTP_STATUS_VALUES)[number];
 
+/** `webauthn_ceremony` — which half of a passkey flow a challenge belongs to. */
+export const WEBAUTHN_CEREMONY_VALUES = ["REGISTRATION", "AUTHENTICATION"] as const;
+export type WebauthnCeremonyValue = (typeof WEBAUTHN_CEREMONY_VALUES)[number];
+
 /** `job_status` — the async queue drained by Railway Cron (decisions/ADR-003). */
 export const JOB_STATUS_VALUES = [
   "QUEUED",
@@ -84,4 +88,5 @@ export const PG_ENUMS = {
   job_status: JOB_STATUS_VALUES,
   otp_purpose: OTP_PURPOSE_VALUES,
   otp_status: OTP_STATUS_VALUES,
+  webauthn_ceremony: WEBAUTHN_CEREMONY_VALUES,
 } as const satisfies Record<string, readonly string[]>;

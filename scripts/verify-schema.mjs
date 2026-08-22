@@ -36,6 +36,7 @@ const EXPECTED_TABLES = [
   "schema_migrations",
   "sessions",
   "users",
+  "webauthn_challenges",
 ];
 
 function loadLocalEnv() {
