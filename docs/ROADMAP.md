@@ -14,7 +14,7 @@ and documented before the next begins. A phase with critical failures blocks the
 | # | Phase | Status |
 |---|---|---|
 | 0 | Architecture, security model, schema design, infrastructure | **complete** |
-| 1 | Railway PostgreSQL — provision, apply migrations | next |
+| 1 | Railway PostgreSQL — provision, apply migrations | **complete** 2026-08-22 |
 | 2 | Authentication — passkeys, OTP, sessions | |
 | 3 | Authorization, RBAC, multi-tenancy enforcement + isolation suites | |
 | 4 | Service and repository layers | |
@@ -48,7 +48,28 @@ and documented before the next begins. A phase with critical failures blocks the
 - Documentation and seven ADRs
 
 **Not** delivered, deliberately: any authentication, any dashboard, any feature surface.
-The schema is authored but not applied.
+
+## Phase 1 — what was delivered
+
+Verified against the live Railway database on 2026-08-22:
+
+- `001_foundation.sql` and `002_authentication.sql` applied. Both ran via Railway's
+  `preDeployCommand`, so the automatic-migration-on-deploy path in ADR-006 is proven
+  rather than assumed.
+- `npm run db:verify` — **31/31 invariants pass** against the real schema: composite
+  foreign keys on `consultant_assignments` and `sessions`, `owner_accounts` carrying no
+  `organization_id`, `users.organization_id NOT NULL`, and both partial unique indexes.
+  ADR-001 and ADR-004 are enforced by PostgreSQL, not by convention.
+- The first `PLATFORM_OWNER` is seeded, status `INVITED`, no credential — it cannot sign
+  in until Phase 2 builds passkey enrolment. The seed wrote its own `audit_logs` entry.
+- `migrate` and `seed:owner` both verified idempotent on a second run.
+- The 8 previously-skipped enum-parity tests now execute and pass, so the TypeScript
+  mirrors are confirmed against the real `pg_enum`.
+
+**Outstanding for Phase 1:** a separate throwaway database for `SQL_TEST_DATABASE_URL`.
+The current one is the development database, and Phase 3's isolation suites call
+`resetDatabase()`, which `TRUNCATE`s every table. Pointing the test variable at this
+database would wipe the seeded owner and any development data.
 
 ## Cross-cutting work with a named home
 
