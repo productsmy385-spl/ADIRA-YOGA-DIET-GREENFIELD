@@ -1,6 +1,7 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "adira-theme";
@@ -30,6 +31,7 @@ function subscribe(onChange: () => void) {
 const isDarkNow = () => document.documentElement.classList.contains("dark");
 
 export function ThemeToggle() {
+  const t = useTranslations("theme");
   const isDark = useSyncExternalStore(subscribe, isDarkNow, () => false);
 
   function toggle() {
@@ -47,7 +49,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={isDark ? t("toLight") : t("toDark")}
       className="inline-flex size-9 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
       {isDark ? <Moon className="size-4" /> : <Sun className="size-4" />}

@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 
+import { LOCALE_DIRECTION, type Locale } from "@/i18n/locales";
 import { branding } from "@/lib/branding";
 
 import "./globals.css";
@@ -50,15 +53,22 @@ const themeScript = `
   } catch (e) {}
 `;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Resolved per request from the cookie and Accept-Language (ADR-010). `lang` and `dir`
+  // must reflect it: a screen reader picks its pronunciation from `lang`, so a page of
+  // Telugu marked `lang="en"` is read aloud as mangled English.
+  const locale = (await getLocale()) as Locale;
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} dir={LOCALE_DIRECTION[locale]} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`${sans.variable} ${mono.variable}`}>{children}</body>
+      <body className={`${sans.variable} ${mono.variable}`}>
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+      </body>
     </html>
   );
 }

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 /**
  * Security headers applied to every response.
@@ -58,4 +59,8 @@ const nextConfig: NextConfig = {
    */
 };
 
-export default nextConfig;
+// No locale in the URL — the locale is negotiated per request from a cookie and
+// Accept-Language. See decisions/ADR-010.
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default withNextIntl(nextConfig);

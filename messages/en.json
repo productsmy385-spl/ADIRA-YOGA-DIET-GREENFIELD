@@ -1,0 +1,57 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "working": "Working…",
+    "somethingWentWrong": "Something went wrong.",
+    "retry": "Try again",
+    "close": "Close"
+  },
+  "theme": {
+    "toLight": "Switch to light theme",
+    "toDark": "Switch to dark theme"
+  },
+  "language": {
+    "label": "Language",
+    "change": "Change language"
+  },
+  "foundation": {
+    "badge": "Phase 0 complete — foundation and security model",
+    "intro": "There is no application to sign in to yet — this page reports what the foundation establishes, and what each remaining phase adds.",
+    "establishedHeading": "What Phase 0 established",
+    "nextHeading": "Next",
+    "docsNote": "Architecture, security model, and schema design are documented in <code>docs/</code> and <code>decisions/</code>.",
+    "items": {
+      "domains": {
+        "title": "Two identity domains",
+        "body": "Platform owners and tenant users live in separate tables, with separate sessions and separate signing secrets. No code path upgrades one into the other."
+      },
+      "tenancy": {
+        "title": "Tenancy as a constraint",
+        "body": "Composite foreign keys mean PostgreSQL itself refuses to link a consultant in one organization to a customer in another. Cross-tenant leakage is unrepresentable, not merely untested."
+      },
+      "rank": {
+        "title": "Rank rules, not just permissions",
+        "body": "An actor must strictly outrank a target to act on them, so peers cannot disable each other."
+      },
+      "migrations": {
+        "title": "Migrations that run on deploy",
+        "body": "Forward-only, checksum-verified, advisory-locked, and wired as Railway's pre-deploy step — so a deploy cannot succeed against an unmigrated database."
+      },
+      "env": {
+        "title": "Configuration validated at boot",
+        "body": "Every environment variable is parsed at startup. A missing key fails the deploy by name, rather than throwing on whichever request first needs it."
+      },
+      "tokens": {
+        "title": "One place for colour",
+        "body": "Every value on this page resolves to a token in globals.css. A hardcoded hex anywhere in src/ is a lint error."
+      }
+    },
+    "phases": {
+      "1": "Phase 1 — Railway PostgreSQL, schema applied",
+      "2": "Phase 2 — Passkeys and OTP",
+      "3": "Phase 3 — RBAC and cross-tenant test suites",
+      "4": "Phase 4 — Service and repository layers"
+    }
+  }
+}

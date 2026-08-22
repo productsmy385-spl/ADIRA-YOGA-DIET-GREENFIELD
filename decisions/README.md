@@ -22,6 +22,7 @@ changed since.
 | [007](ADR-007-otp-by-email-behind-adapter.md) | OTP is delivered by email via Resend, behind a delivery adapter | Accepted |
 | [008](ADR-008-bmad-as-execution-method.md) | BMAD is the planning and execution method | Accepted |
 | [009](ADR-009-programme-snapshot-on-assignment.md) | Assigning a programme snapshots it; the template is never referenced live | Accepted |
+| [010](ADR-010-locale-in-cookie-not-url.md) | The locale lives in a cookie, not in the URL | Accepted |
 
 ## Inherited context
 
