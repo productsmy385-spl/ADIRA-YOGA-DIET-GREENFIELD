@@ -23,6 +23,8 @@ changed since.
 | [008](ADR-008-bmad-as-execution-method.md) | BMAD is the planning and execution method | Accepted |
 | [009](ADR-009-programme-snapshot-on-assignment.md) | Assigning a programme snapshots it; the template is never referenced live | Accepted |
 | [010](ADR-010-locale-in-cookie-not-url.md) | The locale lives in a cookie, not in the URL | Accepted |
+| [011](ADR-011-session-lifetime-and-domain-keyed-tokens.md) | Session lifetime, idle timeout, and domain-keyed session tokens | Accepted |
+| [012](ADR-012-organization-resolved-after-verification.md) | The organization is resolved after the credential verifies, never before | Accepted |
 
 ## Inherited context
 

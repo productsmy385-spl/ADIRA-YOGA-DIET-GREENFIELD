@@ -4,9 +4,11 @@ import {
   generateOtpCode,
   generateSessionToken,
   hashOtpCode,
+  hashSessionToken,
   hashToken,
   safeEqual,
   verifyOtpCode,
+  verifySessionToken,
   verifyToken,
 } from "./tokens";
 
@@ -141,5 +143,68 @@ describe("verifyOtpCode", () => {
     const code = "123456";
     const storedForA = hashOtpCode(code, "challenge-a");
     expect(verifyOtpCode(code, "challenge-b", storedForA)).toBe(false);
+  });
+});
+
+/**
+ * The keyed session hash is what makes ADR-001's two identity domains a cryptographic
+ * boundary rather than merely two table names. These tests are the boundary.
+ */
+describe("hashSessionToken / verifySessionToken", () => {
+  const TENANT_SECRET = "tenant-secret-at-least-32-characters-long";
+  const PLATFORM_SECRET = "platform-secret-at-least-32-characters-long";
+
+  it("verifies a token against its own hash under the same secret", () => {
+    const token = generateSessionToken();
+    const stored = hashSessionToken(token, TENANT_SECRET);
+    expect(verifySessionToken(token, stored, TENANT_SECRET)).toBe(true);
+  });
+
+  it("rejects a different token", () => {
+    const stored = hashSessionToken(generateSessionToken(), TENANT_SECRET);
+    expect(verifySessionToken(generateSessionToken(), stored, TENANT_SECRET)).toBe(false);
+  });
+
+  /**
+   * THE POINT OF THE WHOLE MECHANISM.
+   *
+   * A tenant session token must not verify against the platform domain's secret, even
+   * though it is the very same token. This is what stops a bug that looks a tenant token
+   * up in `owner_sessions` from succeeding — with an unkeyed hash it would have matched.
+   */
+  it("does not verify a tenant token under the platform secret, or the reverse", () => {
+    const token = generateSessionToken();
+
+    const tenantHash = hashSessionToken(token, TENANT_SECRET);
+    const platformHash = hashSessionToken(token, PLATFORM_SECRET);
+
+    expect(verifySessionToken(token, tenantHash, PLATFORM_SECRET)).toBe(false);
+    expect(verifySessionToken(token, platformHash, TENANT_SECRET)).toBe(false);
+  });
+
+  it("produces a different hash per secret for the same token", () => {
+    const token = generateSessionToken();
+    expect(hashSessionToken(token, TENANT_SECRET).equals(
+      hashSessionToken(token, PLATFORM_SECRET),
+    )).toBe(false);
+  });
+
+  it("is deterministic for one token and secret", () => {
+    const token = generateSessionToken();
+    expect(
+      hashSessionToken(token, TENANT_SECRET).equals(hashSessionToken(token, TENANT_SECRET)),
+    ).toBe(true);
+  });
+
+  // 32 bytes, matching the bytea column and every other hash in this module.
+  it("returns a 32-byte digest", () => {
+    expect(hashSessionToken(generateSessionToken(), TENANT_SECRET)).toHaveLength(32);
+  });
+
+  // The unkeyed hash must NOT be interchangeable with the keyed one — if it were, the
+  // domain separation could be bypassed by calling the wrong helper.
+  it("never equals the unkeyed hashToken digest", () => {
+    const token = generateSessionToken();
+    expect(hashSessionToken(token, TENANT_SECRET).equals(hashToken(token))).toBe(false);
   });
 });

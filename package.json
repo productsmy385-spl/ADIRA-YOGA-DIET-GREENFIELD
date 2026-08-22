@@ -17,7 +17,8 @@
     "migrate": "node scripts/migrate.mjs",
     "migrate:dry": "node scripts/migrate.mjs --dry-run",
     "db:verify": "node scripts/verify-schema.mjs",
-    "seed:owner": "node scripts/seed-owner.mjs"
+    "seed:owner": "node scripts/seed-owner.mjs",
+    "seed:org": "node scripts/seed-organization.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
