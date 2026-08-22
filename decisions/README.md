@@ -20,6 +20,7 @@ changed since.
 | [005](ADR-005-raw-sql-no-orm.md) | Hand-written parameterised SQL, no ORM | Accepted |
 | [006](ADR-006-forward-only-migrations-on-deploy.md) | Forward-only migrations, applied automatically before each deploy | Accepted |
 | [007](ADR-007-otp-by-email-behind-adapter.md) | OTP is delivered by email via Resend, behind a delivery adapter | Accepted |
+| [008](ADR-008-bmad-as-execution-method.md) | BMAD is the planning and execution method | Accepted |
 
 ## Inherited context
 

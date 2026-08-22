@@ -5,6 +5,44 @@ Multi-tenant yoga therapy and wellness platform. Next.js 16 · TypeScript · Pos
 
 Read `docs/ARCHITECTURE.md` before substantial work. Decisions are in `decisions/`.
 
+## Sources of truth
+
+Two supplied documents govern this project. Both are the user's own words, stored
+verbatim. **Never edit either to reflect what was built.**
+
+| Question | Document |
+|---|---|
+| WHAT the product must be | `docs/KNOWLEDGE-BASE.md` — Master Knowledge Base v2.0 |
+| HOW work is planned and executed | `/BMAD/BMAD-PLAN.md` — the 9-phase method |
+
+`BMAD/STATUS.md` records where the project actually stands against that method, including
+which BMAD artefacts already exist elsewhere. **Read it before creating any BMAD
+document** — Phase 4's architecture set already lives in `docs/`, and duplicating it is
+how the two copies start disagreeing.
+
+`docs/KNOWLEDGE-MAP.md` says which layer owns which knowledge.
+
+### The BMAD loop
+
+```
+Analysis → Product → UX → Architecture → Epics & Stories
+        → Implementation → Testing & Review → Deployment → Retrospective
+```
+
+Do not skip planning stages for a major feature. Infrastructure work already covered by
+an ADR may proceed directly. The first work that genuinely needs Phases 1–3 first is the
+customer dashboard — there is no PRD or acceptance criteria behind any code yet.
+
+### When the user supplies a new document
+
+Store it verbatim, register it in `docs/SOURCE-DOCUMENTS.md`, reconcile it against what
+exists, raise an ADR if it changes a decision, and update the Knowledge Base at
+`~/.claude/KnowledgeBase/Projects/Adira/`. The full rule is in that register. A superseded
+document is kept and marked, never deleted.
+
+Confirm which product a document belongs to before acting on it — the user runs several
+projects that use this same method and similar filenames.
+
 ## Invariants — breaking any of these is a security regression, not a refactor
 
 1. **Tenant scope comes from the session, never from the client.** Every org-scoped
