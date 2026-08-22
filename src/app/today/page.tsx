@@ -9,9 +9,11 @@ import {
   organizationToday,
 } from "@/server/repositories/activities";
 import { listAssignmentsForCustomer } from "@/server/repositories/assignments";
+import { findCheckIn } from "@/server/repositories/checkins";
 import { completionPercent, tally } from "@/server/services/metrics";
 
 import { ActivityCard } from "./activity-card";
+import { CheckInForm } from "./check-in-form";
 
 export const metadata: Metadata = { title: "Today" };
 export const dynamic = "force-dynamic";
@@ -42,7 +44,7 @@ export default async function TodayPage() {
   // looking at the same organisation must see the same day boundary.
   const today = await organizationToday(session.organizationId);
 
-  const [activities, assignments, weekStatuses] = await Promise.all([
+  const [activities, assignments, weekStatuses, checkIn] = await Promise.all([
     listActivitiesForDate(session.organizationId, session.userId, today),
     listAssignmentsForCustomer(session.organizationId, session.userId),
     listStatusesInRange(
@@ -53,6 +55,7 @@ export default async function TodayPage() {
         .slice(0, 10),
       today,
     ),
+    findCheckIn(session.organizationId, session.userId, today),
   ]);
 
   const todayCounts = tally(activities.map((a) => a.status));
@@ -147,6 +150,21 @@ export default async function TodayPage() {
               </p>
             </div>
           )}
+        </section>
+
+        <section aria-labelledby="checkin-heading" className="mt-10">
+          <h2
+            id="checkin-heading"
+            className="text-xs font-semibold tracking-widest text-muted-foreground uppercase"
+          >
+            Check in
+          </h2>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">
+            {checkIn
+              ? "You checked in today. You can update it any time."
+              : "Takes about half a minute. Checking in to say you did not practise still counts."}
+          </p>
+          <CheckInForm existing={checkIn} />
         </section>
       </main>
     </div>
