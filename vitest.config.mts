@@ -2,23 +2,16 @@ import { fileURLToPath } from "node:url";
 
 import { defineConfig } from "vitest/config";
 
+const alias = { "@": fileURLToPath(new URL("./src", import.meta.url)) };
+
+/**
+ * Two projects, because the two kinds of test need genuinely different environments and
+ * running everything under jsdom would be both slower and less honest — server code that
+ * accidentally touches `window` would pass in a test and fail in production.
+ */
 export default defineConfig({
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
-  },
+  resolve: { alias },
   test: {
-    environment: "node",
-
-    // Tests live beside the code they test. Integration suites that need a real database
-    // live under tests/.
-    include: [
-      "src/**/*.test.{ts,tsx}",
-      "scripts/**/*.test.mjs",
-      "tests/**/*.test.ts",
-    ],
-
     /**
      * Serialise test files.
      *
@@ -28,15 +21,41 @@ export default defineConfig({
      * times out in a full run, which reads like flakiness rather than the lock
      * contention it actually is.
      *
-     * Note the limit of this setting, also recorded there: it serialises files within
-     * ONE vitest process. It cannot coordinate across two concurrent `vitest`
-     * invocations against the same database — for that, point SQL_TEST_DATABASE_URL at
-     * a throwaway database instead.
+     * Note the limit, also recorded there: it serialises files within ONE vitest
+     * process. It cannot coordinate across two concurrent `vitest` invocations against
+     * the same database — for that, point SQL_TEST_DATABASE_URL at a throwaway database.
      */
     fileParallelism: false,
-
-    // Fail fast on a hung database connection rather than sitting at the default.
     testTimeout: 15_000,
     hookTimeout: 30_000,
+
+    projects: [
+      {
+        resolve: { alias },
+        test: {
+          name: "server",
+          environment: "node",
+          include: [
+            "src/lib/**/*.test.ts",
+            "src/server/**/*.test.ts",
+            "scripts/**/*.test.mjs",
+            "tests/**/*.test.ts",
+          ],
+        },
+      },
+      {
+        resolve: { alias },
+        test: {
+          name: "ui",
+          environment: "jsdom",
+          include: ["src/components/**/*.test.tsx", "src/app/**/*.test.tsx"],
+          setupFiles: ["./tests/setup-ui.ts"],
+          // Threads rather than the default forks pool: spawning a process per file and
+          // building a jsdom in each times out the worker handshake on Windows. The
+          // server project keeps forks, where process isolation is worth having.
+          pool: "threads",
+        },
+      },
+    ],
   },
 });

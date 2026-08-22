@@ -70,6 +70,35 @@ with them.** `branding.ts` is exempted from the lint rule for this reason.
 meaning rather than colour, so the activity engine renders a state without a component
 deciding what "missed" looks like.
 
+## Dialog and form standard
+
+§28 of the brief sets requirements every dialog must meet: title and description,
+validation, loading/error/success states, cancel, destructive confirmation, keyboard
+accessibility, focus management, and a mobile layout.
+
+Those are met **once**, in `src/components/form-dialog.tsx`, rather than re-met by every
+feature that opens a dialog — "every dialog handles its own error state" is a promise
+that holds until the first one that does not. Use `FormDialog` rather than composing
+`Dialog` directly, unless a surface genuinely cannot.
+
+Four behaviours it guarantees, each covered by a test in `form-dialog.test.tsx`:
+
+- **A submission cannot start twice.** The guard is a ref, not the `pending` state.
+  React batches updates, so two clicks in one tick both observe `pending === false` and
+  both submit. A human cannot click twice inside a frame, but a phone double-tap or a
+  held Enter key can — which is why this is invisible in manual testing.
+- **Failure keeps the dialog open with input intact.** Closing on error discards what
+  the user typed; for a consultation note that is destructive.
+- **The error is announced**, via `role="alert"`. Without it a sighted user sees red
+  text and a screen-reader user sees nothing.
+- **Dismissal is blocked mid-write.** Escape, overlay click, and the close button all go
+  inert while pending, because closing mid-write leaves the user unsure whether it
+  landed.
+
+One trap worth knowing, because it cost a bug here: do **not** set `aria-describedby` on
+`DialogContent`. Radix wires it to `DialogDescription` automatically, and passing the
+prop — even as `undefined` — silently strips the dialog's accessible description.
+
 ## Motion
 
 `prefers-reduced-motion: reduce` is honoured globally in `globals.css`. This is wellness
