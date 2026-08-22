@@ -21,4 +21,6 @@ export const PG_ENUM_EXPECTATIONS = {
   account_status: ["INVITED", "PENDING", "ACTIVE", "SUSPENDED", "LOCKED", "DISABLED"],
   organization_status: ["ACTIVE", "SUSPENDED", "CLOSED"],
   job_status: ["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "DEAD"],
+  otp_purpose: ["ACCOUNT_ACTIVATION", "ACCOUNT_RECOVERY", "NEW_DEVICE", "STEP_UP"],
+  otp_status: ["PENDING", "VERIFIED", "EXPIRED", "EXHAUSTED", "SUPERSEDED"],
 };

@@ -1,8 +1,21 @@
 # Authentication
 
-**Status: designed, not implemented.** Phase 0 established the session schema, the two
-identity domains, and the secrets. Phase 2 builds the flows. Nothing in this document is
-working code yet, and no part of the application is currently authenticated.
+**Status: Phase 2 in progress.** The schema and the security primitives exist and are
+tested; the flows that use them do not. No part of the application is currently
+authenticated, and no route consumes any of this yet.
+
+| Piece | State |
+|---|---|
+| `migrations/002_authentication.sql` — passkeys, OTP challenges, rate limiting | written, **never applied** (needs Phase 1) |
+| `src/server/auth/tokens.ts` — generation, hashing, timing-safe comparison | built, 25 tests |
+| `src/server/auth/rate-limit.ts` — two-dimensional policy | built, 13 tests |
+| `src/server/auth/delivery.ts` — OTP delivery adapter + Resend driver | built, 11 tests |
+| OTP issue/verify service | not built |
+| Session create/verify/revoke | not built |
+| WebAuthn registration/authentication | not built |
+| Route handlers, sign-in UI | not built |
+
+Everything below describes the design. Where a piece is built, it is built as described.
 
 ## Primary: WebAuthn / passkeys
 

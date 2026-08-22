@@ -42,6 +42,25 @@ export type AccountStatusValue = (typeof ACCOUNT_STATUS_VALUES)[number];
 export const ORGANIZATION_STATUS_VALUES = ["ACTIVE", "SUSPENDED", "CLOSED"] as const;
 export type OrganizationStatusValue = (typeof ORGANIZATION_STATUS_VALUES)[number];
 
+/** `otp_purpose` — why a code was issued; governs expiry and what verifying it permits. */
+export const OTP_PURPOSE_VALUES = [
+  "ACCOUNT_ACTIVATION",
+  "ACCOUNT_RECOVERY",
+  "NEW_DEVICE",
+  "STEP_UP",
+] as const;
+export type OtpPurposeValue = (typeof OTP_PURPOSE_VALUES)[number];
+
+/** `otp_status`. */
+export const OTP_STATUS_VALUES = [
+  "PENDING",
+  "VERIFIED",
+  "EXPIRED",
+  "EXHAUSTED",
+  "SUPERSEDED",
+] as const;
+export type OtpStatusValue = (typeof OTP_STATUS_VALUES)[number];
+
 /** `job_status` — the async queue drained by Railway Cron (decisions/ADR-003). */
 export const JOB_STATUS_VALUES = [
   "QUEUED",
@@ -63,4 +82,6 @@ export const PG_ENUMS = {
   account_status: ACCOUNT_STATUS_VALUES,
   organization_status: ORGANIZATION_STATUS_VALUES,
   job_status: JOB_STATUS_VALUES,
+  otp_purpose: OTP_PURPOSE_VALUES,
+  otp_status: OTP_STATUS_VALUES,
 } as const satisfies Record<string, readonly string[]>;

@@ -25,11 +25,14 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const EXPECTED_TABLES = [
   "audit_logs",
+  "auth_attempts",
   "consultant_assignments",
   "jobs",
   "organizations",
+  "otp_challenges",
   "owner_accounts",
   "owner_sessions",
+  "passkey_credentials",
   "schema_migrations",
   "sessions",
   "users",
