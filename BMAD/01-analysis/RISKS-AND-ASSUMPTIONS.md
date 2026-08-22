@@ -124,8 +124,8 @@ than discovered.
 
 | # | Assumption | If wrong |
 |---|---|---|
-| A1 | Billing is **out of scope** (v2.0 §38 defers it; only a poster suggests otherwise) | Phase 9 grows a subscription domain, schema, and provider integration |
-| A2 | Messaging is **one-way consultant→customer**, delivered as notifications | A real conversation domain is needed — threads, read state, its own phase |
+| A1 | ~~Billing is out of scope~~ — **CONFIRMED by the user 2026-08-22.** No subscription domain in the MVP. | no longer an assumption |
+| A2 | ~~Messaging is one-way consultant→customer~~ — **CONFIRMED by the user 2026-08-22.** Notifications only; no chat, threads, or two-way messaging. | no longer an assumption |
 | A3 | Customers self-report completion; no verification | The activity engine changes shape entirely |
 | A4 | One organisation per customer account; the same person at two organisations has two accounts (schema enforces email-unique-*per-org*) | Identity model changes; cross-org account linking is a significant redesign |
 | A5 | Consultants work in one organisation | Same as A4 |
@@ -137,9 +137,17 @@ than discovered.
 
 ## Open questions for the user
 
-1. **Billing** — in scope (A1)?
-2. **Messaging** — conversation or notification (A2)?
-3. **Regulatory posture** (R4) — what jurisdiction, and is there a compliance regime that
-   applies to holding this data?
-4. **Recovery policy** (R6) — what happens when someone loses passkey *and* email?
-5. The **official logo**, and the **Linear team**.
+Answered 2026-08-22: **billing is out of scope** for the MVP, and **messaging is one-way
+notifications only** (consultant → customer; no chat, threads, or two-way). Both recorded
+in `PRODUCT-SCOPE.md`.
+
+Still open:
+
+1. **Regulatory posture** (R4) — what jurisdiction, and is there a compliance regime that
+   applies to holding identifiable health data? This is the one that should be answered
+   before any real customer data exists, not before any particular phase.
+2. **Recovery policy** (R6) — what happens when someone loses their passkey *and* access
+   to their email? Needs a policy, not just code.
+3. The `[proposed]` **"needs attention"** definition in `docs/METRICS.md` (R-none, but it
+   decides what a consultant sees first).
+4. The **official logo**, and the **Linear team**.

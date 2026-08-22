@@ -71,19 +71,42 @@ it. `BMAD/STATUS.md` maps BMAD's 19 epics onto the roadmap's 19 phases.
 - **Row-Level Security.** Considered and deferred in ADR-004 — it would supplement
   session-derived scoping and composite foreign keys, not replace them.
 
-## Undecided — these block a complete PRD
+## Decided by the user, 2026-08-22
 
-Carried from `docs/ROADMAP.md`. Each needs the user, and each is assumed in the PRD with
-the assumption stated.
+The two material questions raised by the analysis are now settled. Both were introduced
+by the architecture posters and absent from the written brief, and both resolved the way
+v2.0 implied.
 
-| # | Question | Blocks | Assumed for now |
+### Billing and subscriptions — OUT of scope for the MVP
+
+No subscription domain, no payment provider, no billing surface on the owner dashboard,
+regardless of what the poster shows. v2.0 §38 lists it as future work and it stays there.
+
+**Consequence:** Phase 9's owner dashboard is analytics and operations only. The
+`organizations` table gains no plan, seat, or subscription columns. If billing arrives
+later it is additive — a new domain alongside, not a reshaping of tenancy — which is why
+deferring it costs nothing structurally.
+
+### Messaging — one-way notifications only
+
+`ADMIN`/consultant → `CUSTOMER`. **Explicitly not built:** realtime chat, conversations,
+threads, read receipts on a conversation, or any customer-initiated message.
+
+**Consequence for Phase 10:** there is a `notifications` table and no `conversations` or
+`messages` table. A "consultant message" is a notification *event*, exactly as v2.0
+lists it — it has a sender, a recipient, a body, and a read flag, and it does not have a
+parent thread or a reply path.
+
+This is the cheaper direction to be wrong in: adding conversations later means adding
+tables, whereas building threads now and discovering nobody wants them means carrying
+schema and UI that must still be kept working. Note that a customer's only channel back
+to their consultant is therefore the daily check-in's notes field and the appointment
+flow — worth confirming with a real pilot that this is enough.
+
+## Still undecided
+
+| # | Question | Blocks | Working assumption |
 |---|---|---|---|
-| 1 | Is **billing/subscription** in scope? The supplied poster shows "Subscription & Billing" on the owner dashboard; the written brief never mentions it, and v2.0 §38 lists it as *future*. | Phase 9 | **Out of scope.** v2.0 is the governing document and defers it. |
-| 2 | Is **consultant↔customer messaging** real? The poster shows "Messages" on both dashboards; v2.0 lists notifications and "consultant message" as a notification *event*, not a conversation. | Phase 10 | **One-way consultant→customer messages, delivered as notifications.** No threaded conversation, no customer-initiated messages. |
-| 3 | The **official logo**. | Phase 14 | Placeholder redrawn from the posters. |
-| 4 | Which **Linear team** owns this work. | project tracking | Unrecorded; no issues created. |
-
-Questions 1 and 2 are the material ones. Both were introduced by the architecture posters
-and are absent from the written brief — the posters are illustrative, v2.0 is governing,
-so both are treated as out of scope until the user says otherwise. If either is real,
-each needs its own schema and its own phase; neither can be bolted onto an existing one.
+| 1 | The **official logo**. | Phase 14 | Placeholder redrawn from the posters. |
+| 2 | Which **Linear team** owns this work. | project tracking | Unrecorded; no issues created. |
+| 3 | The `[proposed]` **"needs attention"** definition in `docs/METRICS.md`. | Phase 8 | Six signals as specified; needs confirmation because it decides what a consultant looks at first. |

@@ -78,14 +78,25 @@ v2.0 §34 also names four ADRs by topic (`authentication`, `database`, `multiten
 by filename from source comments, lint rules, and migration headers; they are not renamed
 to match, because renaming would break those citations.
 
+## Scope decided 2026-08-22
+
+Both questions raised by the contradiction between the posters and the written brief are
+now settled by the user. Full reasoning in `BMAD/01-analysis/PRODUCT-SCOPE.md`.
+
+- **Billing is OUT of scope for the MVP.** Phase 9's owner dashboard is analytics and
+  operations only. No subscription columns on `organizations`, no payment provider.
+- **Messaging is one-way notifications only** — consultant → customer. Phase 10 builds a
+  `notifications` table and **no** `conversations` or `messages` table. No chat, no
+  threads, no customer-initiated messages.
+
 ## Open questions
 
 1. **The official logo.** Working from a redrawn placeholder — see `docs/BRANDING.md`.
-2. **Billing.** The supplied poster shows "Subscription & Billing" on the owner
-   dashboard; the written brief never mentions it. Not in the Phase 0 schema. Needs a
-   decision before Phase 9.
-3. **Linear team.** Not yet recorded. The workspace has TempleOS (`TEM`) and Marketives
+2. **Linear team.** Not yet recorded. The workspace has TempleOS (`TEM`) and Marketives
    (`MAR`); neither obviously owns a new wellness product.
-4. **Messaging.** The poster shows consultant↔customer messaging on both dashboards. The
-   brief lists notifications but not conversations. If messaging is real, it needs its
-   own schema and probably its own phase.
+3. **"Needs attention"** — the definition in `docs/METRICS.md` is `[proposed]`. It decides
+   what a consultant looks at first, so it wants a care judgement, not an engineering one.
+   Needed before Phase 8.
+4. **Regulatory posture** — jurisdiction and any compliance regime that applies to holding
+   identifiable health data. Needed before real customer data exists, not before a
+   particular phase.
