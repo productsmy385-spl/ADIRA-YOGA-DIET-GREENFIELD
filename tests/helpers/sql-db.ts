@@ -1,4 +1,6 @@
-import { Pool } from "pg";
+import type { Pool } from "pg";
+
+import { pool } from "@/server/db/pool";
 
 /**
  * Database access for integration tests.
@@ -6,62 +8,54 @@ import { Pool } from "pg";
  * TWO RULES, both learned the hard way on TaskFlow HR and recorded in its
  * KNOWN-ISSUES.md. Please do not "simplify" either of them away.
  *
- * 1. ONE POOL. `resetDatabase()` issues TRUNCATE, which needs an ACCESS EXCLUSIVE lock.
- *    A second pool's idle connections hold table locks that prevent that lock being
+ * 1. ONE POOL. This returns the **application** pool, not a second one of its own.
+ *    `resetDatabase()` issues TRUNCATE, which needs an ACCESS EXCLUSIVE lock, and a
+ *    second pool's idle connections hold table locks that prevent that lock being
  *    granted. The symptom is a suite that passes on its own and times out in a full run
  *    — which looks like flakiness and gets "fixed" by raising the timeout, hiding it.
+ *
+ *    `tests/setup-db.ts` is what makes this safe: it repoints DATABASE_URL at the
+ *    throwaway database before the pool is constructed, so "the application pool" and
+ *    "the test pool" are the same object talking to the right database.
  *
  * 2. DO NOT CLOSE IT. `disconnectTestDb()` deliberately closes nothing. Closing a shared
  *    pool between files leaves later files with a dead pool.
  *
- * Tests requiring a database are SKIPPED when SQL_TEST_DATABASE_URL is unset, so the
- * suite stays green for a contributor without one while still running fully in CI.
- * Skipping is not the same as passing: `describeWithDatabase` reports the skip.
+ * Suites requiring a database are SKIPPED when SQL_TEST_DATABASE_URL is unset, so the
+ * run stays green for a contributor without one while still running fully in CI.
+ * Skipping is not passing — a skipped suite is reported as skipped.
  */
-
-const connectionString = process.env.SQL_TEST_DATABASE_URL;
 
 /** True when a test database is configured and integration suites should run. */
-export const hasTestDatabase = Boolean(connectionString);
-
-let sharedPool: Pool | null = null;
+export const hasTestDatabase = Boolean(process.env.SQL_TEST_DATABASE_URL);
 
 /**
- * The one pool integration tests share.
+ * The one pool integration tests share — the application's own.
  *
- * Throws if no test database is configured — call sites should be guarded by
- * `hasTestDatabase` (or use `describeWithDatabase`) so this never fires in practice.
+ * Safe only because `tests/setup-db.ts` has already repointed DATABASE_URL, and refuses
+ * to do so if it matches the development database.
  */
 export function getTestPool(): Pool {
-  if (!connectionString) {
+  if (!hasTestDatabase) {
     throw new Error(
       "SQL_TEST_DATABASE_URL is not set. Integration tests need a throwaway database — " +
         "never point this at development or production data, because the helpers here " +
         "TRUNCATE every table.",
     );
   }
-
-  sharedPool ??= new Pool({
-    connectionString,
-    ssl: process.env.DATABASE_CA_CERT
-      ? { ca: process.env.DATABASE_CA_CERT, rejectUnauthorized: true }
-      : { rejectUnauthorized: false },
-    max: 5,
-  });
-
-  return sharedPool;
+  return pool;
 }
 
 /**
- * Empty every application table, leaving the schema and the migration history intact.
+ * Empty every application table, leaving the schema and migration history intact.
  *
  * `schema_migrations` is excluded: wiping it would make the next run believe the
  * database is unmigrated.
  */
 export async function resetDatabase(): Promise<void> {
-  const pool = getTestPool();
+  const db = getTestPool();
 
-  const { rows } = await pool.query<{ tablename: string }>(
+  const { rows } = await db.query<{ tablename: string }>(
     `SELECT tablename FROM pg_tables
       WHERE schemaname = 'public' AND tablename <> 'schema_migrations'`,
   );
@@ -69,7 +63,7 @@ export async function resetDatabase(): Promise<void> {
   if (rows.length === 0) return;
 
   const tables = rows.map((row) => `public."${row.tablename}"`).join(", ");
-  await pool.query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
+  await db.query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
 }
 
 /**

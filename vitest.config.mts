@@ -35,6 +35,10 @@ export default defineConfig({
         test: {
           name: "server",
           environment: "node",
+          // Repoints DATABASE_URL at the throwaway database before anything constructs
+          // the pool, so the application and the fixtures share ONE pool. See the file
+          // for why a second pool breaks TRUNCATE.
+          setupFiles: ["./tests/setup-db.ts"],
           include: [
             "src/lib/**/*.test.ts",
             "src/i18n/**/*.test.ts",
