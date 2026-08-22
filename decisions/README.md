@@ -21,6 +21,7 @@ changed since.
 | [006](ADR-006-forward-only-migrations-on-deploy.md) | Forward-only migrations, applied automatically before each deploy | Accepted |
 | [007](ADR-007-otp-by-email-behind-adapter.md) | OTP is delivered by email via Resend, behind a delivery adapter | Accepted |
 | [008](ADR-008-bmad-as-execution-method.md) | BMAD is the planning and execution method | Accepted |
+| [009](ADR-009-programme-snapshot-on-assignment.md) | Assigning a programme snapshots it; the template is never referenced live | Accepted |
 
 ## Inherited context
 

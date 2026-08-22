@@ -24,9 +24,11 @@ Every metric is derived: adherence, completion, engagement, retention, consultan
 performance. A defect in derivation is invisible — the number still looks like a number —
 and a consultant may change someone's therapy because of it.
 
-**Mitigation:** metric definitions written down before implementation (PRD §
-Metrics), computed in the service layer with unit tests over known fixtures, never in a
-component. No metric may be computed in two places.
+**Mitigation: `docs/METRICS.md` (2026-08-22)** defines every derived figure, its
+denominator, and its exclusions before any of it is implemented. Computed in the service
+layer with unit tests over known fixtures, never in a component, never in two places.
+`docs/METRICS.md` also settles the "undefined is not zero" rule, which is the single
+most likely way for a metric to be quietly wrong.
 
 **Residual:** self-reported completion is unverifiable by construction. The product must
 present adherence as *reported* adherence and never imply verification.
@@ -81,8 +83,14 @@ If assignment references a programme rather than copying it, editing that progra
 retroactively changes what past customers were told to do — corrupting the adherence
 record against it.
 
-**Mitigation:** none yet. **Phase 6 must decide explicitly** between versioned programmes
-and copy-on-assign. Flagged in J4.
+**Mitigation: resolved by `decisions/ADR-009` (2026-08-22).** Assignment snapshots the
+programme into customer-owned rows; the template is never referenced live, so an edit
+cannot reach a customer who is already assigned. Personalisation lands in the same rows,
+which the product needs anyway.
+
+**Residual:** Phase 6 still owes the rule for what a *re-assign* does to days already
+completed. The safe default is that the past is never rewritten and only future days
+change.
 
 ### R8 — Async jobs silently stop · MEDIUM
 
