@@ -92,8 +92,41 @@ Run typecheck, lint, and test before calling work done.
 
 ## State
 
-Phase 0 complete: foundation, architecture, security model, schema design, migration and
-test infrastructure. **No authentication is implemented yet** — Phase 2 owns it. The
-schema is authored but not applied; Phase 1 provisions Railway PostgreSQL and runs it.
+Last verified 2026-08-22.
 
-Phase order and scope: see `docs/ROADMAP.md`.
+Railway PostgreSQL is **provisioned and live**, migrations `001`–`004` applied. The app
+deploys from GitHub `main`; a push builds, runs `npm run migrate` pre-deploy, and goes
+live at the Railway service URL. Authentication is **implemented and proven end to end**
+against that database: an emailed one-time code issues, verifies, and establishes a
+session, with the code stored only as a salted hash and the session token only as an
+HMAC keyed by its identity domain.
+
+Built: foundation, repository layer, sessions and guards, OTP sign-in, WebAuthn passkeys,
+programmes and assignments, the activity engine, and the customer daily loop.
+
+Two operational limits that are easy to forget, because neither fails loudly:
+
+- **Email delivery reaches exactly one address.** Resend is on its sandbox, which
+  accepts sends only to the account's own signup address. Every other recipient gets a
+  403 that surfaces as `otp.issue FAILURE DELIVERY_FAILED` in `audit_logs` while the
+  sign-in form still says "if that address has an account…". **No second person can sign
+  in until a domain is verified.**
+- **`.env.local` points at production.** `docs/RAILWAY.md` forbids this. The staging
+  environment exists but is unmigrated and has no public proxy. Until that is fixed,
+  never set `SQL_TEST_DATABASE_URL` — the helpers in `tests/helpers/sql-db.ts` run
+  `TRUNCATE` on every table.
+
+Phase order and scope: see `docs/ROADMAP.md`. **Do not describe build progress in
+user-facing copy** — `src/app/page.tsx` once told visitors "there is no application to
+sign in to yet" for as long as it took someone to notice, because stale copy fails
+silently.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

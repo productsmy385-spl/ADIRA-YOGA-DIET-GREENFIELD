@@ -15,43 +15,28 @@
     "label": "Language",
     "change": "Change language"
   },
-  "foundation": {
-    "badge": "Phase 0 complete — foundation and security model",
-    "intro": "There is no application to sign in to yet — this page reports what the foundation establishes, and what each remaining phase adds.",
-    "establishedHeading": "What Phase 0 established",
-    "nextHeading": "Next",
-    "docsNote": "Architecture, security model, and schema design are documented in <code>docs/</code> and <code>decisions/</code>.",
-    "items": {
-      "domains": {
-        "title": "Two identity domains",
-        "body": "Platform owners and tenant users live in separate tables, with separate sessions and separate signing secrets. No code path upgrades one into the other."
+  "landing": {
+    "signIn": "Sign in",
+    "goToDashboard": "Go to your dashboard",
+    "signedInAs": "Signed in as {name}",
+    "heroLead": "Personalised yoga and diet programmes, daily activity tracking, and progress reporting — for wellness organisations and the people they care for.",
+    "ctaHint": "Adira is private software. Your organisation creates your account.",
+    "audienceHeading": "Who it is for",
+    "audience": {
+      "customers": {
+        "title": "For the people practising",
+        "body": "Your programme, your daily practice, and your progress in one place — in your own language, on the phone you already carry."
       },
-      "tenancy": {
-        "title": "Tenancy as a constraint",
-        "body": "Composite foreign keys mean PostgreSQL itself refuses to link a consultant in one organization to a customer in another. Cross-tenant leakage is unrepresentable, not merely untested."
+      "consultants": {
+        "title": "For consultants",
+        "body": "See the customers assigned to you, build their programmes, and follow how they are actually doing between sessions."
       },
-      "rank": {
-        "title": "Rank rules, not just permissions",
-        "body": "An actor must strictly outrank a target to act on them, so peers cannot disable each other."
-      },
-      "migrations": {
-        "title": "Migrations that run on deploy",
-        "body": "Forward-only, checksum-verified, advisory-locked, and wired as Railway's pre-deploy step — so a deploy cannot succeed against an unmigrated database."
-      },
-      "env": {
-        "title": "Configuration validated at boot",
-        "body": "Every environment variable is parsed at startup. A missing key fails the deploy by name, rather than throwing on whichever request first needs it."
-      },
-      "tokens": {
-        "title": "One place for colour",
-        "body": "Every value on this page resolves to a token in globals.css. A hardcoded hex anywhere in src/ is a lint error."
+      "organisations": {
+        "title": "For organisations",
+        "body": "Your studio's people, roles, and records stay yours. Every record is scoped to your organisation by the database itself."
       }
     },
-    "phases": {
-      "1": "Phase 1 — Railway PostgreSQL, schema applied",
-      "2": "Phase 2 — Passkeys and OTP",
-      "3": "Phase 3 — RBAC and cross-tenant test suites",
-      "4": "Phase 4 — Service and repository layers"
-    }
+    "statusHeading": "Build status",
+    "statusBody": "Adira is being built in phases and is not yet feature-complete. Authentication, multi-tenancy, and the database schema are live. Programmes, activity tracking, and reporting are still to come — this page will not claim otherwise before they exist."
   }
 }
