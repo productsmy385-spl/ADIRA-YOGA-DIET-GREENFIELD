@@ -165,6 +165,147 @@ describeWithDatabase("tenant isolation", () => {
       ).rejects.toThrow();
     });
 
+    /**
+     * The domain tables from migration 004. Each carries a customer, so each is a place
+     * a cross-tenant row would mean one studio's consultant reading another studio's
+     * health records.
+     */
+    it("refuses an assignment attaching a plan to a customer in another organization", async () => {
+      await expect(
+        query(
+          `INSERT INTO assignments
+             (organization_id, customer_id, kind, name, starts_on, duration_weeks)
+           VALUES ($1, $2, 'YOGA', 'Foundation', current_date, 4)`,
+          [f.orgA, f.customerB],
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("refuses an assignment whose assigner belongs to another organization", async () => {
+      await expect(
+        query(
+          `INSERT INTO assignments
+             (organization_id, customer_id, assigned_by, kind, name, starts_on, duration_weeks)
+           VALUES ($1, $2, $3, 'YOGA', 'Foundation', current_date, 4)`,
+          [f.orgA, f.customerA, f.adminB],
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("refuses a check-in recorded against a customer in another organization", async () => {
+      await expect(
+        query(
+          `INSERT INTO daily_checkins (organization_id, customer_id, checkin_date, mood)
+           VALUES ($1, $2, current_date, 3)`,
+          [f.orgA, f.customerB],
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("accepts a plan and a check-in within one organization", async () => {
+      await expect(
+        query(
+          `INSERT INTO assignments
+             (organization_id, customer_id, assigned_by, kind, name, starts_on, duration_weeks)
+           VALUES ($1, $2, $3, 'YOGA', 'Foundation', current_date, 4)`,
+          [f.orgA, f.customerA, f.adminA],
+        ),
+      ).resolves.toBeDefined();
+
+      await expect(
+        query(
+          `INSERT INTO daily_checkins (organization_id, customer_id, checkin_date, mood)
+           VALUES ($1, $2, current_date, 4)`,
+          [f.orgA, f.customerA],
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    // A customer with two live yoga plans would have every day double-scheduled, which
+    // halves adherence for a reason nobody could find.
+    it("refuses a second live plan of the same kind for one customer", async () => {
+      const insert = () =>
+        query(
+          `INSERT INTO assignments
+             (organization_id, customer_id, kind, name, starts_on, duration_weeks, status)
+           VALUES ($1, $2, 'YOGA', 'Foundation', current_date, 4, 'ACTIVE')`,
+          [f.orgA, f.customerA],
+        );
+
+      await expect(insert()).resolves.toBeDefined();
+      await expect(insert()).rejects.toThrow();
+    });
+
+    it("allows one yoga plan and one diet plan at the same time", async () => {
+      await query(
+        `INSERT INTO assignments
+           (organization_id, customer_id, kind, name, starts_on, duration_weeks, status)
+         VALUES ($1, $2, 'YOGA', 'Foundation', current_date, 4, 'ACTIVE')`,
+        [f.orgA, f.customerA],
+      );
+
+      await expect(
+        query(
+          `INSERT INTO assignments
+             (organization_id, customer_id, kind, name, starts_on, duration_weeks, status)
+           VALUES ($1, $2, 'DIET', 'Balanced', current_date, 4, 'ACTIVE')`,
+          [f.orgA, f.customerA],
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    /**
+     * docs/METRICS.md depends on this: a COMPLETED activity with no timestamp would drop
+     * out of every time-windowed adherence query while still counting as completed.
+     */
+    it("refuses a COMPLETED activity with no completion timestamp", async () => {
+      const [assignment] = await query<{ id: string }>(
+        `INSERT INTO assignments
+           (organization_id, customer_id, kind, name, starts_on, duration_weeks, status)
+         VALUES ($1, $2, 'YOGA', 'Foundation', current_date, 4, 'ACTIVE') RETURNING id`,
+        [f.orgA, f.customerA],
+      );
+
+      await expect(
+        query(
+          `INSERT INTO daily_activities
+             (organization_id, customer_id, assignment_id, kind, scheduled_for, status)
+           VALUES ($1, $2, $3, 'YOGA', current_date, 'COMPLETED')`,
+          [f.orgA, f.customerA, assignment.id],
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("refuses an activity whose customer belongs to another organization", async () => {
+      const [assignment] = await query<{ id: string }>(
+        `INSERT INTO assignments
+           (organization_id, customer_id, kind, name, starts_on, duration_weeks, status)
+         VALUES ($1, $2, 'YOGA', 'Foundation', current_date, 4, 'ACTIVE') RETURNING id`,
+        [f.orgA, f.customerA],
+      );
+
+      await expect(
+        query(
+          `INSERT INTO daily_activities
+             (organization_id, customer_id, assignment_id, kind, scheduled_for)
+           VALUES ($1, $2, $3, 'YOGA', current_date)`,
+          [f.orgA, f.customerB, assignment.id],
+        ),
+      ).rejects.toThrow();
+    });
+
+    it("refuses a second check-in for the same customer on the same day", async () => {
+      const insert = () =>
+        query(
+          `INSERT INTO daily_checkins (organization_id, customer_id, checkin_date, mood)
+           VALUES ($1, $2, current_date, 3)`,
+          [f.orgA, f.customerA],
+        );
+
+      await expect(insert()).resolves.toBeDefined();
+      await expect(insert()).rejects.toThrow();
+    });
+
     it("refuses a second ORG_OWNER in the same organization", async () => {
       await expect(
         createUser({

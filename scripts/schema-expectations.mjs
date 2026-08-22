@@ -24,4 +24,16 @@ export const PG_ENUM_EXPECTATIONS = {
   otp_purpose: ["ACCOUNT_ACTIVATION", "ACCOUNT_RECOVERY", "NEW_DEVICE", "STEP_UP"],
   otp_status: ["PENDING", "VERIFIED", "EXPIRED", "EXHAUSTED", "SUPERSEDED"],
   webauthn_ceremony: ["REGISTRATION", "AUTHENTICATION"],
+  programme_kind: ["YOGA", "DIET"],
+  difficulty_level: ["BEGINNER", "INTERMEDIATE", "ADVANCED"],
+  meal_slot: ["BREAKFAST", "LUNCH", "SNACK", "DINNER"],
+  assignment_status: ["DRAFT", "ACTIVE", "PAUSED", "COMPLETED", "CANCELLED"],
+  activity_status: [
+    "PENDING",
+    "STARTED",
+    "COMPLETED",
+    "SKIPPED",
+    "MISSED",
+    "REVIEW_REQUIRED",
+  ],
 };

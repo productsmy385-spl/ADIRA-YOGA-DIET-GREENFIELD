@@ -24,6 +24,14 @@ import { PG_ENUM_EXPECTATIONS } from "./schema-expectations.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const EXPECTED_TABLES = [
+  "assignment_items",
+  "assignments",
+  "daily_activities",
+  "daily_checkins",
+  "meals",
+  "programme_items",
+  "programmes",
+  "yoga_exercises",
   "audit_logs",
   "auth_attempts",
   "consultant_assignments",
@@ -161,6 +169,12 @@ async function checkCompositeForeignKeys(client) {
     ["consultant_assignments", "consultant_id"],
     ["consultant_assignments", "customer_id"],
     ["sessions", "user_id"],
+    // Every customer-linked domain table must reference the PAIR, or a plan, an
+    // activity, or a check-in could be attached to a customer in another tenant.
+    ["assignments", "customer_id"],
+    ["assignments", "assigned_by"],
+    ["daily_activities", "customer_id"],
+    ["daily_checkins", "customer_id"],
   ];
 
   for (const [table, column] of expected) {

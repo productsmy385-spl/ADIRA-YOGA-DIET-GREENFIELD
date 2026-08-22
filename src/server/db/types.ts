@@ -65,6 +65,36 @@ export type OtpStatusValue = (typeof OTP_STATUS_VALUES)[number];
 export const WEBAUTHN_CEREMONY_VALUES = ["REGISTRATION", "AUTHENTICATION"] as const;
 export type WebauthnCeremonyValue = (typeof WEBAUTHN_CEREMONY_VALUES)[number];
 
+/** `programme_kind` — yoga or diet. */
+export const PROGRAMME_KIND_VALUES = ["YOGA", "DIET"] as const;
+export type ProgrammeKindValue = (typeof PROGRAMME_KIND_VALUES)[number];
+
+export const DIFFICULTY_LEVEL_VALUES = ["BEGINNER", "INTERMEDIATE", "ADVANCED"] as const;
+export type DifficultyLevelValue = (typeof DIFFICULTY_LEVEL_VALUES)[number];
+
+export const MEAL_SLOT_VALUES = ["BREAKFAST", "LUNCH", "SNACK", "DINNER"] as const;
+export type MealSlotValue = (typeof MEAL_SLOT_VALUES)[number];
+
+export const ASSIGNMENT_STATUS_VALUES = [
+  "DRAFT",
+  "ACTIVE",
+  "PAUSED",
+  "COMPLETED",
+  "CANCELLED",
+] as const;
+export type AssignmentStatusValue = (typeof ASSIGNMENT_STATUS_VALUES)[number];
+
+/** `activity_status` — §16. REVIEW_REQUIRED is excluded from adherence entirely. */
+export const ACTIVITY_STATUS_VALUES = [
+  "PENDING",
+  "STARTED",
+  "COMPLETED",
+  "SKIPPED",
+  "MISSED",
+  "REVIEW_REQUIRED",
+] as const;
+export type ActivityStatusValue = (typeof ACTIVITY_STATUS_VALUES)[number];
+
 /** `job_status` — the async queue drained by Railway Cron (decisions/ADR-003). */
 export const JOB_STATUS_VALUES = [
   "QUEUED",
@@ -89,4 +119,9 @@ export const PG_ENUMS = {
   otp_purpose: OTP_PURPOSE_VALUES,
   otp_status: OTP_STATUS_VALUES,
   webauthn_ceremony: WEBAUTHN_CEREMONY_VALUES,
+  programme_kind: PROGRAMME_KIND_VALUES,
+  difficulty_level: DIFFICULTY_LEVEL_VALUES,
+  meal_slot: MEAL_SLOT_VALUES,
+  assignment_status: ASSIGNMENT_STATUS_VALUES,
+  activity_status: ACTIVITY_STATUS_VALUES,
 } as const satisfies Record<string, readonly string[]>;
