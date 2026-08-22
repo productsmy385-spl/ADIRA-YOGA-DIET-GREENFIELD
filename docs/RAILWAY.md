@@ -28,11 +28,25 @@ From `railway.json`:
 
 | Setting | Value |
 |---|---|
-| Build | `npm ci && npm run build` |
+| Build | `npm run build` |
 | Pre-deploy | `npm run migrate` |
 | Start | `npm run start` |
 | Healthcheck | `/api/health`, 60s timeout |
 | Restart | on failure, max 3 retries |
+
+### The build command must NOT run `npm ci`
+
+`buildCommand` is `npm run build`, not `npm ci && npm run build`. Nixpacks already
+installs dependencies in its own earlier layer, and it mounts a build cache at
+`/app/node_modules/.cache`. A second `npm ci` tries to clear `node_modules` — including
+that live mount — and the deploy fails with:
+
+```
+npm error EBUSY: resource busy or locked, rmdir '/app/node_modules/.cache'
+```
+
+The message names a cache directory and not the duplicated install, so it reads like a
+Railway fault rather than a configuration one. It cost a failed deploy on 2026-08-22.
 
 ### Migrations run before the deploy goes live
 
