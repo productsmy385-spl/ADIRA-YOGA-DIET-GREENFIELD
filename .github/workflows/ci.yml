@@ -79,6 +79,12 @@ jobs:
             exit 1
           }
 
+      # Asserts the schema carries the invariants the ADRs depend on — the composite
+      # foreign keys, the absent organization_id on owner_accounts, the partial unique
+      # indexes. "The migration applied" is a much weaker claim than this one.
+      - name: Verify schema invariants
+        run: npm run db:verify
+
       - name: Test
         run: npm test
 
