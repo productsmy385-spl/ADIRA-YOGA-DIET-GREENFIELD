@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 
+import { ServiceWorkerRegistrar } from "@/components/pwa/service-worker";
 import { LOCALE_DIRECTION, type Locale } from "@/i18n/locales";
 import { branding } from "@/lib/branding";
 
@@ -75,7 +76,12 @@ export default async function RootLayout({
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${sans.variable} ${mono.variable}`}>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          {children}
+          {/* Registers after load, and only in production. A worker competing for the
+              main thread during hydration slows the page the customer is waiting for. */}
+          <ServiceWorkerRegistrar />
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -1,20 +1,33 @@
 {
-  "name": "Adira — Yoga Therapy & Wellness",
+  "name": "Adira \u2014 Yoga Therapy & Wellness",
   "short_name": "Adira",
   "description": "Personalised yoga and diet programmes, daily activity tracking, and progress reporting.",
-  "start_url": "/",
+  "start_url": "/today",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#fbfaf6",
   "theme_color": "#2f5d43",
-  "categories": ["health", "fitness", "lifestyle"],
+  "categories": [
+    "health",
+    "fitness",
+    "lifestyle"
+  ],
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    }
+  ],
+  "id": "/today",
+  "shortcuts": [
+    {
+      "name": "Today's practice",
+      "short_name": "Today",
+      "url": "/today",
+      "description": "Your activities for today"
     }
   ]
 }
