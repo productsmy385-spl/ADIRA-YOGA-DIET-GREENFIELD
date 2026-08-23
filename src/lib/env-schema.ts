@@ -47,7 +47,16 @@ export const serverSchema = z
     /** From-address for transactional mail. Phase 2. */
     OTP_FROM_EMAIL: z.email().optional(),
 
-    /** ImageKit credentials. Phase 12. */
+    /**
+     * ImageKit credentials. Phase 12.
+     *
+     * The PUBLIC key is not secret — the browser needs it to address the upload API — but
+     * it lives here rather than in `env.client.ts` on purpose. `NEXT_PUBLIC_*` is inlined
+     * at BUILD time, so a build would be pinned to one ImageKit account and staging could
+     * not differ from production without a rebuild. Handing it to the client in the
+     * upload-auth response keeps it a runtime value.
+     */
+    IMAGEKIT_PUBLIC_KEY: z.string().optional(),
     IMAGEKIT_PRIVATE_KEY: z.string().optional(),
     IMAGEKIT_URL_ENDPOINT: z.url().optional(),
   })
