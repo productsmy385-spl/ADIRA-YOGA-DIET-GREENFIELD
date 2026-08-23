@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
 import { branding } from "@/lib/branding";
 import { readTenantSession } from "@/server/auth/session";
 
@@ -45,8 +47,15 @@ export default async function SignInPage() {
 
         <SignInForm />
 
-        <p className="mt-8 text-center text-xs text-muted-foreground">
-          Adira is private software. Accounts are created by your organisation.
+        <div className="mt-8 border-t border-border pt-6 text-center">
+          <p className="text-sm text-muted-foreground">Don&rsquo;t have access?</p>
+          <Button asChild variant="outline" size="sm" className="mt-3">
+            <Link href="/request-access">Request access</Link>
+          </Button>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          Adira is private software. Your organisation reviews every request.
         </p>
       </main>
     </div>
