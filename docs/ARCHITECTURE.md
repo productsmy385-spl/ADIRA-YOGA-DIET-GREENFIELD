@@ -130,4 +130,4 @@ Two rules keep it that way:
 
 3D lives in `src/components/3d/`, is dynamically imported only, and is never part of the
 `/today` bundle — the daily loop is the journey the product lives on. Scenes take a
-`model_reference` from the database (ADR-013); no model is hardcoded.
+`model_reference` from the database (ADR-014); no model is hardcoded.

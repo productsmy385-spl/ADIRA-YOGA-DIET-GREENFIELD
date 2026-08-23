@@ -25,7 +25,8 @@ changed since.
 | [010](ADR-010-locale-in-cookie-not-url.md) | The locale lives in a cookie, not in the URL | Accepted |
 | [011](ADR-011-session-lifetime-and-domain-keyed-tokens.md) | Session lifetime, idle timeout, and domain-keyed session tokens | Accepted |
 | [012](ADR-012-organization-resolved-after-verification.md) | The organization is resolved after the credential verifies, never before | Accepted |
-| [013](ADR-013-3d-stack-and-csp-consequences.md) | react-three-fiber for 3D, and what it costs the CSP | Accepted |
+| [013](ADR-013-merged-admin-administrative-vs-data-reach.md) | Merged ADMIN: administrative reach is organization-wide, member data stays assignment-scoped | Accepted |
+| [014](ADR-014-3d-stack-and-csp-consequences.md) | react-three-fiber for 3D, and what it costs the CSP | Accepted |
 
 ## Inherited context
 

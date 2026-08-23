@@ -127,7 +127,7 @@ engineering. Splitting it resolves that honestly:
 | **15D** | Perf budget, WebGL-absent and slow-device fallbacks, contrast and keyboard audit | **yes** |
 
 Because scenes take a `model_reference` from the database rather than a hardcoded model
-(ADR-013), the placeholder and the final asset are the same code path — swapping them is a
+(ADR-014), the placeholder and the final asset are the same code path — swapping them is a
 data change, not a rewrite. That is what makes deferring 15C safe.
 
 **Phase 15 is not complete until 15C is.** No report may say otherwise while a development
@@ -136,7 +136,7 @@ placeholder is on screen.
 ## Visual experience programme
 
 Design system: `docs/UX-SPECIFICATION.md` (Botanical Wellness Glass).
-Impact and constraints: `BMAD/01-analysis/VISUAL-UPGRADE-IMPACT.md`. Stack: ADR-013.
+Impact and constraints: `BMAD/01-analysis/VISUAL-UPGRADE-IMPACT.md`. Stack: ADR-014.
 
 Delivered in groups, each independently reviewable, in the order the brief gives (§28):
 

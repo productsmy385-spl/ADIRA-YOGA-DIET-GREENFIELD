@@ -1,7 +1,7 @@
 # Epic 20 — Botanical Wellness Glass + 3D
 
 **Source:** visual brief, 2026-08-23 (30 sections).
-**Design:** `docs/UX-SPECIFICATION.md` · **Impact:** `BMAD/01-analysis/VISUAL-UPGRADE-IMPACT.md` · **Stack:** ADR-013.
+**Design:** `docs/UX-SPECIFICATION.md` · **Impact:** `BMAD/01-analysis/VISUAL-UPGRADE-IMPACT.md` · **Stack:** ADR-014.
 
 Presentation only. Authentication, RBAC, organisation isolation, API contracts and the
 database are unchanged — see the impact analysis §1 for the verification.

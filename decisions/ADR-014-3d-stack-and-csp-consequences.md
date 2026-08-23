@@ -1,4 +1,7 @@
-# ADR-013 — react-three-fiber for 3D, and what it costs the CSP
+# ADR-014 — react-three-fiber for 3D, and what it costs the CSP
+
+> Renumbered from ADR-013 on 2026-08-23. Two documents briefly shared that number:
+> ADR-013 is the merged-ADMIN role model. Nothing in this decision changed.
 
 **Decision:** 3D is built on `three` via `@react-three/fiber` and `@react-three/drei`,
 loaded only through dynamic import, and never present in the `/today` bundle. Models are
