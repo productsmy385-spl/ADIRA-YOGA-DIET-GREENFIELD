@@ -111,3 +111,45 @@ There is no local PostgreSQL on the development machine as of Phase 0. Phase 1 p
 Railway PostgreSQL (a `staging` database is fine for development) and applies
 `001_foundation.sql` for the first time. Point `SQL_TEST_DATABASE_URL` at a **throwaway**
 database — the test helpers `TRUNCATE` every table.
+
+## Role model after ADR-013
+
+`tenant_role` accepts four labels but the application uses two.
+
+| Label | Status |
+|---|---|
+| `ADMIN` | live — organization-wide administration, assignment-scoped member data |
+| `USER` | live — self only |
+| `ORG_OWNER` | **tombstone**, migrated to `ADMIN` by `007` |
+| `CUSTOMER` | **tombstone**, migrated to `USER` by `007` |
+
+PostgreSQL cannot drop an enum value without recreating the type and rewriting every
+column that uses it — a table rewrite under a live application. The tombstones are
+therefore accepted by the type and written by nothing. `normaliseRole` maps them at the
+session boundary so no business logic compares against them.
+
+`users_one_org_owner_idx` is dropped by `007`. It enforced exactly one `ORG_OWNER` per
+organization, which the merged model contradicts. The guarantee it carried — that every
+organization has an identifiable principal — moves to `setMemberStatus`, which refuses to
+remove the last `ACTIVE` admin inside a transaction. A partial unique index cannot express
+"at least one", which is why the rule could not stay in the schema.
+
+`account_status.PENDING` ("self-registered via join code, awaiting approval") is now dead.
+Access requests own that lifecycle in their own table with their own enum, because mixing
+account status with request status is the confusion the brief explicitly forbids.
+
+## access_requests
+
+Someone without an account asking an admin for one. Added by `006`.
+
+| Property | Why |
+|---|---|
+| `organization_id` resolved from `join_code` server-side | the applicant never supplies it, and no endpoint returns an organization list to an unauthenticated caller |
+| **no** `requested_role` column | approval always creates `USER`; the INSERT writes it as a literal, so a privileged role is unrepresentable rather than merely rejected |
+| `access_requests_one_pending_idx` — partial unique on `(organization_id, email) WHERE status = 'PENDING'` | duplicate handling that cannot race; an application check has two submissions both find nothing and both insert |
+| `access_requests_reviewer_fk` — composite `(reviewed_by, organization_id)` | PostgreSQL refuses a cross-tenant reviewer regardless of what the handler believes |
+| `access_requests_review_consistency` CHECK | a decided request must name who decided it and when; an undecided one must not |
+
+Approval and account creation happen in **one transaction**. Two statements can leave a
+request marked `APPROVED` with no account behind it — a person told they have access who
+cannot sign in, with no error anywhere to explain it.

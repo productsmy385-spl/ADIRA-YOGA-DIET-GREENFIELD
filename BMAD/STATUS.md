@@ -5,7 +5,7 @@ verbatim. **This file is ours** — it records where the project actually stands
 that method, and it exists because BMAD was adopted *after* Phase 0 had already been
 built.
 
-Last reconciled: 2026-08-22.
+Last reconciled: 2026-08-23.
 
 ## The honest position
 

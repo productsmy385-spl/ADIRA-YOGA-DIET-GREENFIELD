@@ -1,11 +1,21 @@
 # Roles and authorization
 
+## The rule everything else serves
+
+> **Administrative reach is organization-wide. Member health and activity data access
+> remains assignment-scoped.**
+
+Quoted verbatim from [ADR-013](../decisions/ADR-013-merged-admin-administrative-vs-data-reach.md),
+because the ambiguity it removes is the one that made that decision necessary. "Access"
+means two different things in the brief — administer the organization, and read a member's
+health record — and conflating them hands every admin every member's practice.
+
 ## Two identity domains
 
 | Domain | Principal | Table | Session | Scope |
 |---|---|---|---|---|
-| `PLATFORM` | `PLATFORM_OWNER` | `owner_accounts` | `owner_sessions`, own cookie + secret | all organizations |
-| `TENANT` | `ORG_OWNER`, `ADMIN`, `CUSTOMER` | `users` | `sessions`, own cookie + secret | exactly one organization |
+| `PLATFORM` | `SUPER_ADMIN` | `owner_accounts` | `owner_sessions`, own cookie + secret | all organizations |
+| `TENANT` | `ADMIN`, `USER` | `users` | `sessions`, own cookie + secret | exactly one organization |
 
 `owner_accounts` has **no** `organization_id` column and `users` has a **NOT NULL** one.
 Neither mistake — an unscoped tenant user, a tenant-scoped platform account — is
@@ -14,21 +24,67 @@ representable. (ADR-001)
 ## The tenant ladder
 
 ```
-ORG_OWNER  (30)   organization-wide reach
-ADMIN      (20)   assigned customers only  ← combined admin/consultant role
-CUSTOMER   (10)   self only
+ADMIN  (20)   organization-wide ADMINISTRATION
+              assignment-scoped MEMBER DATA
+USER   (10)   self only
 ```
 
 Ranks are relative only. They are never persisted; the database stores the role name.
 
-### ADMIN is assignment-scoped
+`SUPER_ADMIN` is not on this ladder. It belongs to the other identity domain, and there is
+no rung connecting them.
 
-`ADMIN` merges the admin and consultant roles (ADR-002). It reaches the customers listed
-in `consultant_assignments` and no others. `hasOrganizationWideReach()` returns `false`
-for `ADMIN`, and a `false` there does not mean "denied" — it means the caller must
-additionally consult `consultant_assignments` before returning a customer record.
+### The two reaches, and why they are two functions
 
-Organization-wide reach belongs to `ORG_OWNER` alone.
+`hasOrganizationWideReach()` **no longer exists.** It answered both questions with one
+boolean, which meant merging `ORG_OWNER` into `ADMIN` could be done by flipping it — a
+one-line change that would have exposed every member's health record while nothing failed
+and no test went red.
+
+| Function | Answers | True for |
+|---|---|---|
+| `canManageOrganization(actor)` | may they administer this organization? | `ADMIN` |
+| `canAccessMemberData(actor, member, hasAssignment)` | may they read this member's practice? | `ADMIN` **with an active assignment**; `USER` for themselves |
+
+`resolveMemberAccess` in `src/server/authorization/member-access.ts` is the single gate
+that performs the assignment lookup and returns a reasoned decision. Every read of
+activities, check-ins, progress, plans, reports, or appointments goes through it.
+
+A denial for a **named** member is 403 with a `DENIED` audit row — never an empty page. An
+empty list is indistinguishable from "this member has no data" and hides exactly the
+probing `audit_logs_denied_idx` exists to surface. For a **collection**, returning only
+the authorised rows is the honest answer.
+
+### Legacy roles during the migration window
+
+`tenant_role` still accepts `ORG_OWNER` and `CUSTOMER`: PostgreSQL cannot drop an enum
+value. `normaliseRole` maps them onto the merged model at the session boundary, and
+`TenantActor.storedRole` carries the raw value.
+
+One transitional rule reads it. A pre-migration `ORG_OWNER` keeps organization-wide member
+data reach until migration `007` seeds their assignments, because the code deploys before
+the migration runs and withdrawing that reach in between would leave the only real
+administrator unable to see any member of their own organization.
+`isLegacyOrganizationOwner` names it so deployment 3 can delete it with the compiler's
+help. It grants nothing new and is still refused across organizations.
+
+### An ADMIN may not administer another ADMIN
+
+All admins are peers, and `canActOn` requires the actor to **strictly** outrank the target,
+so peer-on-peer is denied with `INSUFFICIENT_RANK`. This is kept rather than worked around
+(ADR-013 Q1): `SUPER_ADMIN` owns the `ADMIN` lifecycle, `ADMIN` owns the `USER` lifecycle.
+
+Relaxing the comparison to `<` for "just this case" would also let a `USER` act on a peer
+`USER`, which is the invariant the strictness protects.
+
+### An organization must keep one active admin
+
+`users_one_org_owner_idx` guaranteed an identifiable principal per organization. Migration
+`007` drops it, so the guarantee moves to `setMemberStatus`, which refuses to suspend or
+deactivate the last `ACTIVE` admin — inside a transaction, locking the admin rows
+`FOR UPDATE` before counting. A check-then-write races: two admins suspending each other
+concurrently both see two and both proceed. `SUPER_ADMIN` may override, because platform
+recovery must stay possible. (ADR-013 Q3)
 
 ## The two rank rules
 
@@ -51,7 +107,7 @@ worth alerting on.
 
 ### `canAssignRole(actor, role)`
 
-1. `PLATFORM_OWNER` is refused outright → `UNGRANTABLE_ROLE`
+1. `SUPER_ADMIN` is refused outright → `UNGRANTABLE_ROLE`
 2. Actor must be a tenant principal → else `CROSS_DOMAIN`
 3. Actor strictly outranks the role → else `INSUFFICIENT_RANK`
 
@@ -60,17 +116,18 @@ account locks the real ones out.
 
 ### Two consequences that look like bugs
 
-- **An `ORG_OWNER` cannot grant `ORG_OWNER`.** Ownership transfer is therefore not a
-  dropdown on the users table. Handing over an organization is a deliberate, separately
-  audited operation — not something reached by mis-clicking a select.
+- **An `ADMIN` cannot grant `ADMIN`.** After ADR-013 that is exactly right: provisioning
+  an administrator is `SUPER_ADMIN`'s job, not something reached by mis-clicking a select
+  on the members table.
 
-- **`PLATFORM_OWNER` is ungrantable at any rank.** It is not a senior rung on this
-  ladder; it is a different ladder in a different table. There is no rung to climb.
+- **`SUPER_ADMIN` is ungrantable at any rank.** It is not a senior rung on this ladder; it
+  is a different ladder in a different table. There is no rung to climb.
 
-## The platform owner does not bypass authorization
+## SUPER_ADMIN does not bypass authorization
 
-`canActOn` never grants a `PLATFORM_OWNER` authority over a tenant user — it returns
-`CROSS_DOMAIN`. Platform-level intervention exists, but as a separate, individually
+`canActOn` never grants a `SUPER_ADMIN` authority over a tenant user — it returns
+`CROSS_DOMAIN`, and `canAccessMemberData` refuses platform principals outright, so no
+amount of assignment data would help. Platform-level intervention exists, but as a separate, individually
 audited operation, not as a silent fall-through in a rank check.
 
 This is deliberate. "Owner must not automatically bypass authorization" is a requirement,
@@ -89,8 +146,10 @@ be logged with *why*.
 | `INSUFFICIENT_RANK` | actor does not strictly outrank |
 | `SELF_ACTION` | actor is the target |
 | `UNGRANTABLE_ROLE` | role not grantable through this surface |
+| `NOT_ASSIGNED` | no active `consultant_assignments` row links actor to member |
 
-`CROSS_ORGANIZATION` and `UNGRANTABLE_ROLE` mean someone is probing a boundary. They are
+`CROSS_ORGANIZATION`, `UNGRANTABLE_ROLE`, and a repeated `NOT_ASSIGNED` mean someone is
+probing a boundary. They are
 written to `audit_logs` with `outcome = 'DENIED'`, which has its own partial index.
 
 ## Still to build

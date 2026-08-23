@@ -1,5 +1,20 @@
 # Security
 
+## The member-data invariant
+
+> **Administrative reach is organization-wide. Member health and activity data access
+> remains assignment-scoped.**
+
+Quoted verbatim from [ADR-013](../decisions/ADR-013-merged-admin-administrative-vs-data-reach.md).
+An `ADMIN` may administer every member of their organization and may read the practice of
+only those in `consultant_assignments`. The two are separate permissions, answered by
+`canManageOrganization` and `canAccessMemberData` — never by one boolean, because one
+boolean is how they were conflated in the first place.
+
+A denial for a named member is 403 with a `DENIED` audit row, never an empty page: an
+empty list is indistinguishable from "no data" and hides the probe.
+
+
 Adira holds health information about identifiable people, segregated by organization.
 The two failures that matter most are a customer reading another customer's record, and
 one organization reading another's.
