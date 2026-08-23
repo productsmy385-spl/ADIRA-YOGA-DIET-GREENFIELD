@@ -15,6 +15,7 @@
 
 import { query, queryOne } from "@/server/db/pool";
 import type { TenantRoleValue } from "@/server/db/types";
+import { normaliseRole, type StoredTenantRole, type TenantRole } from "@/server/authorization/roles";
 
 /**
  * What a verified tenant cookie resolves to.
@@ -28,7 +29,19 @@ export interface TenantSessionContext {
   sessionId: string;
   userId: string;
   organizationId: string;
-  role: TenantRoleValue;
+  /**
+   * The merged model (ADR-013). Legacy labels are normalised here, once, so that no
+   * business logic above this layer ever compares against ORG_OWNER or CUSTOMER.
+   */
+  role: TenantRole;
+  /**
+   * What `users.role` actually holds, when it differs from `role`.
+   *
+   * Carried through the session because the transitional grandfather clause in
+   * `canAccessMemberData` needs it, and reading it from the session is the only place it
+   * can be trusted — a request parameter could claim anything (ADR-004).
+   */
+  storedRole?: StoredTenantRole;
   email: string;
   fullName: string;
   locale: string;
@@ -113,7 +126,10 @@ function toTenantContext(row: TenantSessionRow): TenantSessionContext {
     sessionId: row.session_id,
     userId: row.user_id,
     organizationId: row.organization_id,
-    role: row.role,
+    role: normaliseRole(row.role as StoredTenantRole),
+    ...(normaliseRole(row.role as StoredTenantRole) !== (row.role as string)
+      ? { storedRole: row.role as StoredTenantRole }
+      : {}),
     email: row.email,
     fullName: row.full_name,
     locale: row.locale,

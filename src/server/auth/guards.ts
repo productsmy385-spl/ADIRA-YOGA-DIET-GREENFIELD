@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { readPlatformSession, readTenantSession } from "./session";
 import type { PlatformSessionContext, TenantSessionContext } from "./session";
 
-import type { TenantRoleValue } from "@/server/db/types";
+import type { TenantRole } from "@/server/authorization/roles";
 import { recordAudit } from "@/server/repositories/audit-logs";
 
 /**
@@ -54,12 +54,13 @@ export async function requirePlatformSession(): Promise<PlatformSessionContext> 
  * is a security event, and `audit_logs_denied_idx` exists so these can be watched. A
  * scattered inline check records nothing.
  *
- * Note this is ROLE, not reach. ADMIN is assignment-scoped (ADR-002), so passing this
- * guard says the caller is an admin — never that they may act on a particular customer.
- * That question is `canActOn`'s, at the point the customer is known.
+ * Note this is ROLE, not reach. ADMIN is assignment-scoped for member DATA
+ * (ADR-013), so passing this guard says the caller is an admin and may administer the
+ * organization — never that they may read a particular member's health record. That
+ * question belongs to `resolveMemberAccess`, at the point the member is known.
  */
 export async function requireRole(
-  ...roles: readonly TenantRoleValue[]
+  ...roles: readonly TenantRole[]
 ): Promise<TenantSessionContext> {
   const session = await requireTenantSession();
 

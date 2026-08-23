@@ -11,6 +11,7 @@ import { listActivitiesForDate, organizationToday } from "@/server/repositories/
 import { organizationSummary } from "@/server/repositories/analytics";
 import { listAuditForOrganization } from "@/server/repositories/audit-logs";
 import { listCaseload } from "@/server/repositories/caseload";
+import { actorFromSession } from "@/server/authorization/member-access";
 import { completionPercent, tally } from "@/server/services/metrics";
 
 import { signOutAction } from "../sign-in/actions";
@@ -33,14 +34,13 @@ export const dynamic = "force-dynamic";
  */
 
 const ROLE_LABEL: Record<string, string> = {
-  ORG_OWNER: "Organisation owner",
-  ADMIN: "Admin / consultant",
-  CUSTOMER: "Customer",
+  ADMIN: "Admin",
+  USER: "Member",
 };
 
 export default async function DashboardPage() {
   const session = await requireTenantSession();
-  const isStaff = session.role === "ORG_OWNER" || session.role === "ADMIN";
+  const isStaff = session.role === "ADMIN";
 
   // Only the queries this role is entitled to run are run at all. A customer's request
   // never touches the caseload or organisation-wide summary — the rows are not fetched
@@ -48,19 +48,19 @@ export default async function DashboardPage() {
   const [today, caseload, summary, audit] = await Promise.all([
     organizationToday(session.organizationId),
     isStaff
-      ? listCaseload(session.organizationId, session.role, session.userId)
+      ? listCaseload(actorFromSession(session))
       : Promise.resolve(null),
-    session.role === "ORG_OWNER"
+    session.role === "ADMIN"
       ? organizationSummary(session.organizationId)
       : Promise.resolve(null),
-    session.role === "ORG_OWNER"
+    session.role === "ADMIN"
       ? listAuditForOrganization(session.organizationId, 6)
       : Promise.resolve([]),
   ]);
 
   // Needs `today`, which the batch above resolves, so it cannot join that Promise.all.
   const myActivities =
-    session.role === "CUSTOMER"
+    session.role === "USER"
       ? await listActivitiesForDate(session.organizationId, session.userId, today)
       : null;
 
@@ -105,7 +105,7 @@ export default async function DashboardPage() {
 
         {/* The primary action. One per role, deliberately — a hub offering four equal
             choices is a hub that has not decided what you came here to do. */}
-        {session.role === "CUSTOMER" ? (
+        {session.role === "USER" ? (
           <section className="mt-8 rounded-xl border border-border bg-card p-6">
             <div className="flex items-start gap-4">
               <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">

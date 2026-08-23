@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { branding } from "@/lib/branding";
 import { requireRole } from "@/server/auth/guards";
 import { listCaseload, type CaseloadEntry } from "@/server/repositories/caseload";
+import { actorFromSession } from "@/server/authorization/member-access";
 import type { AttentionSignal } from "@/server/services/metrics";
 
 export const metadata: Metadata = { title: "Caseload" };
@@ -69,14 +70,11 @@ function CustomerRow({ entry }: { entry: CaseloadEntry }) {
 }
 
 export default async function AdminPage() {
-  // ORG_OWNER included: an owner-operator of a small studio is often the consultant too.
-  const session = await requireRole("ADMIN", "ORG_OWNER");
+  const session = await requireRole("ADMIN");
 
-  const caseload = await listCaseload(
-    session.organizationId,
-    session.role,
-    session.userId,
-  );
+  // A collection query, so the correct behaviour is to return only authorised rows rather
+  // than to refuse — "here are the members you may see" is the honest answer here.
+  const caseload = await listCaseload(actorFromSession(session));
 
   const needsAttention = caseload.filter((c) => c.attention.flagged);
   const rest = caseload.filter((c) => !c.attention.flagged);
@@ -99,9 +97,9 @@ export default async function AdminPage() {
           Your caseload
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {session.role === "ORG_OWNER"
-            ? `Every customer in ${session.organizationName}.`
-            : "The customers assigned to you."}
+          {session.storedRole === "ORG_OWNER"
+            ? `Every member in ${session.organizationName}.`
+            : "The members assigned to you."}
         </p>
 
         <section aria-labelledby="attention-heading" className="mt-8">

@@ -3,9 +3,8 @@ import Link from "next/link";
 import { GlassNavbar } from "@/components/glass/glass";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { branding } from "@/lib/branding";
-import type { TenantRoleValue } from "@/server/db/types";
 
-import { navItemsForRole, type NavItem } from "./nav-items";
+import { navItemsForRole, type NavItem, type NavRole } from "./nav-items";
 
 /**
  * The application shell's navigation.
@@ -19,7 +18,7 @@ import { navItemsForRole, type NavItem } from "./nav-items";
  */
 
 export interface AppNavProps {
-  role: TenantRoleValue;
+  role: NavRole;
   /** For the active state. Compared by prefix so nested routes stay highlighted. */
   currentPath?: string;
 }
@@ -37,7 +36,7 @@ export function AppNav({ role, currentPath }: AppNavProps) {
   return (
     <GlassNavbar>
       <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
-        <Link href={role === "CUSTOMER" ? "/today" : "/admin"} className="flex items-center gap-2.5">
+        <Link href={role === "CUSTOMER" || role === "USER" ? "/today" : "/admin"} className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
           <img src={branding.icons.mark} alt="" aria-hidden className="size-7" />
           <span className="font-semibold tracking-tight text-foreground">

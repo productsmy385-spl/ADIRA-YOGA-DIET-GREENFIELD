@@ -39,7 +39,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 export default async function AnalyticsPage() {
-  const session = await requireRole("ORG_OWNER");
+  const session = await requireRole("ADMIN");
 
   const [summary, consultants] = await Promise.all([
     organizationSummary(session.organizationId),

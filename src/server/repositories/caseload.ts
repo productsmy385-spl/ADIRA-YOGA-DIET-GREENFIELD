@@ -1,5 +1,5 @@
 import { query } from "@/server/db/pool";
-import type { TenantRoleValue } from "@/server/db/types";
+import { isLegacyOrganizationOwner, type TenantActor } from "@/server/authorization/roles";
 import {
   assessAttention,
   reportedCompletionRate,
@@ -63,16 +63,23 @@ interface CaseloadRow {
 }
 
 /**
- * @param viewerRole   decides reach — ORG_OWNER sees the organisation, ADMIN sees their
- *                     own assignments only.
- * @param viewerId     the consultant, used for the assignment join.
+ * The caseload is MEMBER DATA, not an administrative member list.
+ *
+ * It carries adherence, missed counts, and attention signals, so it is assignment-scoped
+ * under ADR-013: an ADMIN sees the members assigned to them and no others. The
+ * organization-wide list of *identities* an admin may administer is a different query and
+ * lives in the member-administration path.
+ *
+ * `orgWide` is therefore NOT `role === "ADMIN"`. It is the transitional grandfather
+ * clause and nothing else — a pre-migration ORG_OWNER whose assignments have not yet been
+ * seeded by migration 007. Replacing the old `viewerRole === "ORG_OWNER"` with
+ * `viewerRole === "ADMIN"` would have been the one-line widening ADR-013 exists to
+ * prevent, and would have silently handed every admin every member's adherence data.
  */
-export async function listCaseload(
-  organizationId: string,
-  viewerRole: TenantRoleValue,
-  viewerId: string,
-): Promise<CaseloadEntry[]> {
-  const orgWide = viewerRole === "ORG_OWNER";
+export async function listCaseload(actor: TenantActor): Promise<CaseloadEntry[]> {
+  const organizationId = actor.organizationId;
+  const viewerId = actor.userId;
+  const orgWide = isLegacyOrganizationOwner(actor);
 
   const rows = await query<CaseloadRow>(
     `WITH tz AS (
@@ -242,30 +249,41 @@ export async function listCaseload(
  * missing row must be indistinguishable to the caller, and the way to guarantee that is
  * to answer this question first and return the same 404 either way.
  */
-export async function canViewCustomer(
+/**
+ * Does an ACTIVE assignment link this admin to this member, inside this organization?
+ *
+ * A pure data question, deliberately. It answers "is there a row", not "may they look" —
+ * the policy lives in `canAccessMemberData` and this function must never grow an
+ * `if (role === ...)`, or the decision ends up split across two layers again.
+ *
+ * `ended_at IS NULL` is the whole of "active". An ended assignment is history: it records
+ * that a consultant once served this member, and it must not keep granting access.
+ */
+export async function hasActiveAssignment(
   organizationId: string,
-  viewerRole: TenantRoleValue,
-  viewerId: string,
-  customerId: string,
+  adminId: string,
+  memberId: string,
 ): Promise<boolean> {
-  if (viewerRole === "ORG_OWNER") {
-    const rows = await query<{ id: string }>(
-      `SELECT id FROM users
-        WHERE id = $2 AND organization_id = $1 AND role = 'CUSTOMER'`,
-      [organizationId, customerId],
-    );
-    return rows.length > 0;
-  }
-
-  if (viewerRole !== "ADMIN") return false;
-
   const rows = await query<{ id: string }>(
     `SELECT ca.id FROM consultant_assignments ca
       WHERE ca.organization_id = $1
         AND ca.consultant_id = $2
         AND ca.customer_id = $3
-        AND ca.ended_at IS NULL`,
-    [organizationId, viewerId, customerId],
+        AND ca.ended_at IS NULL
+      LIMIT 1`,
+    [organizationId, adminId, memberId],
+  );
+  return rows.length > 0;
+}
+
+/** Is this member a real member of this organization? Used to separate 404 from 403. */
+export async function isMemberOfOrganization(
+  organizationId: string,
+  memberId: string,
+): Promise<boolean> {
+  const rows = await query<{ id: string }>(
+    `SELECT id FROM users WHERE id = $2 AND organization_id = $1 LIMIT 1`,
+    [organizationId, memberId],
   );
   return rows.length > 0;
 }

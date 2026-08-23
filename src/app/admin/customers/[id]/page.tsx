@@ -11,7 +11,10 @@ import {
 } from "@/server/repositories/activities";
 import { listAssignmentsForCustomer } from "@/server/repositories/assignments";
 import { recordAudit } from "@/server/repositories/audit-logs";
-import { canViewCustomer } from "@/server/repositories/caseload";
+import {
+  actorFromSession,
+  resolveMemberAccessAudited,
+} from "@/server/authorization/member-access";
 import { listCheckInsInRange } from "@/server/repositories/checkins";
 import { findUserById } from "@/server/repositories/users";
 import { completionPercent, tally } from "@/server/services/metrics";
@@ -46,14 +49,17 @@ export default async function CustomerPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await requireRole("ADMIN", "ORG_OWNER");
+  const session = await requireRole("ADMIN");
 
-  const permitted = await canViewCustomer(
-    session.organizationId,
-    session.role,
-    session.userId,
+  // One gate for every member-sensitive read (ADR-013). It performs the assignment
+  // lookup and writes the DENIED audit entry itself, so no call site can forget either.
+  const { decision } = await resolveMemberAccessAudited(
+    actorFromSession(session),
     id,
+    "customer.view",
   );
+
+  const permitted = decision.allowed;
 
   if (!permitted) {
     // Recorded as DENIED, which is the signal worth watching: a consultant reaching for
