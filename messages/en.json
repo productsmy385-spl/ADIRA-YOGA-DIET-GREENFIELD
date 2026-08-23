@@ -37,6 +37,24 @@
       }
     },
     "statusHeading": "Build status",
-    "statusBody": "Adira is being built in phases and is not yet feature-complete. Authentication, multi-tenancy, and the database schema are live. Programmes, activity tracking, and reporting are still to come — this page will not claim otherwise before they exist."
+    "statusBody": "Adira is being built in phases and is not yet feature-complete. Authentication, multi-tenancy, and the database schema are live. Programmes, activity tracking, and reporting are still to come — this page will not claim otherwise before they exist.",
+    "eyebrow": "Yoga therapy · Diet · Daily practice",
+    "howHeading": "How it works",
+    "how": {
+      "assigned": {
+        "title": "A programme built for you",
+        "body": "Your consultant assigns a yoga and diet programme suited to your body and your goals. It is captured as it was on the day you received it, so later edits to the template never silently change your plan."
+      },
+      "practise": {
+        "title": "A clear practice each day",
+        "body": "Today's activities are waiting when you open Adira. Mark them off as you go — no hunting through a plan to work out what you are meant to do."
+      },
+      "progress": {
+        "title": "Progress you can trust",
+        "body": "Adherence is measured from what you actually completed, never estimated. A day with nothing scheduled reports no adherence rather than zero."
+      }
+    },
+    "footerNote": "Adira is private, authenticated software for wellness organisations.",
+    "footerBuilt": "Health data, treated accordingly: tenant isolation enforced by the database, one-time codes stored only as hashes, and every privileged action written to an audit trail."
   }
 }
