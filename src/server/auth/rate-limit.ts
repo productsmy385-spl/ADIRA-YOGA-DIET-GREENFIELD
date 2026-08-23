@@ -26,7 +26,11 @@
  * causing load.
  */
 
-export type AuthAction = "otp.issue" | "otp.verify" | "passkey.authenticate";
+export type AuthAction =
+  | "otp.issue"
+  | "otp.verify"
+  | "passkey.authenticate"
+  | "access_request.submit";
 
 export interface RateLimitPolicy {
   /** Window length in seconds. */
@@ -52,6 +56,17 @@ export const POLICIES: Record<AuthAction, RateLimitPolicy> = {
   "otp.issue": { windowSeconds: 900, maxPerAccount: 5, maxPerIp: 20 },
   "otp.verify": { windowSeconds: 900, maxPerAccount: 10, maxPerIp: 60 },
   "passkey.authenticate": { windowSeconds: 900, maxPerAccount: 20, maxPerIp: 100 },
+
+  /*
+   * The public access-request form — the only unauthenticated WRITE endpoint in the
+   * product, and therefore the largest new attack surface.
+   *
+   * Tight per "account", which here means the submitted email address rather than a
+   * user id, because an applicant by definition has no account yet. Three attempts is
+   * ample for someone correcting a typo in a join code, and the per-IP budget stays
+   * looser for the usual NAT reasons.
+   */
+  "access_request.submit": { windowSeconds: 900, maxPerAccount: 3, maxPerIp: 15 },
 };
 
 export interface AttemptCounts {

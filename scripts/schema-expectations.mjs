@@ -17,7 +17,9 @@
 
 export const PG_ENUM_EXPECTATIONS = {
   identity_domain: ["PLATFORM", "TENANT"],
-  tenant_role: ["ORG_OWNER", "ADMIN", "CUSTOMER"],
+  // Four labels: ADR-013 merged the model, but PostgreSQL cannot drop an enum value.
+  tenant_role: ["ORG_OWNER", "ADMIN", "CUSTOMER", "USER"],
+  access_request_status: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
   account_status: ["INVITED", "PENDING", "ACTIVE", "SUSPENDED", "LOCKED", "DISABLED"],
   organization_status: ["ACTIVE", "SUSPENDED", "CLOSED"],
   job_status: ["QUEUED", "RUNNING", "SUCCEEDED", "FAILED", "DEAD"],

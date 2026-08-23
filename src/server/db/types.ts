@@ -24,8 +24,25 @@ export const IDENTITY_DOMAIN_VALUES = ["PLATFORM", "TENANT"] as const;
 export type IdentityDomainValue = (typeof IDENTITY_DOMAIN_VALUES)[number];
 
 /** `tenant_role` — the ladder inside one organization. */
-export const TENANT_ROLE_VALUES = ["ORG_OWNER", "ADMIN", "CUSTOMER"] as const;
+/**
+ * Every label `tenant_role` accepts, in the order the enum declares them.
+ *
+ * Four, not two. ADR-013 merged the model to ADMIN | USER, but PostgreSQL cannot remove an
+ * enum value, so ORG_OWNER and CUSTOMER remain accepted until (and unless) deployment 3
+ * recreates the type. This constant mirrors the DATABASE; the application's own two-role
+ * model lives in `src/server/authorization/roles.ts` and is reached through `normaliseRole`.
+ */
+export const TENANT_ROLE_VALUES = ["ORG_OWNER", "ADMIN", "CUSTOMER", "USER"] as const;
 export type TenantRoleValue = (typeof TENANT_ROLE_VALUES)[number];
+
+/** `access_request_status` — separate from account status, deliberately (ADR-013). */
+export const ACCESS_REQUEST_STATUS_VALUES = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "CANCELLED",
+] as const;
+export type AccessRequestStatusValue = (typeof ACCESS_REQUEST_STATUS_VALUES)[number];
 
 /** `account_status` — governs whether a principal may hold a session at all. */
 export const ACCOUNT_STATUS_VALUES = [
@@ -142,6 +159,7 @@ export type JobStatusValue = (typeof JOB_STATUS_VALUES)[number];
 export const PG_ENUMS = {
   identity_domain: IDENTITY_DOMAIN_VALUES,
   tenant_role: TENANT_ROLE_VALUES,
+  access_request_status: ACCESS_REQUEST_STATUS_VALUES,
   account_status: ACCOUNT_STATUS_VALUES,
   organization_status: ORGANIZATION_STATUS_VALUES,
   job_status: JOB_STATUS_VALUES,

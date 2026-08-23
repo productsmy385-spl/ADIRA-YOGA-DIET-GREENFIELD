@@ -257,7 +257,12 @@ export async function countUsersByRole(
     [organizationId],
   );
 
-  const counts: Record<TenantRoleValue, number> = { ORG_OWNER: 0, ADMIN: 0, CUSTOMER: 0 };
+  const counts: Record<TenantRoleValue, number> = {
+    ORG_OWNER: 0,
+    ADMIN: 0,
+    CUSTOMER: 0,
+    USER: 0,
+  };
   for (const row of rows) counts[row.role] = Number(row.count);
   return counts;
 }
