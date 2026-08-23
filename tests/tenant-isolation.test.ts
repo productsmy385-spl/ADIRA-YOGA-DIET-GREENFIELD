@@ -401,30 +401,30 @@ describeWithDatabase("tenant isolation", () => {
       role,
     });
 
-    it("refuses an admin acting on a customer in another organization", () => {
+    it("refuses an admin acting on a member in another organization", () => {
       expect(
-        canActOn(actor(f.adminA, f.orgA, "ADMIN"), actor(f.customerB, f.orgB, "CUSTOMER")),
+        canActOn(actor(f.adminA, f.orgA, "ADMIN"), actor(f.customerB, f.orgB, "USER")),
       ).toEqual({ allowed: false, reason: "CROSS_ORGANIZATION" });
     });
 
-    it("allows an admin acting on a customer in their own organization", () => {
+    it("allows an admin acting on a member in their own organization", () => {
       expect(
-        canActOn(actor(f.adminA, f.orgA, "ADMIN"), actor(f.customerA, f.orgA, "CUSTOMER")),
+        canActOn(actor(f.adminA, f.orgA, "ADMIN"), actor(f.customerA, f.orgA, "USER")),
       ).toEqual({ allowed: true });
     });
 
-    it("refuses a customer acting on anyone", () => {
+    it("refuses a member acting on anyone", () => {
       expect(
-        canActOn(actor(f.customerA, f.orgA, "CUSTOMER"), actor(f.adminA, f.orgA, "ADMIN")),
+        canActOn(actor(f.customerA, f.orgA, "USER"), actor(f.adminA, f.orgA, "ADMIN")),
       ).toMatchObject({ allowed: false });
       expect(
-        canActOn(actor(f.customerA, f.orgA, "CUSTOMER"), actor(f.customerB, f.orgB, "CUSTOMER")),
+        canActOn(actor(f.customerA, f.orgA, "USER"), actor(f.customerB, f.orgB, "USER")),
       ).toMatchObject({ allowed: false, reason: "CROSS_ORGANIZATION" });
     });
 
-    it("never grants PLATFORM_OWNER to a tenant actor", () => {
+    it("never grants SUPER_ADMIN to a tenant actor", () => {
       expect(
-        canAssignRole(actor(f.ownerA, f.orgA, "ORG_OWNER"), "PLATFORM_OWNER"),
+        canAssignRole(actor(f.ownerA, f.orgA, "ADMIN"), "SUPER_ADMIN"),
       ).toEqual({ allowed: false, reason: "UNGRANTABLE_ROLE" });
     });
   });
