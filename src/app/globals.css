@@ -338,6 +338,48 @@
     font-family: var(--font-sans);
   }
 
+  /* ---- B11: one visible focus indicator, for everything ----
+   *
+   * A KEYBOARD USER MUST ALWAYS BE ABLE TO SEE WHERE THEY ARE. The rule above sets the
+   * outline COLOUR but no width, so anything without its own ring — a link, a summary,
+   * a element with tabindex — fell back to the browser default, which several themes
+   * render nearly invisibly against a glass surface.
+   *
+   * `:focus-visible` rather than `:focus`, so a mouse click on a button does not leave a
+   * ring behind. The offset keeps the outline clear of the glass border rather than
+   * merging into it, which is the difference between an indicator and a slightly thicker
+   * edge.
+   *
+   * Components with a designed ring still win: they set their own `outline`/`box-shadow`
+   * at a higher specificity, and this is the floor beneath them, not a competitor.
+   */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* ---- B11: the skip link ----
+   *
+   * Off-screen until focused, then pinned to the top-left. Every page here begins with a
+   * navigation bar, so without this a keyboard or switch user tabs through seven links
+   * before reaching the content — on every single page load.
+   *
+   * Positioned rather than `display: none`, because a hidden element is not focusable and
+   * a skip link that cannot be focused is decoration.
+   */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+  }
+
+  .skip-link:focus-visible {
+    left: 0.75rem;
+    top: 0.75rem;
+    @apply rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground;
+  }
+
   /* ---- A4: typography scale (UX spec §6) ----
    * Named roles rather than ad-hoc sizes, so "what size is a section heading"
    * has one answer. The existing Geist setup is unchanged; this is hierarchy.

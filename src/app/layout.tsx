@@ -77,7 +77,23 @@ export default async function RootLayout({
       </head>
       <body className={`${sans.variable} ${mono.variable}`}>
         <NextIntlClientProvider>
-          {children}
+          {/*
+            B11. First focusable thing on every page, because every page here opens with a
+            navigation bar — without it a keyboard or switch user tabs through seven links
+            before reaching the content, on every single load.
+
+            The target is this wrapper rather than each page's own <main>, so a new page
+            cannot forget it. `tabIndex={-1}` is what makes the jump actually move focus:
+            without it the browser scrolls and leaves focus behind in the nav, and the next
+            Tab returns the user to where they started.
+          */}
+          <a href="#main-content" className="skip-link">
+            Skip to content
+          </a>
+
+          <div id="main-content" tabIndex={-1}>
+            {children}
+          </div>
           {/* Registers after load, and only in production. A worker competing for the
               main thread during hydration slows the page the customer is waiting for. */}
           <ServiceWorkerRegistrar />
