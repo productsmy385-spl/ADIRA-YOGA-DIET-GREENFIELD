@@ -95,6 +95,35 @@ export const ACTIVITY_STATUS_VALUES = [
 ] as const;
 export type ActivityStatusValue = (typeof ACTIVITY_STATUS_VALUES)[number];
 
+/** `notification_channel` — §19. */
+export const NOTIFICATION_CHANNEL_VALUES = ["IN_APP", "PUSH", "EMAIL"] as const;
+export type NotificationChannelValue = (typeof NOTIFICATION_CHANNEL_VALUES)[number];
+
+/** `notification_kind` — a REASON, not a template; wording lives in the message. */
+export const NOTIFICATION_KIND_VALUES = [
+  "YOGA_REMINDER",
+  "DIET_REMINDER",
+  "ACTIVITY_REMINDER",
+  "MISSED_ACTIVITY",
+  "PLAN_UPDATED",
+  "CONSULTANT_MESSAGE",
+  "REPORT_READY",
+  "APPOINTMENT_REMINDER",
+  "WEEKLY_PROGRESS",
+] as const;
+export type NotificationKindValue = (typeof NOTIFICATION_KIND_VALUES)[number];
+
+export const REPORT_KIND_VALUES = [
+  "CUSTOMER_WEEKLY",
+  "CUSTOMER_MONTHLY",
+  "ORGANIZATION_WEEKLY",
+  "ORGANIZATION_MONTHLY",
+] as const;
+export type ReportKindValue = (typeof REPORT_KIND_VALUES)[number];
+
+export const REPORT_STATUS_VALUES = ["PENDING", "READY", "FAILED"] as const;
+export type ReportStatusValue = (typeof REPORT_STATUS_VALUES)[number];
+
 /** `job_status` — the async queue drained by Railway Cron (decisions/ADR-003). */
 export const JOB_STATUS_VALUES = [
   "QUEUED",
@@ -124,4 +153,8 @@ export const PG_ENUMS = {
   meal_slot: MEAL_SLOT_VALUES,
   assignment_status: ASSIGNMENT_STATUS_VALUES,
   activity_status: ACTIVITY_STATUS_VALUES,
+  notification_channel: NOTIFICATION_CHANNEL_VALUES,
+  notification_kind: NOTIFICATION_KIND_VALUES,
+  report_kind: REPORT_KIND_VALUES,
+  report_status: REPORT_STATUS_VALUES,
 } as const satisfies Record<string, readonly string[]>;

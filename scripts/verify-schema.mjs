@@ -32,6 +32,11 @@ const EXPECTED_TABLES = [
   "programme_items",
   "programmes",
   "yoga_exercises",
+  "media_assets",
+  "notification_preferences",
+  "notifications",
+  "push_subscriptions",
+  "reports",
   "audit_logs",
   "auth_attempts",
   "consultant_assignments",
@@ -175,6 +180,9 @@ async function checkCompositeForeignKeys(client) {
     ["assignments", "assigned_by"],
     ["daily_activities", "customer_id"],
     ["daily_checkins", "customer_id"],
+    ["notifications", "recipient_id"],
+    ["reports", "customer_id"],
+    ["media_assets", "customer_id"],
   ];
 
   for (const [table, column] of expected) {
