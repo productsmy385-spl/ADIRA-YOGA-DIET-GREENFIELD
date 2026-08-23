@@ -95,3 +95,33 @@ what stops the dashboard being designed in the act of building it.
 Four open product questions block a complete PRD. They are listed in `docs/ROADMAP.md`
 and need the user: the official logo, whether billing is in scope, whether
 consultant↔customer messaging is real, and which Linear team owns this work.
+
+---
+
+## Visual experience programme (added 2026-08-23)
+
+A 30-section visual brief arrived on 2026-08-23 requiring a premium glass design system
+and a 3D yoga experience. It is **presentation only** — the impact analysis verifies that
+authentication, RBAC, organisation isolation, API contracts and the database are all
+untouched.
+
+BMAD artefacts produced **before** any implementation, as the brief itself instructs:
+
+| Stage | Artefact |
+|---|---|
+| 1 Analysis | `01-analysis/VISUAL-UPGRADE-IMPACT.md` |
+| 3 UX | `docs/UX-SPECIFICATION.md` |
+| 4 Architecture | `decisions/ADR-013-3d-stack-and-csp-consequences.md` |
+| 5 Epics & stories | `05-epics-and-stories/EPIC-20-visual-experience.md` |
+
+**Phase 15 is now 15A–15D** (`docs/ROADMAP.md`). 15A, 15B and 15D are completable against
+a development placeholder; **15C is blocked on art production** and Phase 15 may not be
+reported complete until it lands.
+
+Two decisions are outstanding and block stories D5 and D6:
+
+- whether production 3D assets are being sourced, or 15C should target a stylised figure
+- whether `wasm-unsafe-eval` + `worker-src blob:` is acceptable for compressed models,
+  or the landing route ships uncompressed glTF instead
+
+No implementation has begun.

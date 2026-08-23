@@ -112,3 +112,22 @@ need a real database live in `tests/` and skip when `SQL_TEST_DATABASE_URL` is u
 Phase 0 delivered the foundation only. Authentication (Phase 2), the service and
 repository layers (Phase 4), and every feature surface are still empty. `docs/ROADMAP.md`
 holds the phase order.
+
+## Presentation layer
+
+The visual system — **Botanical Wellness Glass** — is specified in
+`docs/UX-SPECIFICATION.md`. It sits entirely above the layers described here and changes
+none of them: no schema change, no API change, no authorization change.
+
+Two rules keep it that way:
+
+1. **Pages fetch on the server.** A redesign that moves data-fetching into client
+   components to make animation easier would move authorization decisions client-side.
+   3D and motion are presentation over already-authorised data.
+2. **Hiding a link is not authorization.** Role-aware navigation exists for usability.
+   Every route keeps `requireRole` / `canViewCustomer`, and every repository call keeps its
+   `organizationId`.
+
+3D lives in `src/components/3d/`, is dynamically imported only, and is never part of the
+`/today` bundle — the daily loop is the journey the product lives on. Scenes take a
+`model_reference` from the database (ADR-013); no model is hardcoded.

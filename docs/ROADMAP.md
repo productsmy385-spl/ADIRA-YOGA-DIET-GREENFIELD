@@ -28,8 +28,11 @@ and documented before the next begins. A phase with critical failures blocks the
 | 12 | ImageKit media | |
 | 13 | Import / export | |
 | 14 | PWA install, icon set | |
-| 15 | 3D yoga experience | |
-| 16 | Security hardening — CSP, rate limiting, dependency scanning | |
+| 15A | 3D engine and pose viewer | |
+| 15B | Scroll-driven yoga journey | |
+| 15C | Production 3D assets | **blocked — art dependency** |
+| 15D | 3D performance and accessibility | |
+| 16 | Security hardening — CSP, rate limiting, dependency scanning | CSP **done** (`2d7ac67`) |
 | 17 | Performance and accessibility | |
 | 18 | Production deployment | |
 
@@ -109,6 +112,44 @@ now settled by the user. Full reasoning in `BMAD/01-analysis/PRODUCT-SCOPE.md`.
 - **Messaging is one-way notifications only** — consultant → customer. Phase 10 builds a
   `notifications` table and **no** `conversations` or `messages` table. No chat, no
   threads, no customer-initiated messages.
+
+## Phase 15 — split, and why
+
+The visual brief of 2026-08-23 requires a premium 3D experience. Phase 15 was previously
+reported **blocked**, because a rigged human yoga character is art production rather than
+engineering. Splitting it resolves that honestly:
+
+| | Scope | Completable now |
+|---|---|---|
+| **15A** | `components/3d/` architecture, `YogaScene`/`YogaCharacter`/`YogaPose`, database-driven `model_reference`, `YogaFallback` | **yes**, against a development placeholder |
+| **15B** | Seven-section scroll journey, one continuous camera path, reduced-motion path | **yes** |
+| **15C** | Production-quality rigged character + per-pose animation clips | **no — blocked on art** |
+| **15D** | Perf budget, WebGL-absent and slow-device fallbacks, contrast and keyboard audit | **yes** |
+
+Because scenes take a `model_reference` from the database rather than a hardcoded model
+(ADR-013), the placeholder and the final asset are the same code path — swapping them is a
+data change, not a rewrite. That is what makes deferring 15C safe.
+
+**Phase 15 is not complete until 15C is.** No report may say otherwise while a development
+placeholder is on screen.
+
+## Visual experience programme
+
+Design system: `docs/UX-SPECIFICATION.md` (Botanical Wellness Glass).
+Impact and constraints: `BMAD/01-analysis/VISUAL-UPGRADE-IMPACT.md`. Stack: ADR-013.
+
+Delivered in groups, each independently reviewable, in the order the brief gives (§28):
+
+| Group | Contents | Status |
+|---|---|---|
+| A | Design tokens, glass primitives, backgrounds, typography | not started |
+| B | Navigation, dialogs, dashboard components | not started |
+| C | Landing redesign, 2D motion | not started |
+| D | 3D — 15A, 15B, 15D | not started |
+| E | 15C production assets | blocked |
+
+This programme changes presentation only. Authentication, RBAC, organisation isolation,
+API contracts, and the database are untouched — verified in the impact analysis, §1.
 
 ## Open questions
 
