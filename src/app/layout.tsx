@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
@@ -61,10 +62,17 @@ export default async function RootLayout({
   // Telugu marked `lang="en"` is read aloud as mangled English.
   const locale = (await getLocale()) as Locale;
 
+  // Set by proxy.ts, one fresh value per request. Undefined only if the proxy matcher
+  // ever stops covering this route, in which case the CSP would not be applied either.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang={locale} dir={LOCALE_DIRECTION[locale]} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* The nonce comes from proxy.ts. Without it the CSP blocks this script and the
+            page renders in the wrong theme until hydration — the exact flash the inline
+            script exists to prevent. */}
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${sans.variable} ${mono.variable}`}>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
