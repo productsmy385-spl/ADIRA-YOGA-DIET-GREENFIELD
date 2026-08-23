@@ -5,7 +5,7 @@ loaded only through dynamic import, and never present in the `/today` bundle. Mo
 glTF/GLB referenced by `model_reference` from the database. **Compressed model formats
 (Draco/KTX2) are used on the landing route only, and require a documented CSP change.**
 
-**Status:** Proposed — the CSP half needs the user's decision (see Consequences).
+**Status:** Accepted — both open questions decided by the user on 2026-08-23.
 
 **Date:** 2026-08-23
 
@@ -88,3 +88,69 @@ it in a hurry to make an animation work would be the worst trade in the codebase
 - Which specific character model, or its licence — that is 15C, and blocked on art.
 - Whether the landing hero eventually becomes a scrubbed video if the perf budget cannot
   be met on a mid-range device. 15D measures; this ADR does not pre-judge it.
+
+---
+
+## Decisions confirmed, 2026-08-23
+
+### 3D asset target (15C)
+
+A **professionally rigged, stylized-realistic human** — not photorealism, and not a
+low-poly cartoon figure as the final production experience. Full body, humanoid skeleton
+compatible with standard animation workflows, separate animation clips per pose, mobile-
+conscious polygon and texture budget.
+
+Stylized-realistic rather than photorealistic is the right target for this product: it
+carries the premium identity without the download size and uncanny-valley risk of a
+photoreal human, and it ages better than a stylisation tied to a trend.
+
+`model_reference` stays mandatory and database-driven. No production model path is
+hardcoded, and the development placeholder uses the same code path as the final asset —
+which is what makes 15C safe to defer. **15C remains incomplete until production assets
+are integrated.**
+
+### CSP — scoped, not global
+
+`wasm-unsafe-eval` and self-hosted decoders apply **only where the 3D experience
+technically requires them**. The rest of the application keeps the strict policy shipped
+in `2d7ac67`.
+
+```
+strict CSP  →  /today · /admin · /owner · /sign-in · /api/*
+scoped CSP  →  the 3D experience route only
+```
+
+Unchanged everywhere, including on the 3D route:
+
+- nonce-based `script-src` — the nonce is **not** removed
+- `frame-ancestors 'none'`
+- `object-src 'none'`
+- no `unsafe-eval`, no `unsafe-inline` on scripts
+
+`wasm-unsafe-eval` permits WebAssembly compilation only. It does not permit `eval` of
+JavaScript, which is the distinction that makes this acceptable on one route rather than
+a general weakening. `proxy.ts` will branch on pathname so the exception is visible in one
+place and cannot spread by accident.
+
+### Routing
+
+```
+/today            lightweight, NO 3D in the initial bundle
+/experience/yoga  lazy-loads three → R3F → scene → model → animation
+```
+
+The heavy stack never reaches ordinary dashboard routes.
+
+### 3D never controls business state
+
+The user's rule, and it is the right one:
+
+```
+user completes activity → server validates → PostgreSQL records
+                                              → UI updates → 3D responds
+```
+
+3D is a **presentation experience, never a business-logic dependency**. An animation
+completing must not mark an activity complete; the animation reacts to state the database
+already recorded. This keeps the activity engine, reporting and audit trail authoritative,
+and it means a customer whose device cannot render 3D loses nothing but the animation.
