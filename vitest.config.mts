@@ -35,6 +35,9 @@ export default defineConfig({
             "src/lib/**/*.test.ts",
             "src/i18n/**/*.test.ts",
             "src/server/**/*.test.ts",
+            // Pure-logic component tests (.ts, never .tsx) — no DOM needed, so they run
+            // in the node project rather than paying for a jsdom.
+            "src/components/**/*.test.ts",
             "scripts/**/*.test.mjs",
             "tests/**/*.test.ts",
           ],

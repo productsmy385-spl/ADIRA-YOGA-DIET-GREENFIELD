@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
-import { ThemeToggle } from "@/components/theme-toggle";
-import { branding } from "@/lib/branding";
+import { GlassCard, GlassPanel } from "@/components/glass/glass";
+import { AnimatedNumber } from "@/components/motion/animated-number";
+import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { requireTenantSession } from "@/server/auth/guards";
 import {
   listActivitiesForDate,
@@ -68,53 +69,41 @@ export default async function TodayPage() {
   ).length;
 
   return (
-    <div className="min-h-dvh bg-background">
-      <header className="mx-auto flex max-w-2xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
-          <img src={branding.icons.mark} alt="" aria-hidden className="size-8" />
-          <span className="font-semibold tracking-tight text-foreground">
-            {branding.name}
-          </span>
-        </div>
-        <ThemeToggle />
-      </header>
+    // bg-canvas is the layered background from globals.css. It carries no 3D and no
+    // animation — /today must stay the fastest surface in the product (ADR-013).
+    <div className="min-h-dvh bg-canvas">
+      <AppNav role={session.role} currentPath="/today" />
 
-      <main className="mx-auto max-w-2xl px-6 pb-24">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          {greeting(session.fullName)}
-        </h1>
+      <main className="relative z-10 mx-auto max-w-2xl px-6 pt-8 pb-28 sm:pb-24">
+        <h1 className="type-heading text-foreground">{greeting(session.fullName)}</h1>
 
         <p className="mt-1 text-sm text-muted-foreground">
           {livePlan ? livePlan.name : "No programme is active."}
         </p>
 
         <section aria-label="This week" className="mt-6 grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-border bg-card p-4">
-            <p className="text-xs tracking-widest text-muted-foreground uppercase">
-              Left today
+          <GlassCard>
+            <p className="type-meta text-muted-foreground">Left today</p>
+            <p className="type-metric mt-1 text-surface-foreground">
+              {/* Null, not zero: a customer with nothing scheduled has no figure to
+                  show, and rendering 0 would say they failed (docs/METRICS.md). */}
+              <AnimatedNumber value={activities.length === 0 ? null : remaining} />
             </p>
-            <p className="mt-1 text-2xl font-semibold text-card-foreground">
-              {activities.length === 0 ? "—" : remaining}
-            </p>
-          </div>
+          </GlassCard>
 
-          <div className="rounded-lg border border-border bg-card p-4">
-            <p className="text-xs tracking-widest text-muted-foreground uppercase">
-              Last 7 days
+          <GlassCard>
+            <p className="type-meta text-muted-foreground">Last 7 days</p>
+            <p className="type-metric mt-1 text-surface-foreground">
+              <AnimatedNumber value={weekPercent} suffix="%" />
             </p>
-            {/* Null, not zero. A customer given nothing to do has not failed. */}
-            <p className="mt-1 text-2xl font-semibold text-card-foreground">
-              {weekPercent === null ? "—" : `${weekPercent}%`}
-            </p>
-          </div>
+          </GlassCard>
         </section>
 
         <section aria-labelledby="today-heading" className="mt-10">
           <div className="flex items-baseline justify-between">
             <h2
               id="today-heading"
-              className="text-xs font-semibold tracking-widest text-muted-foreground uppercase"
+              className="type-meta font-semibold text-muted-foreground"
             >
               Today
             </h2>
@@ -137,7 +126,7 @@ export default async function TodayPage() {
              * assigned yet" from "something went wrong". A customer who cannot tell
              * which will assume the app is broken.
              */
-            <div className="mt-4 rounded-lg border border-dashed border-border p-8 text-center">
+            <GlassPanel className="mt-4 border-dashed p-8 text-center">
               <p className="text-sm text-foreground">
                 {hasAnyPlan
                   ? "Nothing scheduled for today."
@@ -148,14 +137,14 @@ export default async function TodayPage() {
                   ? "Rest days are part of the plan. Your next session will appear here."
                   : "You will see your daily practice here as soon as they do. Nothing is wrong."}
               </p>
-            </div>
+            </GlassPanel>
           )}
         </section>
 
         <section aria-labelledby="checkin-heading" className="mt-10">
           <h2
             id="checkin-heading"
-            className="text-xs font-semibold tracking-widest text-muted-foreground uppercase"
+            className="type-meta font-semibold text-muted-foreground"
           >
             Check in
           </h2>
@@ -167,6 +156,8 @@ export default async function TodayPage() {
           <CheckInForm existing={checkIn} />
         </section>
       </main>
+
+      <MobileTabBar role={session.role} currentPath="/today" />
     </div>
   );
 }
