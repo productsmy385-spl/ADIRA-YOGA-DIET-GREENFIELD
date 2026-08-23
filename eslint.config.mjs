@@ -21,7 +21,10 @@ const eslintConfig = defineConfig([
     // token names. A raw hex in a component — whether as a style value or as a Tailwind
     // arbitrary value like `bg-[#2f5d43]` — is how a design system quietly stops being
     // one: the token file says the brand green changed, and three components disagree.
-    ignores: ["src/lib/branding.ts"],
+    // Two exemptions, both for surfaces that cannot consume a CSS custom property:
+    // branding.ts feeds the PWA manifest and browser chrome, and the 3D palette feeds
+    // WebGL materials, which take numeric colours. Both mirror globals.css and say so.
+    ignores: ["src/lib/branding.ts", "src/components/3d/palette.ts"],
     rules: {
       "no-restricted-syntax": [
         "error",

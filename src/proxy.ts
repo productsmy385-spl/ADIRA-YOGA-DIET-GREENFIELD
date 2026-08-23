@@ -25,13 +25,37 @@ export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
 
+  /*
+   * THE 3D EXCEPTION — scoped to one route prefix, by the user's decision (ADR-014).
+   *
+   * glTF geometry and texture decoders are WebAssembly, and the KTX2 transcoder runs in a
+   * worker created from a `blob:` URL. Neither is permitted by the policy below, so
+   * without this branch 3D would fail in production while working locally.
+   *
+   * What is added is narrow and deliberate:
+   *   wasm-unsafe-eval    permits WebAssembly COMPILATION. It does not permit eval() of
+   *                       JavaScript — that is `unsafe-eval`, which is never added here.
+   *   worker-src blob:    permits the decoder worker, same-origin decoders only.
+   *
+   * What is NOT weakened, here or anywhere: the nonce stays, 'strict-dynamic' stays,
+   * frame-ancestors 'none' stays, object-src 'none' stays, and no 'unsafe-inline' is
+   * ever added to script-src.
+   *
+   * The exception lives in this one expression so it cannot spread by accident. A future
+   * route needing WASM must be added here, visibly, rather than by loosening the default.
+   */
+  const isImmersiveRoute = request.nextUrl.pathname.startsWith("/experience");
+  const wasm = isImmersiveRoute ? " 'wasm-unsafe-eval'" : "";
+  const workerSrc = isImmersiveRoute ? "worker-src 'self' blob:;" : "worker-src 'self';";
+
   // ImageKit is the only external origin the product loads from. Uploads go direct to
   // its API, and delivered images come from the CDN host.
   const imagekit = "https://ik.imagekit.io https://upload.imagekit.io";
 
   const csp = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""};
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${wasm}${isDev ? " 'unsafe-eval'" : ""};
+    ${workerSrc}
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: ${imagekit};
     font-src 'self' data:;
