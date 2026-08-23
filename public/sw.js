@@ -1,5 +1,3 @@
-/* eslint-disable no-undef -- service worker globals */
-
 /**
  * Adira service worker.
  *
