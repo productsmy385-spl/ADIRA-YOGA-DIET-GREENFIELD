@@ -20,7 +20,7 @@ describe("navItemsForRole", () => {
 
     expect(hrefs).toContain("/today");
     expect(hrefs.some((h) => h.startsWith("/admin"))).toBe(false);
-    expect(hrefs).not.toContain("/owner");
+    expect(hrefs).not.toContain("/super-admin");
   });
 
   /**

@@ -109,7 +109,7 @@ export function PasskeySignInButton({
       const { domain } = await completeResponse.json();
       // The session cookie is set by the response; a refresh is what makes the server
       // components see it.
-      router.replace(domain === "PLATFORM" ? "/owner" : "/dashboard");
+      router.replace(domain === "PLATFORM" ? "/super-admin" : "/dashboard");
       router.refresh();
     } catch (error) {
       setStatus("error");

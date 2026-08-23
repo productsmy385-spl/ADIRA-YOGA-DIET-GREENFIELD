@@ -26,7 +26,7 @@ import { recordAudit } from "@/server/repositories/audit-logs";
  */
 
 export const SIGN_IN_PATH = "/sign-in";
-export const OWNER_SIGN_IN_PATH = "/owner/sign-in";
+export const OWNER_SIGN_IN_PATH = "/super-admin/sign-in";
 
 /**
  * Require a tenant session, or redirect to sign-in.
