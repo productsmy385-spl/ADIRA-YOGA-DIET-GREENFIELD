@@ -35,6 +35,10 @@ export default defineConfig({
             "src/lib/**/*.test.ts",
             "src/i18n/**/*.test.ts",
             "src/server/**/*.test.ts",
+            // Server actions live under src/app and run on the server, so their tests
+            // belong in the node project. Only `.ts` — an action's own tests never touch
+            // the DOM; `.tsx` under src/app is a component test and belongs to `ui`.
+            "src/app/**/*.test.ts",
             // Pure-logic component tests (.ts, never .tsx) — no DOM needed, so they run
             // in the node project rather than paying for a jsdom.
             "src/components/**/*.test.ts",
