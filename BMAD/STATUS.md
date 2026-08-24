@@ -133,7 +133,7 @@ No implementation has begun.
 | 15A viewer | complete, tested |
 | 15B scroll journey | complete, live at `/experience/yoga` |
 | 15D performance and accessibility | complete — three.js confined to one chunk no route eagerly loads; four degradation paths tested |
-| **15C production character** | **BLOCKED — no asset exists** |
+| **15C production character** | asset-independent implementation COMPLETE; **BLOCKED on the production asset** |
 
 Specification for commissioning: `docs/3D-ASSET-CONTRACT.md`. Its §8 lists the loading and
 animation code still to be written, which does not depend on the asset and can start first.

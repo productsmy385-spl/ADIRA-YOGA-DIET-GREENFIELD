@@ -169,11 +169,13 @@ API contracts, and the database are untouched — verified in the impact analysi
 verified. **15C is not, and it is not blocked on engineering judgement — it is blocked on a
 production character and animation set that does not exist yet.**
 
-`docs/3D-ASSET-CONTRACT.md` is the specification to commission or purchase against. It also
-lists §8, the loading and animation work still to be written on our side: as of today
-`resolveModel()` resolves a model reference that the scene discards, and no glTF loader,
-animation mixer, or decoder hosting exists. The data seam and the degradation contract do
-exist and are tested, which is what keeps this a contained addition rather than a rewrite.
+`docs/3D-ASSET-CONTRACT.md` is the specification to commission or purchase against.
+
+**The asset-independent half is now built** (2026-08-24): glTF loading behind the existing
+lazy boundary, self-hosted Draco and KTX2 decoders, a per-instance `AnimationMixer`,
+skeleton-safe cloning, clip resolution from `animation_reference`, cross-faded transitions,
+and decode-failure handling. §8 of the contract records what remains unverifiable until a
+real GLB exists — the loader has never loaded one.
 
 **15C is COMPLETE only when a real asset is integrated and the §7 checklist passes.** A
 better-looking placeholder does not close it.
