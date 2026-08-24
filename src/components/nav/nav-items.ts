@@ -53,6 +53,7 @@ const MEMBER: NavItem[] = [
 const ADMIN: NavItem[] = [
   { href: "/admin", labelKey: "nav.caseload", label: "Caseload" },
   { href: "/admin/access-requests", labelKey: "nav.requests", label: "Requests" },
+  { href: "/admin/programmes", labelKey: "nav.programmes", label: "Programmes" },
   { href: "/admin/yoga", labelKey: "nav.yoga", label: "Yoga" },
   { href: "/admin/diet", labelKey: "nav.diet", label: "Diet" },
   { href: "/admin/reports", labelKey: "nav.reports", label: "Reports" },
