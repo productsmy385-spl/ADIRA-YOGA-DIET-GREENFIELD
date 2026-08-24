@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Read-only database snapshots taken around a migration. Local evidence, not history —
+# they carry timestamps and counts from one machine's view of one moment.
+.baseline/
