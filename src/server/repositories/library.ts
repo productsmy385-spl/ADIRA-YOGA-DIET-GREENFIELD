@@ -269,6 +269,24 @@ export async function listMeals(
   return rows.map(toMeal);
 }
 
+/**
+ * One meal, scoped to the organisation.
+ *
+ * `organization_id` is in the WHERE clause rather than checked afterwards, so an id
+ * belonging to another tenant returns null instead of a row the caller then has to
+ * remember to reject (ADR-004).
+ */
+export async function findMeal(
+  organizationId: string,
+  mealId: string,
+): Promise<Meal | null> {
+  const row = await queryOne<MealRow>(
+    `SELECT ${MEAL_COLUMNS} FROM meals WHERE id = $2 AND organization_id = $1`,
+    [organizationId, mealId],
+  );
+  return row ? toMeal(row) : null;
+}
+
 export async function setMealArchived(
   organizationId: string,
   mealId: string,

@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import { Flower2 } from "lucide-react";
+import Link from "next/link";
+import { Flower2, Plus } from "lucide-react";
 
 import { AppNav } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { requireRole } from "@/server/auth/guards";
 import { listYogaExercises } from "@/server/repositories/library";
+
+import { archiveYogaExerciseAction } from "../library-actions";
 
 export const metadata: Metadata = { title: "Yoga library" };
 export const dynamic = "force-dynamic";
@@ -18,17 +22,32 @@ export const dynamic = "force-dynamic";
  */
 export default async function YogaLibraryPage() {
   const session = await requireRole("ADMIN");
-  const exercises = await listYogaExercises(session.organizationId);
+  // Archived exercises are LISTED, greyed and restorable. Hiding them would make
+  // archiving a one-way door whose only exit is a database edit.
+  const exercises = await listYogaExercises(session.organizationId, true);
 
   return (
     <div className="min-h-dvh bg-background">
       <AppNav role={session.role} currentPath="/admin/yoga" />
 
       <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Yoga library</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Exercises available to {session.organizationName} when building a programme.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              Yoga library
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Exercises available to {session.organizationName} when building a programme.
+            </p>
+          </div>
+
+          <Button asChild size="sm">
+            <Link href="/admin/yoga/new">
+              <Plus aria-hidden />
+              Add exercise
+            </Link>
+          </Button>
+        </div>
 
         {exercises.length === 0 ? (
           <div className="mt-8 rounded-xl border border-dashed border-border p-10 text-center">
@@ -37,6 +56,9 @@ export default async function YogaLibraryPage() {
               The library is empty. Exercises added here become the building blocks of every
               programme.
             </p>
+            <Button asChild size="sm" className="mt-5">
+              <Link href="/admin/yoga/new">Add the first exercise</Link>
+            </Button>
           </div>
         ) : (
           <ul className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -77,6 +99,37 @@ export default async function YogaLibraryPage() {
                     </div>
                   ) : null}
                 </dl>
+
+                <div className="mt-4 flex items-center gap-2 border-t border-border pt-3">
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/admin/yoga/${e.id}`}>Edit</Link>
+                  </Button>
+
+                  {/*
+                    A form, not a link: archiving changes state, and a GET that mutates is
+                    one a browser or a crawler will eventually fire on its own. Archive
+                    rather than delete — ADR-009 snapshots programme content at assignment,
+                    so removing a row cannot corrupt a live plan, but it would erase the
+                    library's own history.
+                  */}
+                  <form action={archiveYogaExerciseAction}>
+                    <input type="hidden" name="exerciseId" value={e.id} />
+                    <input
+                      type="hidden"
+                      name="archived"
+                      value={e.archivedAt ? "false" : "true"}
+                    />
+                    <Button type="submit" size="sm" variant="ghost">
+                      {e.archivedAt ? "Restore" : "Archive"}
+                    </Button>
+                  </form>
+
+                  {e.archivedAt ? (
+                    <Badge variant="secondary" className="ml-auto text-xs">
+                      Archived
+                    </Badge>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
