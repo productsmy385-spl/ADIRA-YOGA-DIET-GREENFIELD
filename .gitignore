@@ -48,3 +48,6 @@ next-env.d.ts
 # Decoders copied from three by scripts/sync-3d-decoders.mjs at build time. They must
 # match the installed three version, so they are generated rather than committed.
 public/decoders/
+
+# Local env backups taken when repointing the development database.
+.env.local.bak-*
