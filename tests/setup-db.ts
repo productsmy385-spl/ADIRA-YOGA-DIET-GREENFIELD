@@ -80,13 +80,18 @@ if (process.env.DATABASE_URL && !process.env.ADIRA_PRODUCTION_DATABASE_URL) {
 }
 
 if (optedIn && testUrl) {
-  if (testUrl === process.env.ADIRA_PRODUCTION_DATABASE_URL) {
-    throw new Error(
-      "SQL_TEST_DATABASE_URL is identical to the application's DATABASE_URL. The " +
-        "isolated-mode helpers TRUNCATE every table — running against the application's " +
-        "own database would destroy its data.",
-    );
-  }
-
+  /*
+   * No throw for the two being equal.
+   *
+   * That means the application is pointed at the test database itself, which is the
+   * configuration `docs/RAILWAY.md` asks for — local development must not point at
+   * production. Refusing it here blocked every destructive suite the moment a developer
+   * set their machine up the safe way.
+   *
+   * The real protection lives in `isolationRefusal`, which still rejects a protected
+   * database name whatever the URLs say, and still rejects the same database reached
+   * through two different hosts — the Railway internal/proxy case a string comparison
+   * misses. Duplicating a weaker version of that rule here only produced a false positive.
+   */
   process.env.DATABASE_URL = testUrl;
 }

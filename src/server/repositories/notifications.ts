@@ -96,7 +96,12 @@ export const DEFAULT_CHANNELS: Record<NotificationKindValue, NotificationChannel
    * letting the absence look like a decision.
    */
   ACCESS_APPROVED: ["IN_APP"],
-};
+
+  // Greetings are IN_APP only. A birthday message is warm, not urgent, and pushing it to
+  // someone's lock screen at midnight is the opposite of the calm the product is for.
+  BIRTHDAY: ["IN_APP"],
+  ANNIVERSARY: ["IN_APP"],
+  FESTIVAL: ["IN_APP"],};
 
 export interface CreateNotificationInput {
   organizationId: string;

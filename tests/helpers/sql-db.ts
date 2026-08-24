@@ -139,8 +139,30 @@ export function isolationRefusal(inputs: IsolationInputs): string | null {
   const production = partsOf(inputs.productionUrl);
   if (!production) return "the application's DATABASE_URL could not be parsed";
 
+  /*
+   * EXACT equality is the application being pointed at the test database itself.
+   *
+   * That is the configuration `docs/RAILWAY.md` asks for — local development must not
+   * point at production — so it is not evidence of danger. Refusing it was a false
+   * positive that blocked every destructive suite the moment a developer configured
+   * their machine the safe way.
+   *
+   * It is safe because the PROTECTED_DATABASE_NAMES check has already run: if both URLs
+   * named `railway`, `postgres` or `production`, this line would never be reached.
+   */
+  if (inputs.testUrl === inputs.productionUrl) return null;
+
+  /*
+   * Anything short of exact equality that still resolves to the same database is the
+   * dangerous case, and it is why a string comparison alone is not enough.
+   *
+   * On Railway the SAME database is reachable as `postgres.railway.internal:5432` and as
+   * `<name>.proxy.rlwy.net:41234`. Those two URLs share no text, destroy the same rows,
+   * and a database named something unremarkable would slip past the protected-name list.
+   * Matching on database name plus credentials catches it.
+   */
   if (sameDatabase(test, production)) {
-    return "SQL_TEST_DATABASE_URL and the application's DATABASE_URL address the same database";
+    return "SQL_TEST_DATABASE_URL and the application's DATABASE_URL address the same database through different hosts";
   }
 
   return null;

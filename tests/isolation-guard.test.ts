@@ -61,10 +61,9 @@ describe("isolationRefusal", () => {
       isolationRefusal({ optedIn: true, testUrl: TEST, productionUrl: PROD }),
     ).toBeNull();
 
-    // And the bug itself, asserted as a bug: comparing against the aliased value blocks.
-    expect(
-      allowed(isolationRefusal({ optedIn: true, testUrl: TEST, productionUrl: TEST })),
-    ).toBe(false);
+    // Comparing against the aliased value is now explicitly allowed — see the dedicated
+    // case below for why that does not weaken the production protection.
+    expect(isolationRefusal({ optedIn: true, testUrl: TEST, productionUrl: TEST })).toBeNull();
   });
 
   /** CASE 4 — an unmakeable safety comparison must fail closed, never open. */
@@ -99,6 +98,26 @@ describe("isolationRefusal", () => {
    * `<name>.proxy.rlwy.net:41234`. Those URLs share no text and destroy the same rows, so
    * identity is matched on database name plus credentials rather than on the URL.
    */
+  /**
+   * Local development pointed at the test database is the SAFE configuration
+   * `docs/RAILWAY.md` asks for, so the two URLs matching must not block the suites. The
+   * production protection is the protected-name check, not this comparison.
+   */
+  it("ALLOWS the application being pointed at the test database itself", () => {
+    expect(isolationRefusal({ optedIn: true, testUrl: TEST, productionUrl: TEST })).toBeNull();
+  });
+
+  it("STILL BLOCKS when both point at a production-named database", () => {
+    const bothProd = "postgresql://postgres:secret@host:5432/railway";
+    const refusal = isolationRefusal({
+      optedIn: true,
+      testUrl: bothProd,
+      productionUrl: bothProd,
+    });
+    expect(allowed(refusal)).toBe(false);
+    expect(refusal).toMatch(/protected database/);
+  });
+
   it("BLOCKS the same database reached through a different host", () => {
     const internal = "postgresql://postgres:samesecret@postgres.railway.internal:5432/appdb";
     const proxy = "postgresql://postgres:samesecret@viaduct.proxy.rlwy.net:41234/appdb";
