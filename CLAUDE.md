@@ -50,13 +50,22 @@ projects that use this same method and similar filenames.
    authenticated session. An endpoint that accepts an organization id as a parameter is
    a bug. (ADR-004)
 
-2. **The two identity domains never mix.** Platform owners live in `owner_accounts` with
-   their own session table, cookie, and signing secret. Tenant users live in `users`.
-   No code path upgrades a tenant session into platform privilege. (ADR-001)
+2. **The two identity domains never mix.** `SUPER_ADMIN` lives in `owner_accounts` with
+   its own session table, cookie, and signing secret. Tenant users live in `users`.
+   No code path upgrades a tenant session into platform privilege. (ADR-001, ADR-011)
 
-3. **`ADMIN` is assignment-scoped, not org-wide.** It is the combined admin/consultant
-   role and reaches only the customers in `consultant_assignments`. Only `ORG_OWNER` has
-   organization-wide reach. (ADR-002)
+3. **Administrative reach is organization-wide; member health and activity data access
+   remains assignment-scoped.** One `ADMIN` role administers the whole organization —
+   members, access requests, settings — and reads the practice of only those in
+   `consultant_assignments`. Two questions, two functions:
+   `canManageOrganization` and `canAccessMemberData`. There is deliberately no single
+   boolean, because one boolean is how the two were conflated. Never make
+   `canAccessMemberData` return true for an ADMIN without an assignment. (ADR-013)
+
+   `SUPER_ADMIN` gets **no** automatic member data. `USER` sees only their own.
+
+   Transitional: a pre-migration `ORG_OWNER` keeps organization-wide data reach via
+   `storedRole`, until migration `007` seeds their assignments. Removed in deployment 3.
 
 4. **Rank rules are strict.** `canActOn` / `canAssignRole` require the actor to strictly
    outrank the target, so peers cannot act on each other.
@@ -92,29 +101,40 @@ Run typecheck, lint, and test before calling work done.
 
 ## State
 
-Last verified 2026-08-22.
+Last verified 2026-08-23.
 
-Railway PostgreSQL is **provisioned and live**, migrations `001`–`004` applied. The app
-deploys from GitHub `main`; a push builds, runs `npm run migrate` pre-deploy, and goes
-live at the Railway service URL. Authentication is **implemented and proven end to end**
-against that database: an emailed one-time code issues, verifies, and establishes a
-session, with the code stored only as a salted hash and the session token only as an
-HMAC keyed by its identity domain.
+Railway PostgreSQL is **provisioned and live**. Two environments now exist:
+
+| Environment | App | Database | Migrations |
+|---|---|---|---|
+| `production` | `ADIRA-YOGA-DIET-GREENFIELD`, deploys from GitHub `main` | `Postgres` | `001`–`005` |
+| `staging` | `adira-staging`, deployed with `railway up` | `Postgres-HRfz` | `001`–`007` |
+
+A push to `main` builds, runs `npm run migrate` pre-deploy, and goes live. **That is why
+an unpushed migration is an unapplied migration, and pushing one is deploying it.**
+
+Authentication is implemented and proven end to end: an emailed one-time code issues,
+verifies, and establishes a session, with the code stored only as a salted hash and the
+session token only as an HMAC keyed by its identity domain.
 
 Built: foundation, repository layer, sessions and guards, OTP sign-in, WebAuthn passkeys,
-programmes and assignments, the activity engine, and the customer daily loop.
+programmes and assignments, the activity engine, the customer daily loop, the merged role
+model (ADR-013), access requests, and the platform sign-in.
 
-Two operational limits that are easy to forget, because neither fails loudly:
+Three operational limits that are easy to forget, because none fails loudly:
 
-- **Email delivery reaches exactly one address.** Resend is on its sandbox, which
-  accepts sends only to the account's own signup address. Every other recipient gets a
-  403 that surfaces as `otp.issue FAILURE DELIVERY_FAILED` in `audit_logs` while the
-  sign-in form still says "if that address has an account…". **No second person can sign
-  in until a domain is verified.**
-- **`.env.local` points at production.** `docs/RAILWAY.md` forbids this. The staging
-  environment exists but is unmigrated and has no public proxy. Until that is fixed,
-  never set `SQL_TEST_DATABASE_URL` — the helpers in `tests/helpers/sql-db.ts` run
-  `TRUNCATE` on every table.
+- **Email delivery reaches exactly one address.** Resend is on its sandbox, which accepts
+  sends only to the account's own signup address. Every other recipient gets a 403 that
+  surfaces as `otp.issue FAILURE DELIVERY_FAILED` in `audit_logs` while the sign-in form
+  still says "if that address has an account…". **No second person can sign in until a
+  domain is verified.**
+- **`.env.local` points `DATABASE_URL` at production.** `docs/RAILWAY.md` forbids it.
+  `SQL_TEST_DATABASE_URL` correctly points at the separate `adira_test` database on the
+  same server — verify that before running `npm test`, because the helpers in
+  `tests/helpers/sql-db.ts` run `TRUNCATE` on every table, and this has been misconfigured
+  twice.
+- **Migrations `006`–`008` are committed but NOT applied to production.** They are applied
+  to `adira_test` and `staging`. `007` rewrites roles and drops `users_one_org_owner_idx`.
 
 Phase order and scope: see `docs/ROADMAP.md`. **Do not describe build progress in
 user-facing copy** — `src/app/page.tsx` once told visitors "there is no application to

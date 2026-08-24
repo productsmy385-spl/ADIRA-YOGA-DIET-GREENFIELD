@@ -127,6 +127,7 @@ export const NOTIFICATION_KIND_VALUES = [
   "REPORT_READY",
   "APPOINTMENT_REMINDER",
   "WEEKLY_PROGRESS",
+  "ACCESS_APPROVED",
 ] as const;
 export type NotificationKindValue = (typeof NOTIFICATION_KIND_VALUES)[number];
 

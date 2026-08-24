@@ -10,9 +10,16 @@ import {
   rejectAccessRequest,
 } from "@/server/repositories/access-requests";
 import { recordAudit } from "@/server/repositories/audit-logs";
+import { createNotification } from "@/server/repositories/notifications";
 
 /**
  * Reviewing access requests — an ADMINISTRATIVE capability, so organization-wide.
+ *
+ * KNOWN GAP, stated rather than hidden: the approval notification is IN_APP only. The
+ * person it is for cannot sign in until they activate, so it waits for them rather than
+ * reaching them. Email would reach them, and outbound transactional mail beyond the OTP
+ * path does not exist yet — `delivery.ts` sends one message type. Until it does, an
+ * approved applicant learns by being told out of band, or by trying to sign in.
  *
  * No assignment is required to review a request, because a request is not member data:
  * nobody has become a member yet. This is the half of ADR-013 that genuinely widens, and
@@ -88,6 +95,35 @@ export async function approveRequestAction(
     // no note of what the person will be sent.
     metadata: { createdUserId: result.createdUserId ?? null, role: "USER", status: "INVITED" },
   });
+
+  /*
+   * Tell the applicant.
+   *
+   * Deliberately AFTER the approval transaction, not inside it. A notification that fails
+   * to write must not roll back an approval that succeeded — the account existing is the
+   * thing that matters, and a missing notification is recoverable by telling them any
+   * other way. The reverse ordering would let a transient failure here undo the decision
+   * an admin just made.
+   *
+   * The body carries no credential, no code, and no link containing a token: it says the
+   * request was approved and to sign in. Everything sensitive stays in the OTP flow.
+   */
+  if (result.createdUserId) {
+    try {
+      await createNotification({
+        organizationId: session.organizationId,
+        recipientId: result.createdUserId,
+        senderId: session.userId,
+        kind: "ACCESS_APPROVED",
+        title: `Your request to join ${session.organizationName} was approved`,
+        body: "Sign in with this email address to activate your account.",
+        link: "/sign-in",
+      });
+    } catch (error) {
+      // Logged, not surfaced. The approval stands.
+      console.error("[access-request] approval notification failed", error);
+    }
+  }
 
   revalidatePath("/admin/access-requests");
   return { status: "DONE", message: "Approved. The account was created as invited." };

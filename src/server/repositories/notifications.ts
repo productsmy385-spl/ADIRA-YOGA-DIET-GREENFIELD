@@ -85,6 +85,17 @@ export const DEFAULT_CHANNELS: Record<NotificationKindValue, NotificationChannel
   REPORT_READY: ["IN_APP"],
   APPOINTMENT_REMINDER: ["IN_APP", "PUSH"],
   WEEKLY_PROGRESS: ["IN_APP"],
+
+  /*
+   * IN_APP only, and that is a real limitation rather than a preference.
+   *
+   * The recipient of this one cannot sign in yet — they are INVITED and have to activate
+   * first — so an in-app notification is waiting for them rather than reaching them. What
+   * would actually reach them is email, and outbound transactional mail beyond the OTP
+   * path does not exist yet. `notifyAccessApproved` says so at the call site rather than
+   * letting the absence look like a decision.
+   */
+  ACCESS_APPROVED: ["IN_APP"],
 };
 
 export interface CreateNotificationInput {
