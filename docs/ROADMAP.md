@@ -32,7 +32,7 @@ and documented before the next begins. A phase with critical failures blocks the
 | 15B | Scroll-driven yoga journey | **complete** — `/experience/yoga` |
 | 15C | Production 3D assets | **blocked — art dependency** |
 | 15D | 3D performance and accessibility | **complete** — lazy, reduced-motion, no-WebGL fallback |
-| 16 | Security hardening — CSP, rate limiting, dependency scanning | **partial** — CSP done (`2d7ac67`), auth rate limiting done. **No dependency scanning in CI** |
+| 16 | Security hardening — CSP, rate limiting, dependency scanning | **complete** — CSP (`2d7ac67`), two-dimensional auth rate limiting, `npm audit --audit-level=high` in CI (`ci.yml:102`) |
 | 17 | Performance and accessibility | **partial** — lazy 3D, reduced motion, skip link, focus states. No measured budget |
 | 18 | Production deployment | **partial** — live on Railway from `main`. **Any push deploys and migrates**; governance not yet enforced |
 
