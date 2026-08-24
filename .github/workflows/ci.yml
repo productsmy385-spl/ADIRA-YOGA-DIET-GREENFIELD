@@ -90,3 +90,13 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Roadmap Phase 16. `npm audit` is not a substitute for a real supply-chain review,
+      # but "no known HIGH or CRITICAL advisory in a direct dependency" is a fact worth
+      # knowing before a deploy rather than after one.
+      #
+      # `--audit-level=high` deliberately: moderate advisories in transitive dev tooling
+      # would fail every run and the failure would stop being read, which is worse than not
+      # checking. This fails the build only for something that warrants stopping.
+      - name: Dependency audit
+        run: npm audit --audit-level=high

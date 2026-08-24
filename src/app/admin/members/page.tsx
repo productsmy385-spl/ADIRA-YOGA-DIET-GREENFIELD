@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { UserPlus, Users } from "lucide-react";
+import { Download, UserPlus, Users } from "lucide-react";
 
 import { AppNav } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
@@ -56,12 +56,24 @@ export default async function MembersPage() {
             </p>
           </div>
 
-          <Button asChild size="sm" variant="outline">
-            <Link href="/admin/members/import">
-              <UserPlus aria-hidden />
-              Import CSV
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/members/import">
+                <UserPlus aria-hidden />
+                Import CSV
+              </Link>
+            </Button>
+            {members.length > 0 ? (
+              <Button asChild size="sm" variant="outline">
+                {/* A plain link, not fetch: the browser handles the download, and there is
+                    no client state to keep in sync. */}
+                <a href="/api/members/export">
+                  <Download aria-hidden />
+                  Export CSV
+                </a>
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         {members.length === 0 ? (
