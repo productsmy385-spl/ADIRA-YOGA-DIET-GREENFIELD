@@ -1,11 +1,12 @@
 # Pre-production check — migrations 006, 007, 008
 
-**Status: BLOCKED on production backup. Nothing has been applied and nothing pushed.**
+**Status: a restorable backup now exists. Awaiting explicit deployment approval. Nothing
+applied, nothing pushed.**
 
-> **2026-08-24 — the backup check came back negative.** Production has no Railway backup
-> of any kind: PITR disabled, no schedule, zero snapshots. See §1. The migration is
-> forward-only and 007 rewrites the role of every user, so this must be resolved before
-> deployment.
+> **2026-08-24 — the backup gap is closed, but not the way it was planned.** Railway
+> volume snapshots are **unavailable on this workspace's plan** (`volumes.maxBackupsCount:
+> 0`), so no snapshot could be created through the API. A full `pg_dump` custom-format
+> archive was taken instead, over `railway ssh`, read-only. See §1.
 
 Baseline taken read-only from `railway` at `2026-08-24T01:21:06Z`. Every figure below was
 read from the live database or from the migration SQL, not assumed.
@@ -40,24 +41,59 @@ That is a real safety net for a database this size — 1 organization, 1 user, 1
 54 audit rows — and it is **not** a substitute for provider-level recovery. It restores
 data, not a cluster, and it has never been exercised as a restore.
 
-### Options, for the owner to choose
+### Why the approved snapshot could not be taken
 
-Neither has been run. Both change infrastructure and need explicit approval.
+`volumeInstanceBackupCreate` returned `Not Authorized`; the CLI's
+`railway postgres pitr backup create` returned `OAUTH_INSUFFICIENT_GRANT` with a hint to
+re-authenticate. **The hint is misleading.** The workspace plan is the real constraint:
 
-```bash
-# A snapshot of the volume as it stands. No redeploy, no downtime.
-railway api 'mutation($v:String!){ volumeInstanceBackupCreate(volumeInstanceId:$v, name:"pre-006-008") }'   --var v=944130f7-255c-405f-93fb-18af40b9f9dd
-
-# Continuous recovery from here on. NOTE: this REDEPLOYS the Postgres service by
-# default — a production restart — unless --no-deploy is passed, in which case it
-# applies on the next deploy and does not protect this migration.
-railway postgres pitr enable --service Postgres --environment production
+```
+workspace.subscriptionPlanLimit.volumes = {
+  maxBackupsCount: 0,
+  maxBackupsUsagePercent: 0,
+  ...
+}
 ```
 
-The first is the smaller action and the one that matches the need: a restorable point
-immediately before the migration. The second is what should be true permanently, and
-enabling it during a migration window adds a service restart to an already eventful
-deployment.
+`subscriptionModel: "USER"`. Zero volume backups are permitted, so re-running
+`railway login` would not have helped. `volumeInstanceBackupList` remains `[]`.
+
+### What was taken instead — a real pg_dump
+
+`pg_dump` 18.6 is present inside the production Postgres container and `railway ssh` runs
+non-interactive commands, so the standard PostgreSQL backup was available without any plan
+change, any infrastructure change, or any write:
+
+```bash
+railway ssh --service Postgres --environment production   'pg_dump -h /var/run/postgresql -U postgres -d railway -Fc | base64 -w0'
+```
+
+| | |
+|---|---|
+| Artifact | `.baseline/pre-006-008.dump` |
+| Format | PostgreSQL custom (`-Fc`), restorable with `pg_restore` |
+| Size | 107,999 bytes |
+| SHA-256 | `512f75d2b70f5a3a874f587eba80a2677ecc503302b6892e853ccba84aacafca` |
+| Magic verified | `PGDMP` |
+| TOC entries | 232, including TABLE DATA for `users`, `organizations`, `programmes`, `audit_logs`, `sessions` |
+| State captured | migrations 001–005, `tenant_role` = ORG_OWNER/ADMIN/CUSTOMER, **no `USER` label** |
+
+Base64 was used because the SSH channel carries text; the decoded artifact was verified by
+magic bytes and by the object names present in its table of contents, and the authoritative
+TOC was listed with `pg_restore -l` in-container.
+
+`pg_dump` takes ACCESS SHARE locks and modifies nothing. Production was re-verified
+afterwards as still at 001–005 with `ORG_OWNER = 1`.
+
+**Restore is untested.** No restore was attempted, deliberately — the only place to test one
+is a database that does not exist here. The archive is standard-format and structurally
+verified, which is materially stronger than the JSON export, but it is not a rehearsed
+recovery.
+
+### Still recommended, separately
+
+PITR remains the right permanent answer and is deferred by decision: enabling it redeploys
+the Postgres service, and a production restart does not belong in a migration window.
 
 ## 2. Current production migration version
 
