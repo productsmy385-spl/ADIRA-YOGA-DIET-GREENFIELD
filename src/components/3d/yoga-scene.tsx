@@ -1,11 +1,12 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Suspense, useMemo, useRef, useState } from "react";
+import { Component, Suspense, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Group } from "three";
 
 import { YogaFallback, type FallbackReason } from "./yoga-fallback";
 import { EMERALD, FOREST, JADE, LIGHT } from "./palette";
+import { YogaModel } from "./yoga-model";
 import { resolveModel, type YogaPose } from "./yoga-pose";
 
 /**
@@ -77,6 +78,71 @@ function YogaLighting() {
   );
 }
 
+/**
+ * Catches a model that fails to load or decode.
+ *
+ * A class component because React still offers no hook for this, and `useGLTF` signals
+ * failure by THROWING during render — which no `try` around the JSX can catch.
+ *
+ * The failure modes are real rather than theoretical: a `model_reference` pointing at a
+ * moved file, a Draco decoder that a locked-down browser refused to instantiate, a
+ * truncated download on a bad connection. All of them must land on the pose's written
+ * instructions, never on a broken canvas.
+ */
+class ModelBoundary extends Component<
+  { children: ReactNode; onError: () => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch() {
+    // Deliberately not logged with the error object. A decode failure is expected on some
+    // devices, and a console full of them trains people to ignore the console.
+    this.props.onError();
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
+/**
+ * The figure: the production character when one is configured, the placeholder otherwise.
+ *
+ * `Suspense` shows the placeholder WHILE the real model loads, rather than an empty frame.
+ * A viewer that renders nothing for two seconds on a mobile connection reads as broken;
+ * one that shows a simple figure and then swaps reads as loading.
+ */
+function Figure({
+  pose,
+  paused,
+  onError,
+}: {
+  pose: YogaPose;
+  paused: boolean;
+  onError: () => void;
+}) {
+  const model = useMemo(() => resolveModel(pose), [pose]);
+
+  if (model.placeholder) return <PlaceholderFigure paused={paused} />;
+
+  return (
+    <ModelBoundary onError={onError}>
+      <Suspense fallback={<PlaceholderFigure paused={paused} />}>
+        <YogaModel
+          url={model.reference}
+          clipName={pose.animationReference}
+          paused={paused}
+        />
+      </Suspense>
+    </ModelBoundary>
+  );
+}
+
 export interface YogaSceneProps {
   pose: YogaPose;
   /** Motion is stilled but the scene stays mounted and readable. */
@@ -120,9 +186,7 @@ export default function YogaScene({ pose, paused = false, className }: YogaScene
           }}
         >
           <YogaLighting />
-          <Suspense fallback={null}>
-            <PlaceholderFigure paused={paused} />
-          </Suspense>
+          <Figure pose={pose} paused={paused} onError={() => setFailed(true)} />
         </Canvas>
       </div>
 

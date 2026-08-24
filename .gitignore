@@ -44,3 +44,7 @@ next-env.d.ts
 # Read-only database snapshots taken around a migration. Local evidence, not history —
 # they carry timestamps and counts from one machine's view of one moment.
 .baseline/
+
+# Decoders copied from three by scripts/sync-3d-decoders.mjs at build time. They must
+# match the installed three version, so they are generated rather than committed.
+public/decoders/

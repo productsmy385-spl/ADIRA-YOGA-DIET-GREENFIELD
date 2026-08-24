@@ -7,7 +7,9 @@
     "node": "24.x"
   },
   "scripts": {
+    "predev": "node scripts/sync-3d-decoders.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/sync-3d-decoders.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

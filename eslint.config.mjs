@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "node_modules/**",
+    // Emscripten output copied out of `three` at build time by
+    // scripts/sync-3d-decoders.mjs. Vendored, generated, and not ours to style — linting
+    // it produces 160 warnings that bury the ones worth reading.
+    "public/decoders/**",
   ]),
 
   {

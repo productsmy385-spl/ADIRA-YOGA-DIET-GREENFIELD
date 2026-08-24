@@ -129,24 +129,53 @@ On delivery, the asset is checked against this. A failure on any line is a rejec
 - [ ] Licence documentation supplied and permits the above
 - [ ] Uncompressed source files supplied
 
-## 8. What still has to be built on our side
+## 8. Our side — built, and what is left
 
-**The asset alone does not complete 15C.** As of today the loading path does not exist —
-`resolveModel()` computes a reference that the scene discards. The following is engineering
-work, independent of the asset, and can start before it arrives:
+**The loading path now exists.** As of 2026-08-24 the following is implemented and passing
+`npm test`, `npm run lint`, `tsc --noEmit` and `npm run build`:
 
-1. glTF loading through the existing lazy boundary, with self-hosted Draco and KTX2
-   decoders placed in `public/`.
-2. `AnimationMixer` driving clip playback from `animation_reference`, with cross-fades.
-3. The scroll journey driving clip selection per section — currently it pins sections and
-   shows text; it does not control animation.
-4. Loading and decode-failure states, joining the four degradation paths already covered by
-   `yoga-viewer.test.tsx`.
-5. Verification that the ADR-014 promise still holds: `three` stays out of `/today`'s
-   bundle, and the CSP exception stays scoped to `/experience/*`.
+| | |
+|---|---|
+| glTF loading | `useGLTF` inside the existing `next/dynamic` boundary |
+| Draco | self-hosted, `public/decoders/draco/` |
+| KTX2 / Basis | self-hosted, `public/decoders/basis/`, with `detectSupport` from the live renderer |
+| Decoder provenance | copied from `three` by `scripts/sync-3d-decoders.mjs` at `prebuild`/`predev`, gitignored so they cannot drift from the installed version |
+| Animation | our own `AnimationMixer`, per-instance |
+| Instancing | `SkeletonUtils.clone` per viewer — see below |
+| Clip resolution | `animation_reference` → `yoga-clips.ts`, 12 tests |
+| Transitions | `fadeIn`/`fadeOut` cross-fade, 0.4 s |
+| Pause | `mixer.update(0)` — holds the pose rather than dropping to a T-pose |
+| Decode failure | `ModelBoundary` in `yoga-scene.tsx` → the pose's written instructions |
+| Loading | Suspense, showing the placeholder figure until the real model parses |
+| Bundle guard | `three` still absent from `/today`, `/dashboard`, `/admin` — verified against the emitted production chunks |
 
-Estimated: this is a contained addition, not a rewrite, precisely because the data seam and
-the degradation contract already exist and are tested.
+Two decisions worth knowing, because both are invisible until they break:
+
+**Every viewer clones the character with `SkeletonUtils.clone`.** `useGLTF` caches by URL
+and returns the *same* scene object to every caller. The journey renders seven sections; if
+several use one character they would otherwise drive a single skeleton, and whichever
+section animated last would win for all of them — poses changing as you scroll past
+something unrelated. A plain `.clone()` does not fix it either: the copies stay bound to
+the original skeleton and deform in lockstep.
+
+**A missing clip is never fatal.** Requested → `idle-breathing` → whatever exists → no
+animation. The last case still renders the character and the written instructions are on
+screen regardless.
+
+### What is NOT verified, and cannot be until an asset exists
+
+The loader has **never loaded a real GLB.** No production or test asset is present, and
+none was downloaded — an unverified third-party model is not something to add to this
+repository on the way to testing a code path.
+
+So these remain open, and they are integration questions rather than code questions:
+
+1. That a real Draco-compressed, KTX2-textured GLB decodes end to end in a browser.
+2. That the delivered clip names resolve against `animation_reference` in practice.
+3. That the cross-fade looks right at the actual clip lengths.
+4. That the budgets in §3 hold on a mid-range Android under sustained playback.
+
+`auditClips()` exists to answer §7's clip checklist against a real delivery mechanically.
 
 ## 9. If commissioning is not an option
 
