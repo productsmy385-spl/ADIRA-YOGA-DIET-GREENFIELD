@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { canActOn, canAssignRole } from "@/server/authorization/permissions";
 import type { TenantActor } from "@/server/authorization/roles";
 import { query } from "@/server/db/pool";
+import { setMemberStatus } from "@/server/repositories/members";
 import { createOrganization } from "@/server/repositories/organizations";
 import { createUser, findUserById, listUsers } from "@/server/repositories/users";
 
@@ -305,16 +306,87 @@ describeIsolated("tenant isolation", () => {
       await expect(insert()).rejects.toThrow();
     });
 
-    it("refuses a second ORG_OWNER in the same organization", async () => {
+    /**
+     * The old `users_one_org_owner_idx` is GONE, and that is the point.
+     *
+     * It enforced exactly one ORG_OWNER per organisation, which the merged role model
+     * contradicts: ADR-013 makes ADMIN the single operational role and an organisation may
+     * have many. Migration 007 drops the index, so this assertion was inverted rather than
+     * removed — a second administrator must now be permitted.
+     *
+     * The guarantee the index carried, that an organisation always has an identifiable
+     * principal, did not disappear. It moved up a layer and changed shape, from "exactly
+     * one owner" to "at least one active admin", because a partial unique index cannot
+     * express "at least one". The test below is where that replacement is proved.
+     */
+    it("permits a second administrator, now that the merge allows many", async () => {
       await expect(
         createUser({
           organizationId: f.orgA,
-          email: "owner2@a.test",
-          fullName: "Second Owner",
-          role: "ORG_OWNER",
+          email: "admin2@a.test",
+          fullName: "Second Admin",
+          role: "ADMIN",
           status: "ACTIVE",
         }),
-      ).rejects.toThrow();
+      ).resolves.toBeDefined();
+    });
+
+    /**
+     * The replacement guarantee (ADR-013 Q3), and the reason it lives in the service layer.
+     *
+     * Suspending an admin is fine while another remains active; suspending the last one is
+     * refused. `setMemberStatus` does the check and the write inside one transaction,
+     * locking the organisation's active admin rows `FOR UPDATE` first — a check followed by
+     * a separate write races, and two admins suspending each other concurrently would both
+     * see two and both proceed.
+     */
+    it("refuses to suspend the last active administrator", async () => {
+      const second = await createUser({
+        organizationId: f.orgA,
+        email: "admin3@a.test",
+        fullName: "Third Admin",
+        role: "ADMIN",
+        status: "ACTIVE",
+      });
+
+      // Two active admins exist (the fixture's own plus this one), so this is allowed.
+      const first = await setMemberStatus({
+        organizationId: f.orgA,
+        memberId: second.id,
+        status: "SUSPENDED",
+      });
+      expect(first.ok).toBe(true);
+
+      // Suspend every remaining admin until one is left, then assert the refusal.
+      const remaining = await query<{ id: string }>(
+        `SELECT id FROM users
+          WHERE organization_id = $1 AND role IN ('ADMIN', 'ORG_OWNER') AND status = 'ACTIVE'`,
+        [f.orgA],
+      );
+
+      for (const row of remaining.slice(0, -1)) {
+        await setMemberStatus({
+          organizationId: f.orgA,
+          memberId: row.id,
+          status: "SUSPENDED",
+        });
+      }
+
+      const last = remaining[remaining.length - 1];
+      const refused = await setMemberStatus({
+        organizationId: f.orgA,
+        memberId: last.id,
+        status: "SUSPENDED",
+      });
+
+      expect(refused).toEqual({ ok: false, reason: "LAST_ACTIVE_ADMIN" });
+
+      // And it really is still active — the refusal is a refusal, not a message.
+      const still = await query<{ status: string }>(
+        `SELECT status FROM users WHERE id = $1`,
+        [last.id],
+      );
+      expect(still[0].status).toBe("ACTIVE");
     });
 
     // Email is unique PER ORGANISATION, not globally — the same person may genuinely be

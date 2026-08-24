@@ -45,41 +45,116 @@ import { pool } from "@/server/db/pool";
  */
 const PROTECTED_DATABASE_NAMES = new Set(["railway", "postgres", "production"]);
 
-function databaseNameOf(url: string | undefined): string | null {
+export type DatabaseMode = "NONE" | "READ_ONLY" | "ISOLATED";
+
+/** What the guard needs to know. Pure inputs, so the decision is directly testable. */
+export interface IsolationInputs {
+  /** `ADIRA_ISOLATED_TEST_DB === "1"`. */
+  readonly optedIn: boolean;
+  /** The database destructive suites would TRUNCATE. */
+  readonly testUrl?: string;
+  /**
+   * The application's REAL database, captured before `setup-db.ts` aliased
+   * `DATABASE_URL`. Not the live `DATABASE_URL`, which by then names the test database.
+   */
+  readonly productionUrl?: string;
+}
+
+interface UrlParts {
+  host: string;
+  port: string;
+  database: string;
+  user: string;
+  password: string;
+}
+
+function partsOf(url: string | undefined): UrlParts | null {
   if (!url) return null;
   try {
-    // `new URL` handles the credentials; the path is `/<database>`.
-    return new URL(url).pathname.replace(/^\//, "") || null;
+    const u = new URL(url);
+    return {
+      host: u.hostname.toLowerCase(),
+      port: u.port || "5432",
+      database: u.pathname.replace(/^\//, ""),
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+    };
   } catch {
     return null;
   }
 }
 
-export type DatabaseMode = "NONE" | "READ_ONLY" | "ISOLATED";
+/**
+ * Do two URLs address the same database, even through different hosts?
+ *
+ * A string comparison is not enough on Railway, where the SAME database is reachable as
+ * `postgres.railway.internal:5432` and as `<name>.proxy.rlwy.net:41234`. Those URLs share
+ * nothing textually and destroy the same rows.
+ *
+ * Same database name AND same user AND same password is treated as the same database. It
+ * is a heuristic, and a deliberately conservative one: a false positive costs a skipped
+ * suite, a false negative costs the production data. `assertIsolatedTarget` performs the
+ * authoritative check against the live server before anything is truncated.
+ */
+function sameDatabase(a: UrlParts, b: UrlParts): boolean {
+  if (a.host === b.host && a.port === b.port && a.database === b.database) return true;
+  return (
+    a.database === b.database &&
+    a.user === b.user &&
+    a.password !== "" &&
+    a.password === b.password
+  );
+}
 
 /**
- * Why the isolated mode is unavailable, when it is. Reported in the skip reason so a
- * skipped suite explains itself instead of looking like it does not exist.
+ * May destructive suites run? Returns the REASON they may not, or null.
+ *
+ * The invariant, stated once:
+ *
+ *   the database destructive tests will truncate
+ *     ≠ the application's real database, AND
+ *     ≠ any database whose name is known to be production
+ *
+ * Note what it does NOT compare: the live `DATABASE_URL`. The harness aliases that to the
+ * test URL on purpose, so comparing against it makes the two identical by construction and
+ * the guard refuses every run — which is precisely the bug this replaced.
  */
-function isolatedRefusal(): string | null {
-  if (process.env.ADIRA_ISOLATED_TEST_DB !== "1") {
-    return "ADIRA_ISOLATED_TEST_DB is not set to 1";
+export function isolationRefusal(inputs: IsolationInputs): string | null {
+  if (!inputs.optedIn) return "ADIRA_ISOLATED_TEST_DB is not set to 1";
+  if (!inputs.testUrl) return "SQL_TEST_DATABASE_URL is not set";
+
+  const test = partsOf(inputs.testUrl);
+  if (!test) return "SQL_TEST_DATABASE_URL could not be parsed";
+
+  if (PROTECTED_DATABASE_NAMES.has(test.database)) {
+    return `SQL_TEST_DATABASE_URL names the protected database "${test.database}"`;
   }
 
-  const testUrl = process.env.SQL_TEST_DATABASE_URL;
-  if (!testUrl) return "SQL_TEST_DATABASE_URL is not set";
-
-  if (testUrl === process.env.DATABASE_URL) {
-    return "SQL_TEST_DATABASE_URL is identical to DATABASE_URL";
+  // CASE 4 — production identity unknown means the comparison cannot be made, and an
+  // unmakeable safety comparison must fail closed.
+  if (!inputs.productionUrl) {
+    return "the application's DATABASE_URL is unknown, so the test database cannot be proved different";
   }
 
-  const name = databaseNameOf(testUrl);
-  if (!name) return "SQL_TEST_DATABASE_URL could not be parsed";
-  if (PROTECTED_DATABASE_NAMES.has(name)) {
-    return `SQL_TEST_DATABASE_URL names the protected database "${name}"`;
+  const production = partsOf(inputs.productionUrl);
+  if (!production) return "the application's DATABASE_URL could not be parsed";
+
+  if (sameDatabase(test, production)) {
+    return "SQL_TEST_DATABASE_URL and the application's DATABASE_URL address the same database";
   }
 
   return null;
+}
+
+function isolatedRefusal(): string | null {
+  return isolationRefusal({
+    optedIn: process.env.ADIRA_ISOLATED_TEST_DB === "1",
+    testUrl: process.env.SQL_TEST_DATABASE_URL,
+    // Recorded by setup-db.ts BEFORE it aliased DATABASE_URL. The fallback covers a
+    // process where the alias never happened, in which case DATABASE_URL is still real.
+    productionUrl:
+      process.env.ADIRA_PRODUCTION_DATABASE_URL ?? process.env.DATABASE_URL,
+  });
 }
 
 const ISOLATED_REFUSAL = isolatedRefusal();
