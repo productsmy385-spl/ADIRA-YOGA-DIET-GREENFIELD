@@ -75,3 +75,40 @@ validation, error/loading/empty/success states, mobile and desktop layouts, test
 typecheck, lint, production build, security review, and documentation are all done.
 
 A working UI over invented data is not done. A login without authorization is not done.
+
+## One test run at a time
+
+`tests/helpers/sql-db.ts` serialises test FILES inside one vitest process
+(`fileParallelism: false`), because `resetDatabase()` issues `TRUNCATE ... CASCADE` and
+needs an ACCESS EXCLUSIVE lock that a concurrently-running file's idle connections will
+not grant.
+
+**It cannot coordinate across two `vitest` invocations against the same database**, and
+this repository is worked on by more than one agent session at a time, so that is not a
+theoretical limit.
+
+Observed on 2026-08-24: a full server run reported 30 failures, every one of them inside a
+fixture seed — `createOrganization`, `createUser`, `assignments.ts` — with
+`users_organization_id_fkey` violations. A second run had been started while the first was
+in flight, and each was truncating the other's fixtures mid-test. Nothing was wrong with
+the code.
+
+The signature points at the application repositories, so the instinct is to debug
+`createUser`. Before doing that:
+
+1. Check no other test run is in flight (including a backgrounded one).
+2. Check no other session is mid-edit of a file the suite imports — a pure suite failing
+   alongside the database ones is the tell.
+3. Re-run alone. Only failures that survive a solo run are real.
+
+## When the database is unreachable
+
+The suites talk to Railway over its public proxy, so a run can fail for reasons that have
+nothing to do with the code. `getaddrinfo ENOTFOUND`, `ECONNRESET`, or every file after
+the first failing instantly inside `resetDatabase` are all network symptoms, not
+assertions. Report them as an unverified run, never as a failing suite — and never as a
+passing one.
+
+Without `SQL_TEST_DATABASE_URL` the database suites `describe.skip` themselves, so a
+contributor with no test database still gets a green run. **Skipping is not passing.** Say
+which suites were skipped.
