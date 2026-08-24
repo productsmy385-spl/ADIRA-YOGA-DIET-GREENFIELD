@@ -115,11 +115,35 @@ export default async function TodayPage() {
           </div>
 
           {activities.length > 0 ? (
-            <ul className="mt-4 grid gap-3">
-              {activities.map((activity) => (
-                <ActivityCard key={activity.id} activity={activity} />
-              ))}
-            </ul>
+            /*
+             * Grouped by kind, because they are two different acts.
+             *
+             * Yoga is a session you go and do; a meal is something you eat at a time of
+             * day. A single interleaved list makes the customer read every row to find
+             * what is left of their practice, and the two have different rhythms — the
+             * yoga is done once, the meals are checked off across the day.
+             *
+             * The order is fixed rather than by schedule position: practice first, meals
+             * second. Both groups keep their own internal order, which is the sequence
+             * the programme prescribed.
+             */
+            (["YOGA", "DIET"] as const).map((kind) => {
+              const forKind = activities.filter((activity) => activity.kind === kind);
+              if (forKind.length === 0) return null;
+
+              return (
+                <div key={kind} className="mt-4">
+                  <h3 className="type-meta text-muted-foreground">
+                    {kind === "YOGA" ? "Practice" : "Meals"}
+                  </h3>
+                  <ul className="mt-2 grid gap-3">
+                    {forKind.map((activity) => (
+                      <ActivityCard key={activity.id} activity={activity} />
+                    ))}
+                  </ul>
+                </div>
+              );
+            })
           ) : (
             /**
              * J2 names this precisely: the empty state must distinguish "nothing
