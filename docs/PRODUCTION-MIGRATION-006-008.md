@@ -1,30 +1,63 @@
 # Pre-production check — migrations 006, 007, 008
 
-**Status: READY. Awaiting explicit approval. Nothing has been applied and nothing pushed.**
+**Status: BLOCKED on production backup. Nothing has been applied and nothing pushed.**
+
+> **2026-08-24 — the backup check came back negative.** Production has no Railway backup
+> of any kind: PITR disabled, no schedule, zero snapshots. See §1. The migration is
+> forward-only and 007 rewrites the role of every user, so this must be resolved before
+> deployment.
 
 Baseline taken read-only from `railway` at `2026-08-24T01:21:06Z`. Every figure below was
 read from the live database or from the migration SQL, not assumed.
 
 ---
 
-## 1. Backup and recovery capability
+## 1. Backup and recovery capability — ❌ **NONE EXISTS**
 
-| | |
-|---|---|
-| Production Postgres | `● Online`, volume `postgres-volume`, project `ADIRA-YOGA & DIET GREENFIELD` |
-| `pg_dump` on this machine | **not installed** |
-| Railway scheduled backups | **could not be confirmed from the CLI** — `railway volume list` reports no backup schedule and takes no `--environment` flag |
-| Mitigation taken | Full logical export: **88 rows across 26 tables**, `.baseline/export-2026-08-24T01-24-08-961Z.json` |
+Four independent checks against the production Postgres
+(service `318e6bae-e820-4d0d-92f9-0b0efd91b5c6`, environment `production`, the service
+behind `altaria.proxy.rlwy.net:46135/railway` — the same one the baseline was read from):
 
-The export runs in a `SERIALIZABLE READ ONLY` transaction, so every table is read as of one
-instant — a backup stitched from several moments can restore to a state that never existed.
-Session and OTP hashes are redacted: those rows are worthless for recovery and an exported
-hash is still an offline target. The file holds real personal data, lives in gitignored
-`.baseline/`, and should be deleted once the migration is confirmed.
+| Check | Command | Result |
+|---|---|---|
+| Point-in-time recovery | `railway postgres pitr status --service Postgres --environment production` | `enabled: false`, `bucketWired: false` |
+| Backup schedules, per service | `projectCompliance.serviceBackups` | `schedules: []` — for **both** Postgres services |
+| Schedules on the production volume | `volumeInstanceBackupScheduleList` | `[]` |
+| Snapshots that actually exist | `volumeInstanceBackupList` | `[]` — **zero** |
 
-**Open item for you:** confirm Railway's own backup setting in the dashboard. The export
-above is a genuine safety net for a database this size, but it is not a substitute for
-provider-level backups as the product grows.
+**There is no continuous backup, no scheduled backup, and not one stored snapshot.** If
+007 goes wrong there is nothing on Railway to restore from.
+
+`pg_dump` is not installed on the development machine either.
+
+### What does exist
+
+A complete logical export: **88 rows across 26 tables**,
+`.baseline/export-2026-08-24T01-24-08-961Z.json`, taken in a `SERIALIZABLE READ ONLY`
+transaction so every table is read at one instant. Session and OTP hashes are redacted.
+
+That is a real safety net for a database this size — 1 organization, 1 user, 1 programme,
+54 audit rows — and it is **not** a substitute for provider-level recovery. It restores
+data, not a cluster, and it has never been exercised as a restore.
+
+### Options, for the owner to choose
+
+Neither has been run. Both change infrastructure and need explicit approval.
+
+```bash
+# A snapshot of the volume as it stands. No redeploy, no downtime.
+railway api 'mutation($v:String!){ volumeInstanceBackupCreate(volumeInstanceId:$v, name:"pre-006-008") }'   --var v=944130f7-255c-405f-93fb-18af40b9f9dd
+
+# Continuous recovery from here on. NOTE: this REDEPLOYS the Postgres service by
+# default — a production restart — unless --no-deploy is passed, in which case it
+# applies on the next deploy and does not protect this migration.
+railway postgres pitr enable --service Postgres --environment production
+```
+
+The first is the smaller action and the one that matches the need: a restorable point
+immediately before the migration. The second is what should be true permanently, and
+enabling it during a migration window adds a service restart to an already eventful
+deployment.
 
 ## 2. Current production migration version
 
@@ -150,6 +183,7 @@ exists at all.
 
 ## Deployment sequence, once approved
 
+0. **Establish a restore point.** See §1 — there is currently none.
 1. `node scripts/production-baseline.mjs --json > .baseline/before.json`
 2. `git push origin main`
 3. Watch Railway's pre-deploy `npm run migrate` output — confirm 006, 007, 008 each apply
