@@ -162,3 +162,18 @@ API contracts, and the database are untouched — verified in the impact analysi
 4. **Regulatory posture** — jurisdiction and any compliance regime that applies to holding
    identifiable health data. Needed before real customer data exists, not before a
    particular phase.
+
+## Phase 15C — blocked on an external asset
+
+15A (viewer), 15B (scroll journey) and 15D (performance and accessibility) are complete and
+verified. **15C is not, and it is not blocked on engineering judgement — it is blocked on a
+production character and animation set that does not exist yet.**
+
+`docs/3D-ASSET-CONTRACT.md` is the specification to commission or purchase against. It also
+lists §8, the loading and animation work still to be written on our side: as of today
+`resolveModel()` resolves a model reference that the scene discards, and no glTF loader,
+animation mixer, or decoder hosting exists. The data seam and the degradation contract do
+exist and are tested, which is what keeps this a contained addition rather than a rewrite.
+
+**15C is COMPLETE only when a real asset is integrated and the §7 checklist passes.** A
+better-looking placeholder does not close it.

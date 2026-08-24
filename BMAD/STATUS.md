@@ -125,3 +125,17 @@ Two decisions are outstanding and block stories D5 and D6:
   or the landing route ships uncompressed glTF instead
 
 No implementation has begun.
+
+## Phase 15 — NOT COMPLETE (2026-08-24)
+
+| | |
+|---|---|
+| 15A viewer | complete, tested |
+| 15B scroll journey | complete, live at `/experience/yoga` |
+| 15D performance and accessibility | complete — three.js confined to one chunk no route eagerly loads; four degradation paths tested |
+| **15C production character** | **BLOCKED — no asset exists** |
+
+Specification for commissioning: `docs/3D-ASSET-CONTRACT.md`. Its §8 lists the loading and
+animation code still to be written, which does not depend on the asset and can start first.
+
+Do not mark Phase 15 complete until a real asset passes the §7 acceptance checklist.
