@@ -10,6 +10,8 @@ import { listMeals } from "@/server/repositories/library";
 
 import { archiveMealAction } from "../library-actions";
 
+import { AddMealForm } from "./add-meal";
+
 export const metadata: Metadata = { title: "Diet library" };
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,8 @@ export default async function DietLibraryPage() {
               Meals available to {session.organizationName} when building a plan.
             </p>
           </div>
+
+        <AddMealForm />
 
           <Button asChild size="sm">
             <Link href="/admin/diet/new">

@@ -10,6 +10,8 @@ import { listYogaExercises } from "@/server/repositories/library";
 
 import { archiveYogaExerciseAction } from "../library-actions";
 
+import { AddExerciseForm } from "./add-exercise";
+
 export const metadata: Metadata = { title: "Yoga library" };
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,8 @@ export default async function YogaLibraryPage() {
               Exercises available to {session.organizationName} when building a programme.
             </p>
           </div>
+
+        <AddExerciseForm />
 
           <Button asChild size="sm">
             <Link href="/admin/yoga/new">
