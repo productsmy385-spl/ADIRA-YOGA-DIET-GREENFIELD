@@ -10,6 +10,14 @@ import {
   organizationToday,
 } from "@/server/repositories/activities";
 import { listAssignmentsForCustomer } from "@/server/repositories/assignments";
+import { listProgrammes } from "@/server/repositories/programmes";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  activateAssignmentAction,
+  pauseAssignmentAction,
+} from "./actions";
+import { AssignProgrammeForm } from "./assign-programme-form";
 import { recordAudit } from "@/server/repositories/audit-logs";
 import {
   actorFromSession,
@@ -83,12 +91,16 @@ export default async function CustomerPage({
   const today = await organizationToday(session.organizationId);
   const weekAgo = subtractDays(today, 6);
 
-  const [assignments, todayActivities, weekStatuses, checkIns] = await Promise.all([
-    listAssignmentsForCustomer(session.organizationId, id),
-    listActivitiesForDate(session.organizationId, id, today),
-    listStatusesInRange(session.organizationId, id, weekAgo, today),
-    listCheckInsInRange(session.organizationId, id, weekAgo, today),
-  ]);
+  const [assignments, todayActivities, weekStatuses, checkIns, programmes] =
+    await Promise.all([
+      listAssignmentsForCustomer(session.organizationId, id),
+      listActivitiesForDate(session.organizationId, id, today),
+      listStatusesInRange(session.organizationId, id, weekAgo, today),
+      listCheckInsInRange(session.organizationId, id, weekAgo, today),
+      // Templates available to prescribe. Archived ones are excluded: withdrawing a
+      // template should stop it being handed out, which is most of the point of archiving.
+      listProgrammes(session.organizationId),
+    ]);
 
   const weekPercent = completionPercent(tally(weekStatuses));
   const livePlan = assignments.find((a) => a.status === "ACTIVE");
@@ -121,6 +133,84 @@ export default async function CustomerPage({
         <p className="mt-1 text-sm text-muted-foreground">
           {customer.email} · {customer.status.toLowerCase()}
         </p>
+
+        <section aria-labelledby="plans-heading" className="mt-8">
+          <h2
+            id="plans-heading"
+            className="text-xs font-semibold tracking-widest text-muted-foreground uppercase"
+          >
+            Plans
+          </h2>
+
+          {assignments.length > 0 ? (
+            <ul className="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+              {assignments.map((assignment) => (
+                <li key={assignment.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
+                  <div className="min-w-40 flex-1">
+                    <p className="text-sm text-card-foreground">{assignment.name}</p>
+                    <p className="type-meta mt-0.5 text-muted-foreground">
+                      {assignment.kind === "YOGA" ? "Yoga" : "Diet"} · from{" "}
+                      {assignment.startsOn} · {assignment.durationWeeks} week
+                      {assignment.durationWeeks === 1 ? "" : "s"} · template v
+                      {assignment.sourceVersion}
+                    </p>
+                  </div>
+
+                  <Badge
+                    variant={assignment.status === "ACTIVE" ? "default" : "secondary"}
+                    className="text-xs"
+                  >
+                    {assignment.status}
+                  </Badge>
+
+                  {/*
+                    DRAFT and PAUSED both activate; ACTIVE pauses. COMPLETED and CANCELLED
+                    offer nothing — they are terminal, and a control that silently does
+                    nothing is worse than no control.
+                  */}
+                  {assignment.status === "ACTIVE" ? (
+                    <form action={pauseAssignmentAction}>
+                      <input type="hidden" name="customerId" value={id} />
+                      <input type="hidden" name="assignmentId" value={assignment.id} />
+                      <Button type="submit" size="sm" variant="ghost">
+                        Pause
+                      </Button>
+                    </form>
+                  ) : assignment.status === "DRAFT" || assignment.status === "PAUSED" ? (
+                    <form action={activateAssignmentAction}>
+                      <input type="hidden" name="customerId" value={id} />
+                      <input type="hidden" name="assignmentId" value={assignment.id} />
+                      <Button type="submit" size="sm" variant="outline">
+                        {assignment.status === "DRAFT" ? "Start" : "Resume"}
+                      </Button>
+                    </form>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">
+              No plan assigned yet.
+            </p>
+          )}
+
+          <div className="mt-5 rounded-lg border border-border bg-card p-5">
+            <h3 className="text-sm font-medium text-card-foreground">Assign a plan</h3>
+            <div className="mt-4">
+              <AssignProgrammeForm
+                customerId={id}
+                today={today}
+                programmes={programmes.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  kind: p.kind,
+                  durationWeeks: p.durationWeeks,
+                  itemCount: p.itemCount,
+                }))}
+              />
+            </div>
+          </div>
+        </section>
 
         <section aria-label="Summary" className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-border bg-card p-4">
