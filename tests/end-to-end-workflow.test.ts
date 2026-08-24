@@ -25,7 +25,9 @@ import {
   listProgrammeItems,
   publishProgramme,
 } from "@/server/repositories/programmes";
+import { listReportsForMember } from "@/server/repositories/reports";
 import { createUser } from "@/server/repositories/users";
+import { generateCustomerWeekly } from "@/server/services/reports";
 import { completionPercent, tally } from "@/server/services/metrics";
 
 import { describeIsolated, resetDatabase } from "./helpers/sql-db";
@@ -338,6 +340,117 @@ describeIsolated("the complete product workflow", () => {
     expect(
       (await resolveMemberAccess(member(w.memberId, w.orgId), w.otherMemberId)).decision,
     ).toEqual({ allowed: false, reason: "NOT_ASSIGNED" });
+  });
+
+  /**
+   * A report is a frozen statement about a closed period, and it must be computed from
+   * activity that actually happened.
+   *
+   * This is the piece that cannot be proved by generating a report against an empty
+   * database: the numbers would be null either way. So the member is given a plan, some of
+   * it is completed, and the report is then asserted to reflect exactly that.
+   */
+  it("generates a weekly report from real completed activity", async () => {
+    const exercise = await createYogaExercise(w.orgId, { name: "Seated Twist" });
+    const programme = await createProgramme(w.orgId, {
+      kind: "YOGA",
+      name: "Report Programme",
+      durationWeeks: 2,
+    });
+
+    for (let day = 1; day <= 7; day += 1) {
+      await addProgrammeItem(w.orgId, programme.id, {
+        weekNumber: 1,
+        dayOfWeek: day,
+        sequence: 0,
+        yogaExerciseId: exercise.id,
+      });
+    }
+    await publishProgramme(w.orgId, programme.id);
+
+    await createAssignment(w.orgId, w.adminId, w.memberId);
+
+    // Start the plan a week ago so a COMPLETE past week exists to report on.
+    const weekAgo = new Date(`${w.today}T00:00:00Z`);
+    weekAgo.setUTCDate(weekAgo.getUTCDate() - 7);
+    const startsOn = weekAgo.toISOString().slice(0, 10);
+
+    const assignment = await createAssignmentFromProgramme({
+      organizationId: w.orgId,
+      customerId: w.memberId,
+      assignedBy: w.adminId,
+      programmeId: programme.id,
+      startsOn,
+    });
+    await activateAssignment(w.orgId, assignment.id);
+
+    // Complete two of the past week's activities, leave the rest.
+    const past = await query<{ id: string }>(
+      `SELECT id FROM daily_activities
+        WHERE organization_id = $1 AND customer_id = $2
+          AND scheduled_for BETWEEN $3::date AND $4::date
+        ORDER BY scheduled_for
+        LIMIT 2`,
+      [w.orgId, w.memberId, startsOn, w.today],
+    );
+    expect(past.length).toBe(2);
+
+    for (const row of past) {
+      await query(
+        `UPDATE daily_activities
+            SET status = 'COMPLETED', completed_at = now()
+          WHERE id = $1`,
+        [row.id],
+      );
+    }
+
+    const { reportId, payload } = await generateCustomerWeekly(w.orgId, w.memberId, {
+      start: startsOn,
+      end: w.today,
+    });
+
+    expect(reportId).toBeTruthy();
+    expect(payload.completed).toBe(2);
+
+    // The figures are FROZEN into the row, not recomputed on read. A weekly report whose
+    // contents move when somebody backfills an activity is not a report.
+    const stored = await query<{
+      status: string;
+      generated_at: Date | null;
+      payload: { completed: number };
+    }>(`SELECT status, generated_at, payload FROM reports WHERE id = $1`, [reportId]);
+
+    expect(stored[0].status).toBe("READY");
+    expect(stored[0].generated_at).not.toBeNull();
+    expect(stored[0].payload.completed).toBe(2);
+
+    // Backfill a third completion AFTER generation. The stored report must not move.
+    const another = await query<{ id: string }>(
+      `SELECT id FROM daily_activities
+        WHERE organization_id = $1 AND customer_id = $2 AND status <> 'COMPLETED'
+          AND scheduled_for BETWEEN $3::date AND $4::date
+        LIMIT 1`,
+      [w.orgId, w.memberId, startsOn, w.today],
+    );
+
+    if (another.length > 0) {
+      // completed_at as well: `daily_activities_completion_consistency` requires the two
+      // to agree, which is the schema refusing to record a completion with no time.
+      await query(
+        `UPDATE daily_activities SET status = 'COMPLETED', completed_at = now() WHERE id = $1`,
+        [another[0].id],
+      );
+
+      const reread = await query<{ payload: { completed: number } }>(
+        `SELECT payload FROM reports WHERE id = $1`,
+        [reportId],
+      );
+      expect(reread[0].payload.completed).toBe(2);
+    }
+
+    // And the member can see it through the authorised read path.
+    const visible = await listReportsForMember(w.orgId, w.memberId);
+    expect(visible.some((r) => r.id === reportId)).toBe(true);
   });
 
   /**
