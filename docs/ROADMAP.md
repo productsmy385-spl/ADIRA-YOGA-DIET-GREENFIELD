@@ -15,26 +15,26 @@ and documented before the next begins. A phase with critical failures blocks the
 |---|---|---|
 | 0 | Architecture, security model, schema design, infrastructure | **complete** |
 | 1 | Railway PostgreSQL — provision, apply migrations | **complete** 2026-08-22 |
-| 2 | Authentication — passkeys, OTP, sessions | |
-| 3 | Authorization, RBAC, multi-tenancy enforcement + isolation suites | |
-| 4 | Service and repository layers | |
-| 5 | Customer dashboard | |
-| 6 | Yoga engine | |
-| 7 | Diet engine | |
-| 8 | Admin / consultant dashboard | |
-| 9 | Owner dashboards — platform and organization | |
-| 10 | Notifications | |
-| 11 | Reports + job queue drain | |
-| 12 | ImageKit media | |
-| 13 | Import / export | |
-| 14 | PWA install, icon set | |
-| 15A | 3D engine and pose viewer | |
-| 15B | Scroll-driven yoga journey | |
+| 2 | Authentication — passkeys, OTP, sessions | **complete** — OTP, passkeys, sessions; proven end to end against production |
+| 3 | Authorization, RBAC, multi-tenancy enforcement + isolation suites | **complete** — merged model (ADR-013); `tenant-isolation` 27/27, `caseload-scope` 17/17 |
+| 4 | Service and repository layers | **complete** — 20 repositories, SQL confined to them (ADR-005) |
+| 5 | Customer dashboard | **complete** — `/dashboard`, `/today`, `/progress`, `/notifications`, `/reports` |
+| 6 | Yoga engine | **complete** — library, programmes, snapshot on assignment (ADR-009), `/admin/yoga` |
+| 7 | Diet engine | **complete** — meals, plans, adherence, `/admin/diet` |
+| 8 | Admin / consultant dashboard | **complete** — caseload, members, access requests, analytics, libraries |
+| 9 | Owner dashboards — platform and organization | **complete** — `/super-admin` + `/super-admin/sign-in`; no separate Owner dashboard (ADR-013) |
+| 10 | Notifications | **partial** — in-app works end to end. **No outbound email beyond OTP**, so an approved applicant is not actually reached |
+| 11 | Reports + job queue drain | **partial** — job queue and cron drain built; **report generation not written**, so `reports` is empty and the repository reads only |
+| 12 | ImageKit media | **complete** — signed upload auth, media records, tenant ownership |
+| 13 | Import / export | **partial** — import done (template, preview, transactional apply). **Export not built** |
+| 14 | PWA install, icon set | **complete** — manifest, service worker, offline route, install |
+| 15A | 3D engine and pose viewer | **complete** |
+| 15B | Scroll-driven yoga journey | **complete** — `/experience/yoga` |
 | 15C | Production 3D assets | **blocked — art dependency** |
-| 15D | 3D performance and accessibility | |
-| 16 | Security hardening — CSP, rate limiting, dependency scanning | CSP **done** (`2d7ac67`) |
-| 17 | Performance and accessibility | |
-| 18 | Production deployment | |
+| 15D | 3D performance and accessibility | **complete** — lazy, reduced-motion, no-WebGL fallback |
+| 16 | Security hardening — CSP, rate limiting, dependency scanning | **partial** — CSP done (`2d7ac67`), auth rate limiting done. **No dependency scanning in CI** |
+| 17 | Performance and accessibility | **partial** — lazy 3D, reduced motion, skip link, focus states. No measured budget |
+| 18 | Production deployment | **partial** — live on Railway from `main`. **Any push deploys and migrates**; governance not yet enforced |
 
 ## Phase 0 — what was delivered
 
