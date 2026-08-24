@@ -88,7 +88,7 @@ export async function createProgramme(
   const row = await queryOne<ProgrammeRow>(
     `WITH inserted AS (
        INSERT INTO programmes (organization_id, kind, name, description, duration_weeks, difficulty)
-       VALUES ($1, $2, $3, $4, COALESCE($5, 4), COALESCE($6, 'BEGINNER'))
+       VALUES ($1, $2, $3, $4, COALESCE($5, 4), COALESCE($6::difficulty_level, 'BEGINNER'))
        RETURNING *
      )
      SELECT p.id, p.kind, p.name, p.description, p.duration_weeks, p.difficulty,

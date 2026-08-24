@@ -79,7 +79,7 @@ export async function createYogaExercise(
     `INSERT INTO yoga_exercises
        (organization_id, name, description, instructions, breathing,
         default_duration_seconds, default_repetitions, difficulty)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, 'BEGINNER'))
+     VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8::difficulty_level, 'BEGINNER'))
      RETURNING ${EXERCISE_COLUMNS}`,
     [
       organizationId,
