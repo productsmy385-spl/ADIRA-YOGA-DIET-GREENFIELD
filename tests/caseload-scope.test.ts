@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import {beforeEach, expect, it} from "vitest";
 
 import { resolveMemberAccess } from "@/server/authorization/member-access";
 import type { TenantActor } from "@/server/authorization/roles";
@@ -7,7 +7,7 @@ import { hasActiveAssignment, listCaseload } from "@/server/repositories/caseloa
 import { createOrganization } from "@/server/repositories/organizations";
 import { createUser } from "@/server/repositories/users";
 
-import { hasTestDatabase, resetDatabase } from "./helpers/sql-db";
+import {describeIsolated, resetDatabase} from "./helpers/sql-db";
 
 /**
  * ADR-013, proved: an ADMIN administers the whole organisation but reads only the health
@@ -21,7 +21,6 @@ import { hasTestDatabase, resetDatabase } from "./helpers/sql-db";
  * SEC-03 is the case that matters most in the entire epic.
  */
 
-const describeWithDatabase = hasTestDatabase ? describe : describe.skip;
 
 interface Fixture {
   orgId: string;
@@ -108,7 +107,7 @@ const member = (userId: string, organizationId: string): TenantActor => ({
   role: "USER",
 });
 
-describeWithDatabase("caseload scoping (ADR-013)", () => {
+describeIsolated("caseload scoping (ADR-013)", () => {
   let f: Fixture;
 
   beforeEach(async () => {
@@ -181,7 +180,7 @@ describeWithDatabase("caseload scoping (ADR-013)", () => {
   });
 });
 
-describeWithDatabase("resolveMemberAccess — the member-data gate", () => {
+describeIsolated("resolveMemberAccess — the member-data gate", () => {
   let f: Fixture;
 
   beforeEach(async () => {

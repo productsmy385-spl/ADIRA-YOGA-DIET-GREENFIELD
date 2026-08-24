@@ -6,7 +6,7 @@ import { query } from "@/server/db/pool";
 import { createOrganization } from "@/server/repositories/organizations";
 import { createUser, findUserById, listUsers } from "@/server/repositories/users";
 
-import { getTestPool, hasTestDatabase, resetDatabase } from "./helpers/sql-db";
+import {describeIsolated, getTestPool, resetDatabase} from "./helpers/sql-db";
 
 /**
  * The suite `docs/TESTING.md` named as required before Phase 3 can be called done.
@@ -28,7 +28,6 @@ import { getTestPool, hasTestDatabase, resetDatabase } from "./helpers/sql-db";
  * eventually forgets; a composite foreign key is not.
  */
 
-const describeWithDatabase = hasTestDatabase ? describe : describe.skip;
 
 interface Fixture {
   orgA: string;
@@ -66,7 +65,7 @@ async function seed(): Promise<Fixture> {
   };
 }
 
-describeWithDatabase("tenant isolation", () => {
+describeIsolated("tenant isolation", () => {
   let f: Fixture;
 
   beforeAll(async () => {

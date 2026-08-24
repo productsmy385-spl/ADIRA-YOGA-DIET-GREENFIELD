@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import {beforeEach, expect, it} from "vitest";
 
 import { query } from "@/server/db/pool";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/server/repositories/jobs";
 import { createOrganization } from "@/server/repositories/organizations";
 
-import { hasTestDatabase, resetDatabase } from "./helpers/sql-db";
+import {describeIsolated, resetDatabase} from "./helpers/sql-db";
 
 /**
  * ADR-003's queue, proved against a real database.
@@ -24,9 +24,8 @@ import { hasTestDatabase, resetDatabase } from "./helpers/sql-db";
  * or it does not.
  */
 
-const describeWithDatabase = hasTestDatabase ? describe : describe.skip;
 
-describeWithDatabase("job queue", () => {
+describeIsolated("job queue", () => {
   let orgId: string;
 
   beforeEach(async () => {
@@ -171,7 +170,7 @@ describeWithDatabase("job queue", () => {
   });
 });
 
-describeWithDatabase("runJob", () => {
+describeIsolated("runJob", () => {
   let orgId: string;
 
   beforeEach(async () => {
@@ -211,7 +210,7 @@ describeWithDatabase("runJob", () => {
   });
 });
 
-describeWithDatabase("purgeCompleted", () => {
+describeIsolated("purgeCompleted", () => {
   beforeEach(resetDatabase);
 
   it("removes old successes and keeps failures", async () => {

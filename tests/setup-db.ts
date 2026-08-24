@@ -17,7 +17,8 @@
  * fixtures share it. That is only possible if the application itself is pointed at the
  * test database, which is what this file does.
  *
- * If SQL_TEST_DATABASE_URL is unset, this does nothing and the database suites skip.
+ * Without ADIRA_ISOLATED_TEST_DB=1 this does nothing: DATABASE_URL keeps naming the real
+ * database, read-only verification runs against it, and the destructive suites skip.
  */
 
 import { existsSync } from "node:fs";
@@ -44,13 +45,46 @@ for (const file of [".env.local", ".env"]) {
   }
 }
 
+/**
+ * Repoint the application at the ISOLATED database — and only ever at that.
+ *
+ * Gated on `ADIRA_ISOLATED_TEST_DB=1` as well as the URL, so the destructive path needs a
+ * deliberate act and not merely a variable someone left in `.env.local`. Without the
+ * opt-in this file does nothing at all: `DATABASE_URL` keeps naming the real database,
+ * the read-only suites verify the real schema against it, and the destructive suites
+ * skip themselves with a reason. See `tests/helpers/sql-db.ts`.
+ */
 const testUrl = process.env.SQL_TEST_DATABASE_URL;
+const optedIn = process.env.ADIRA_ISOLATED_TEST_DB === "1";
 
-if (testUrl) {
-  if (testUrl === process.env.DATABASE_URL) {
+/*
+ * Preserve what DATABASE_URL meant BEFORE this file changes it.
+ *
+ * This alias is deliberate — one pool, shared by the repositories under test and the
+ * fixtures, because a second pool's idle connections block the ACCESS EXCLUSIVE lock
+ * TRUNCATE needs. But it destroys the evidence the isolation guard depends on: once
+ * DATABASE_URL has been overwritten with the test URL, "are these two the same database?"
+ * can only ever answer yes.
+ *
+ * That is not hypothetical. The guard did exactly that and refused every isolated run,
+ * reading its own harness's aliasing as proof of danger, so 110 destructive tests skipped
+ * permanently while appearing merely "not configured".
+ *
+ * The original is therefore recorded under its own name, and `sql-db.ts` compares against
+ * THIS rather than against the live DATABASE_URL. The comparison it needs is
+ * "test database ≠ the application's real database", and this is the only place that
+ * still knows what the real one was.
+ */
+if (process.env.DATABASE_URL && !process.env.ADIRA_PRODUCTION_DATABASE_URL) {
+  process.env.ADIRA_PRODUCTION_DATABASE_URL = process.env.DATABASE_URL;
+}
+
+if (optedIn && testUrl) {
+  if (testUrl === process.env.ADIRA_PRODUCTION_DATABASE_URL) {
     throw new Error(
-      "SQL_TEST_DATABASE_URL is identical to DATABASE_URL. The test helpers TRUNCATE " +
-        "every table — running against the development database would destroy its data.",
+      "SQL_TEST_DATABASE_URL is identical to the application's DATABASE_URL. The " +
+        "isolated-mode helpers TRUNCATE every table — running against the application's " +
+        "own database would destroy its data.",
     );
   }
 

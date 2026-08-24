@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import {beforeEach, expect, it} from "vitest";
 
 import {
   findCheckIn,
@@ -8,9 +8,8 @@ import {
 import { createOrganization } from "@/server/repositories/organizations";
 import { createUser } from "@/server/repositories/users";
 
-import { hasTestDatabase, resetDatabase } from "./helpers/sql-db";
+import {describeIsolated, resetDatabase} from "./helpers/sql-db";
 
-const describeWithDatabase = hasTestDatabase ? describe : describe.skip;
 
 interface Fixture {
   orgId: string;
@@ -47,7 +46,7 @@ async function seed(): Promise<Fixture> {
   };
 }
 
-describeWithDatabase("daily check-in", () => {
+describeIsolated("daily check-in", () => {
   let f: Fixture;
   const day = "2026-09-01";
 

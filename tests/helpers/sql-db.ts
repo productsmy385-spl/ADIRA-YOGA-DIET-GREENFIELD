@@ -1,46 +1,211 @@
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
+import { describe } from "vitest";
 
 import { pool } from "@/server/db/pool";
 
 /**
- * Database access for integration tests.
+ * Database access for tests, in two modes that cannot be confused for one another.
  *
- * TWO RULES, both learned the hard way on TaskFlow HR and recorded in its
- * KNOWN-ISSUES.md. Please do not "simplify" either of them away.
+ * ══════════════════════════════════════════════════════════════════════════════
+ * WHY THIS FILE WAS REDESIGNED
+ * ══════════════════════════════════════════════════════════════════════════════
  *
- * 1. ONE POOL. This returns the **application** pool, not a second one of its own.
- *    `resetDatabase()` issues TRUNCATE, which needs an ACCESS EXCLUSIVE lock, and a
- *    second pool's idle connections hold table locks that prevent that lock being
- *    granted. The symptom is a suite that passes on its own and times out in a full run
- *    — which looks like flakiness and gets "fixed" by raising the timeout, hiding it.
+ * The original design had one mode: point `SQL_TEST_DATABASE_URL` at a throwaway
+ * database and `TRUNCATE` it between tests. That is the right design when a throwaway
+ * database exists. This project has decided it will not maintain one — development runs
+ * against the real production database — so the destructive path now has nowhere safe to
+ * point, and the only acceptable answer is that it REFUSES TO RUN rather than finding
+ * somewhere unsafe.
  *
- *    `tests/setup-db.ts` is what makes this safe: it repoints DATABASE_URL at the
- *    throwaway database before the pool is constructed, so "the application pool" and
- *    "the test pool" are the same object talking to the right database.
+ * So there are two modes, and the distinction is enforced rather than documented:
  *
- * 2. DO NOT CLOSE IT. `disconnectTestDb()` deliberately closes nothing. Closing a shared
- *    pool between files leaves later files with a dead pool.
+ *   READ_ONLY   Every statement runs inside `BEGIN READ ONLY`, which PostgreSQL itself
+ *               refuses to let write. Safe against production, because the guarantee is
+ *               the server's, not a regex over the SQL text. This is how the schema
+ *               contract is verified against whatever database is actually configured.
  *
- * Suites requiring a database are SKIPPED when SQL_TEST_DATABASE_URL is unset, so the
- * run stays green for a contributor without one while still running fully in CI.
- * Skipping is not passing — a skipped suite is reported as skipped.
+ *   ISOLATED    TRUNCATE and fixture seeding. Requires an explicit opt-in AND a database
+ *               that is demonstrably not the one the application uses. Absent that, the
+ *               suites that need it are SKIPPED WITH A REASON — never silently, and never
+ *               by quietly running somewhere else.
+ *
+ * SKIPPING IS NOT PASSING. A skipped suite is reported as skipped, and
+ * `docs/TESTING.md` says which coverage that costs and where it moved to.
  */
 
-/** True when a test database is configured and integration suites should run. */
-export const hasTestDatabase = Boolean(process.env.SQL_TEST_DATABASE_URL);
+/* ── mode resolution ───────────────────────────────────────────────────── */
 
 /**
- * The one pool integration tests share — the application's own.
+ * Databases that must never be truncated, by name.
  *
- * Safe only because `tests/setup-db.ts` has already repointed DATABASE_URL, and refuses
- * to do so if it matches the development database.
+ * `railway` is the production database on this project's Railway instance. The check is
+ * belt-and-braces alongside the URL comparison below: an operator who copies the
+ * production URL into `SQL_TEST_DATABASE_URL` defeats a string comparison the moment the
+ * two differ by a query parameter, and this catches that.
+ */
+const PROTECTED_DATABASE_NAMES = new Set(["railway", "postgres", "production"]);
+
+function databaseNameOf(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    // `new URL` handles the credentials; the path is `/<database>`.
+    return new URL(url).pathname.replace(/^\//, "") || null;
+  } catch {
+    return null;
+  }
+}
+
+export type DatabaseMode = "NONE" | "READ_ONLY" | "ISOLATED";
+
+/**
+ * Why the isolated mode is unavailable, when it is. Reported in the skip reason so a
+ * skipped suite explains itself instead of looking like it does not exist.
+ */
+function isolatedRefusal(): string | null {
+  if (process.env.ADIRA_ISOLATED_TEST_DB !== "1") {
+    return "ADIRA_ISOLATED_TEST_DB is not set to 1";
+  }
+
+  const testUrl = process.env.SQL_TEST_DATABASE_URL;
+  if (!testUrl) return "SQL_TEST_DATABASE_URL is not set";
+
+  if (testUrl === process.env.DATABASE_URL) {
+    return "SQL_TEST_DATABASE_URL is identical to DATABASE_URL";
+  }
+
+  const name = databaseNameOf(testUrl);
+  if (!name) return "SQL_TEST_DATABASE_URL could not be parsed";
+  if (PROTECTED_DATABASE_NAMES.has(name)) {
+    return `SQL_TEST_DATABASE_URL names the protected database "${name}"`;
+  }
+
+  return null;
+}
+
+const ISOLATED_REFUSAL = isolatedRefusal();
+
+export const databaseMode: DatabaseMode = ISOLATED_REFUSAL
+  ? process.env.DATABASE_URL
+    ? "READ_ONLY"
+    : "NONE"
+  : "ISOLATED";
+
+/** True when destructive fixture suites may run. */
+export const hasIsolatedDatabase = databaseMode === "ISOLATED";
+
+/** True when read-only verification against the configured database may run. */
+export const hasReadableDatabase = databaseMode !== "NONE";
+
+/**
+ * Retained under its old name because six suites import it, and because the answer it
+ * gives is still the right one for them: they need a database they may destroy.
+ */
+export const hasTestDatabase = hasIsolatedDatabase;
+
+/* ── suite guards ──────────────────────────────────────────────────────── */
+
+/**
+ * For suites that TRUNCATE and seed.
+ *
+ * Skipped — visibly, with the reason in the suite name — unless an isolated database is
+ * configured. The reason is in the name rather than a comment because a run that skips
+ * fourteen tests should say why in its own output, where somebody reading CI will see it.
+ */
+export function describeIsolated(name: string, fn: () => void): void {
+  if (hasIsolatedDatabase) {
+    describe(name, fn);
+    return;
+  }
+  describe.skip(`${name} [needs an isolated database: ${ISOLATED_REFUSAL}]`, fn);
+}
+
+/**
+ * For the deployment gate: read-only, but asks whether the DEPLOYMENT is current rather
+ * than whether the code is correct.
+ *
+ * Off by default, and that is a considered choice rather than hiding a failure. "The
+ * database is three migrations behind" is true of the environment, not of the code, and
+ * leaving it in `npm test` makes the suite permanently red for something no code change
+ * can fix — at which point a red suite stops meaning anything and the next real failure
+ * is scrolled past. It runs under `npm run verify:deploy`, which is a gate before
+ * deploying, and the skip reason says so.
+ */
+export function describeDeploymentGate(name: string, fn: () => void): void {
+  if (!hasReadableDatabase) {
+    describe.skip(`${name} [no DATABASE_URL configured]`, fn);
+    return;
+  }
+  if (process.env.ADIRA_VERIFY_DEPLOYMENT === "1") {
+    describe(name, fn);
+    return;
+  }
+  describe.skip(`${name} [deployment gate — run: npm run verify:deploy]`, fn);
+}
+
+/** For suites that only read. Safe against the production database. */
+export function describeReadOnly(name: string, fn: () => void): void {
+  if (hasReadableDatabase) {
+    describe(name, fn);
+    return;
+  }
+  describe.skip(`${name} [no DATABASE_URL configured]`, fn);
+}
+
+/* ── read-only access ──────────────────────────────────────────────────── */
+
+/**
+ * Run `fn` inside a transaction PostgreSQL will not permit to write.
+ *
+ * `BEGIN READ ONLY` is the whole point. A helper that merely *intends* to read is one
+ * INSERT away from being wrong, and reviewing for that forever is not a plan. Here the
+ * server refuses the write — `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, DDL, and
+ * `SELECT ... FOR UPDATE` all raise `25006 read_only_sql_transaction`.
+ *
+ * Always rolled back, never committed, so even a read-only transaction leaves nothing
+ * behind — not a lock, not an open snapshot.
+ */
+export async function readOnly<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN READ ONLY");
+    return await fn(client);
+  } finally {
+    await client.query("ROLLBACK").catch(() => {
+      // A failed rollback must not mask the real error; the connection is released
+      // either way and the pool will discard it if it is unusable.
+    });
+    client.release();
+  }
+}
+
+/** The database the tests are actually talking to. Used in reports and assertions. */
+export async function currentDatabaseName(): Promise<string> {
+  return readOnly(async (client) => {
+    const { rows } = await client.query<{ db: string }>(
+      "SELECT current_database() AS db",
+    );
+    return rows[0].db;
+  });
+}
+
+/* ── isolated access ───────────────────────────────────────────────────── */
+
+/**
+ * The one pool destructive tests share — the application's own.
+ *
+ * Safe only because `tests/setup-db.ts` has already repointed `DATABASE_URL` at the
+ * isolated database. TaskFlow HR's Knowledge Base records why a second pool is wrong:
+ * `TRUNCATE` needs an ACCESS EXCLUSIVE lock, and a second pool's idle connections hold
+ * table locks that prevent it being granted. The symptom is a suite that passes alone and
+ * times out in a full run, which reads like flakiness rather than the lock contention it
+ * is.
  */
 export function getTestPool(): Pool {
-  if (!hasTestDatabase) {
+  if (!hasIsolatedDatabase) {
     throw new Error(
-      "SQL_TEST_DATABASE_URL is not set. Integration tests need a throwaway database — " +
-        "never point this at development or production data, because the helpers here " +
-        "TRUNCATE every table.",
+      `getTestPool() requires an isolated database — ${ISOLATED_REFUSAL}. These tests ` +
+        "TRUNCATE every table and must never point at a database anything else uses. " +
+        "See docs/TESTING.md.",
     );
   }
   return pool;
@@ -49,11 +214,34 @@ export function getTestPool(): Pool {
 /**
  * Empty every application table, leaving the schema and migration history intact.
  *
+ * THE INTERLOCK. Three separate conditions have to hold before a TRUNCATE is issued, and
+ * the last one asks the database itself what it is rather than trusting configuration:
+ *
+ *   1. `ADIRA_ISOLATED_TEST_DB=1`         — deliberate opt-in, not a default
+ *   2. a distinct `SQL_TEST_DATABASE_URL` — pointing somewhere other than the app
+ *   3. `current_database()` is not protected — checked on the live connection
+ *
+ * The third exists because the first two are configuration, and configuration is what
+ * gets copied between machines. This one cannot be got wrong by a paste.
+ *
  * `schema_migrations` is excluded: wiping it would make the next run believe the
  * database is unmigrated.
  */
 export async function resetDatabase(): Promise<void> {
   const db = getTestPool();
+
+  const { rows: identity } = await db.query<{ db: string }>(
+    "SELECT current_database() AS db",
+  );
+  const name = identity[0]?.db;
+
+  if (!name || PROTECTED_DATABASE_NAMES.has(name)) {
+    throw new Error(
+      `Refusing to TRUNCATE: the connection reports current_database() = "${name}", ` +
+        "which is protected. Something has repointed the pool at a database that is " +
+        "not a throwaway.",
+    );
+  }
 
   const { rows } = await db.query<{ tablename: string }>(
     `SELECT tablename FROM pg_tables
@@ -67,8 +255,9 @@ export async function resetDatabase(): Promise<void> {
 }
 
 /**
- * Intentionally a no-op. See rule 2 above — the shared pool outlives every individual
- * test file, and vitest tears the process down when the run ends.
+ * Intentionally a no-op. The shared pool outlives every individual test file — closing it
+ * between files leaves later files with a dead pool — and vitest tears the process down
+ * when the run ends.
  */
 export async function disconnectTestDb(): Promise<void> {
   // Deliberately empty.

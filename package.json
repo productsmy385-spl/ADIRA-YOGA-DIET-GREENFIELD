@@ -2,7 +2,7 @@
   "name": "adira",
   "version": "0.1.0",
   "private": true,
-  "description": "Adira — multi-tenant yoga therapy and wellness management platform",
+  "description": "Adira \u2014 multi-tenant yoga therapy and wellness management platform",
   "engines": {
     "node": "24.x"
   },
@@ -13,6 +13,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "verify:deploy": "node scripts/verify-deploy.mjs",
     "test:watch": "vitest",
     "migrate": "node scripts/migrate.mjs",
     "migrate:dry": "node scripts/migrate.mjs --dry-run",

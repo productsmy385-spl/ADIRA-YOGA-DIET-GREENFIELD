@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import {beforeEach, expect, it} from "vitest";
 
 import { query } from "@/server/db/pool";
 import {
@@ -10,7 +10,7 @@ import {
 import { createOrganization } from "@/server/repositories/organizations";
 import { createUser } from "@/server/repositories/users";
 
-import { hasTestDatabase, resetDatabase } from "./helpers/sql-db";
+import {describeIsolated, resetDatabase} from "./helpers/sql-db";
 
 /**
  * ADR-009, proved against a real database.
@@ -21,7 +21,6 @@ import { hasTestDatabase, resetDatabase } from "./helpers/sql-db";
  * rather than asserting.
  */
 
-const describeWithDatabase = hasTestDatabase ? describe : describe.skip;
 
 interface Fixture {
   orgId: string;
@@ -87,7 +86,7 @@ async function seed(): Promise<Fixture> {
   };
 }
 
-describeWithDatabase("assignment snapshots (ADR-009)", () => {
+describeIsolated("assignment snapshots (ADR-009)", () => {
   let f: Fixture;
 
   beforeEach(async () => {
@@ -200,7 +199,7 @@ describeWithDatabase("assignment snapshots (ADR-009)", () => {
   });
 });
 
-describeWithDatabase("schedule materialisation", () => {
+describeIsolated("schedule materialisation", () => {
   let f: Fixture;
 
   beforeEach(async () => {

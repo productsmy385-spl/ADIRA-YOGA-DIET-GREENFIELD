@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import {beforeEach, expect, it} from "vitest";
 
 import { query } from "@/server/db/pool";
 import {
@@ -19,9 +19,8 @@ import { createOrganization } from "@/server/repositories/organizations";
 import { createUser } from "@/server/repositories/users";
 import { reportedCompletionRate, tally } from "@/server/services/metrics";
 
-import { hasTestDatabase, resetDatabase } from "./helpers/sql-db";
+import {describeIsolated, resetDatabase} from "./helpers/sql-db";
 
-const describeWithDatabase = hasTestDatabase ? describe : describe.skip;
 
 interface Fixture {
   orgId: string;
@@ -96,7 +95,7 @@ async function seed(): Promise<Fixture> {
   };
 }
 
-describeWithDatabase("activity lifecycle", () => {
+describeIsolated("activity lifecycle", () => {
   let f: Fixture;
 
   beforeEach(async () => {
