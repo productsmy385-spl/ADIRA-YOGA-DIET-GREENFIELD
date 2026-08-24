@@ -25,7 +25,7 @@ and documented before the next begins. A phase with critical failures blocks the
 | 9 | Owner dashboards — platform and organization | **complete** — `/super-admin` + `/super-admin/sign-in`; no separate Owner dashboard (ADR-013) |
 | 10 | Notifications | **partial** — in-app works end to end. **No outbound email beyond OTP**, so an approved applicant is not actually reached |
 | 11 | Reports + job queue drain | **partial** — job queue and cron drain built; **report generation not written**, so `reports` is empty and the repository reads only |
-| 12 | ImageKit media | **complete** — signed upload auth, media records, tenant ownership |
+| 12 | ImageKit media | **code complete, NOT working in production** — `IMAGEKIT_PRIVATE_KEY` / `IMAGEKIT_URL_ENDPOINT` unset, so uploads fail. External dependency, not a code gap |
 | 13 | Import / export | **partial** — import done (template, preview, transactional apply). **Export not built** |
 | 14 | PWA install, icon set | **complete** — manifest, service worker, offline route, install |
 | 15A | 3D engine and pose viewer | **complete** |
@@ -35,6 +35,24 @@ and documented before the next begins. A phase with critical failures blocks the
 | 16 | Security hardening — CSP, rate limiting, dependency scanning | **partial** — CSP done (`2d7ac67`), auth rate limiting done. **No dependency scanning in CI** |
 | 17 | Performance and accessibility | **partial** — lazy 3D, reduced motion, skip link, focus states. No measured budget |
 | 18 | Production deployment | **partial** — live on Railway from `main`. **Any push deploys and migrates**; governance not yet enforced |
+
+## Verified status — 2026-08-24
+
+Read from the code and the database, not from a previous report. Evidence: 539 tests
+passing (4 skipped), typecheck/lint/build clean, production at migration 008 with
+`ADMIN=1` and no legacy roles.
+
+**Two genuine gaps and one external dependency, all named rather than glossed:**
+
+- **Phase 10 — outbound email does not exist.** `delivery.ts` sends exactly one message
+  type, the OTP. The access-approval notification is therefore `IN_APP` only, which reaches
+  a person who by definition cannot yet sign in. They learn out of band or by trying.
+- **Phase 12 — ImageKit code is complete, credentials are not set.** `IMAGEKIT_PRIVATE_KEY`
+  and `IMAGEKIT_URL_ENDPOINT` are absent from the production service, so uploads cannot
+  work. Nothing in the code needs changing; the variables need supplying.
+- **Phase 15C — no 3D character asset exists in the repository.** No `.glb`, `.gltf` or
+  `.fbx` anywhere. 15A, 15B and 15D are done; 15C cannot be completed by writing code and
+  must not be marked complete with a placeholder.
 
 ## Phase 0 — what was delivered
 

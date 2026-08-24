@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Download, UserPlus, Users } from "lucide-react";
+import { Download, FileUp, UserPlus, Users } from "lucide-react";
 
 import { AppNav } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
@@ -57,9 +57,17 @@ export default async function MembersPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
+            {/* The common case first, and the only primary action here: one person, typed
+                in. Bulk import is the exception and reads as one. */}
+            <Button asChild size="sm">
+              <Link href="/admin/members/new">
+                <UserPlus aria-hidden />
+                Add member
+              </Link>
+            </Button>
             <Button asChild size="sm" variant="outline">
               <Link href="/admin/members/import">
-                <UserPlus aria-hidden />
+                <FileUp aria-hidden />
                 Import CSV
               </Link>
             </Button>
@@ -80,11 +88,16 @@ export default async function MembersPage() {
           <div className="mt-8 rounded-xl border border-dashed border-border p-10 text-center">
             <Users className="mx-auto size-8 text-muted-foreground" aria-hidden />
             <p className="mt-4 text-sm text-muted-foreground">
-              No members yet. Approve an access request, or import a CSV.
+              No members yet. Add someone, import a CSV, or approve an access request.
             </p>
-            <Button asChild size="sm" className="mt-5">
-              <Link href="/admin/access-requests">Review access requests</Link>
-            </Button>
+            <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <Button asChild size="sm">
+                <Link href="/admin/members/new">Add a member</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/admin/access-requests">Review access requests</Link>
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="mt-8 overflow-x-auto rounded-xl border border-border">
