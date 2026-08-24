@@ -16,6 +16,8 @@ import {
   removeProgrammeItem,
   setProgrammeArchived,
   updateProgramme,
+  publishProgramme,
+  unpublishProgramme,
 } from "@/server/repositories/programmes";
 
 /**
@@ -349,4 +351,95 @@ export async function removeProgrammeItemAction(formData: FormData): Promise<voi
   });
 
   revalidatePath(`/admin/programmes/${programmeId}`);
+}
+
+/**
+ * Publish a programme, making it assignable.
+ *
+ * The repository refuses to publish an empty programme, checking and updating in one
+ * transaction — an empty published programme generates an empty schedule, which reaches
+ * the member as "your plan has no activities" and the admin as though the assignment
+ * silently failed (migration 009).
+ */
+export async function publishProgrammeAction(
+  _previous: ProgrammeState,
+  formData: FormData,
+): Promise<ProgrammeState> {
+  const session = await requireRole("ADMIN");
+
+  const permitted = canManageOrganization(actorFromSession(session));
+  if (!permitted.allowed) {
+    return { status: "ERROR", message: "You do not have permission to manage programmes." };
+  }
+
+  const id = String(formData.get("id") ?? "");
+  const result = await publishProgramme(session.organizationId, id);
+
+  if (!result.ok) {
+    const message: Record<string, string> = {
+      NOT_FOUND: "That programme no longer exists.",
+      ARCHIVED: "An archived programme cannot be published. Duplicate it instead.",
+      EMPTY:
+        "Add at least one item before publishing — an empty programme would give the member a plan with nothing in it.",
+    };
+    return { status: "ERROR", message: message[result.reason] };
+  }
+
+  await recordAudit({
+    organizationId: session.organizationId,
+    actorDomain: "TENANT",
+    actorId: session.userId,
+    actorLabel: session.email,
+    action: "programme.published",
+    resourceType: "programme",
+    resourceId: id,
+    outcome: "SUCCESS",
+  });
+
+  revalidatePath(`/admin/programmes/${id}`);
+  revalidatePath("/admin/programmes");
+  return { status: "DONE", message: "Published. It can now be assigned to members." };
+}
+
+/**
+ * Unpublish. Existing assignments are deliberately untouched.
+ *
+ * An assignment holds its own snapshot (ADR-009), so withdrawing a template from selection
+ * cannot disturb a plan somebody is already following. This means "stop offering this",
+ * never "revoke it from whoever has it".
+ */
+export async function unpublishProgrammeAction(
+  _previous: ProgrammeState,
+  formData: FormData,
+): Promise<ProgrammeState> {
+  const session = await requireRole("ADMIN");
+
+  const permitted = canManageOrganization(actorFromSession(session));
+  if (!permitted.allowed) {
+    return { status: "ERROR", message: "You do not have permission to manage programmes." };
+  }
+
+  const id = String(formData.get("id") ?? "");
+  const ok = await unpublishProgramme(session.organizationId, id);
+
+  if (!ok) return { status: "ERROR", message: "That programme no longer exists." };
+
+  await recordAudit({
+    organizationId: session.organizationId,
+    actorDomain: "TENANT",
+    actorId: session.userId,
+    actorLabel: session.email,
+    action: "programme.unpublished",
+    resourceType: "programme",
+    resourceId: id,
+    outcome: "SUCCESS",
+    metadata: { existingAssignmentsUnaffected: true },
+  });
+
+  revalidatePath(`/admin/programmes/${id}`);
+  revalidatePath("/admin/programmes");
+  return {
+    status: "DONE",
+    message: "Unpublished. Members already following it keep their plan.",
+  };
 }
