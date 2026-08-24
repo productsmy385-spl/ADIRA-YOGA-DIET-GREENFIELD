@@ -1,7 +1,11 @@
 # Pre-production check — migrations 006, 007, 008
 
-**Status: a restorable backup now exists. Awaiting explicit deployment approval. Nothing
-applied, nothing pushed.**
+**Status: DEPLOYED AND VERIFIED — 2026-08-24. Production is at 008.**
+
+Deployed commit `8250a9b` (`3511d70..8250a9b` → `origin/main`). All three migrations
+applied by Railway's pre-deploy step. The post-migration diff against the 005 baseline was
+**exactly** the seven predicted changes and nothing else — see `.baseline/production-008.json`.
+Pre-migration artifact `.baseline/pre-006-008.dump` retained.
 
 > **2026-08-24 — the backup gap is closed, but not the way it was planned.** Railway
 > volume snapshots are **unavailable on this workspace's plan** (`volumes.maxBackupsCount:
