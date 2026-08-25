@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -56,10 +57,17 @@ export function AssignProgrammeForm({
 
   if (assignable.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No programme is ready to assign yet. A programme needs at least one exercise or meal
-        in it before it can be given to somebody.
-      </p>
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          No programme is ready to assign yet. A programme needs at least one exercise or
+          meal in it, and must be published, before it can be given to somebody.
+        </p>
+        {/* An empty state that leads somewhere. The reason this list is empty is almost
+            always "nothing has been published", and the fix is one page away. */}
+        <Button asChild size="sm" variant="outline">
+          <Link href="/admin/programmes">Go to programmes</Link>
+        </Button>
+      </div>
     );
   }
 

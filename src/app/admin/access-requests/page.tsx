@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { AppNav } from "@/components/nav/app-nav";
+import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { requireRole } from "@/server/auth/guards";
 import { listAccessRequests } from "@/server/repositories/access-requests";
 
@@ -97,6 +97,8 @@ export default async function AccessRequestsPage() {
           </section>
         ) : null}
       </main>
+
+      <MobileTabBar role={session.role} currentPath="/admin/access-requests" />
     </div>
   );
 }

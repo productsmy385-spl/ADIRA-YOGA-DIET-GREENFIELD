@@ -58,8 +58,17 @@ async function seed(): Promise<Fixture> {
   );
 
   const [programme] = await query<{ id: string }>(
-    `INSERT INTO programmes (organization_id, kind, name, duration_weeks)
-     VALUES ($1, 'YOGA', 'Foundation', 2) RETURNING id`,
+    /*
+     * PUBLISHED at insert, because assignment now requires it.
+     *
+     * Migration 009 says a programme cannot be assigned until somebody deliberately
+     * publishes it, and `createAssignmentFromProgramme` enforces that. This fixture is
+     * exercising snapshot and lifecycle behaviour rather than the publish gate, so it
+     * sets up the state the real workflow would have reached by this point instead of
+     * asserting on a programme no admin could have prescribed.
+     */
+    `INSERT INTO programmes (organization_id, kind, name, duration_weeks, published_at)
+     VALUES ($1, 'YOGA', 'Foundation', 2, now()) RETURNING id`,
     [org.id],
   );
 

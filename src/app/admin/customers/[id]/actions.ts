@@ -16,6 +16,7 @@ import {
   pauseAssignment,
 } from "@/server/repositories/assignments";
 import { recordAudit } from "@/server/repositories/audit-logs";
+import { createNotification } from "@/server/repositories/notifications";
 import { createAssignment, endAssignment } from "@/server/repositories/members";
 import { organizationToday } from "@/server/repositories/activities";
 
@@ -290,4 +291,88 @@ export async function pauseAssignmentAction(formData: FormData): Promise<void> {
    * exactly as it is: a status change is not a licence to rewrite history.
    */
   revalidatePath(`/admin/customers/${customerId}`);
+}
+
+/* ── messaging ─────────────────────────────────────────────────────────── */
+
+const messageSchema = z.object({
+  customerId: z.uuid(),
+  title: z.string().trim().min(1, "Give the message a subject.").max(120),
+  body: z.string().trim().min(1, "Write something to send.").max(2000),
+});
+
+/**
+ * Send one member a message from their consultant.
+ *
+ * `CONSULTANT_MESSAGE` has been a notification kind with configured channels since
+ * migration 005, and nothing in the product ever created one — the type existed, the
+ * delivery preferences existed, and there was no way for a consultant to say anything to
+ * anybody.
+ *
+ * GATED BY DATA REACH, NOT BY ADMINISTRATIVE REACH.
+ *
+ * This is the deliberate choice, and it is the stricter of the two. Messaging does not
+ * READ a health record, so an administrative gate would be defensible on the letter of
+ * ADR-013 — but a message is part of the therapeutic relationship, and gating it
+ * administratively would give every admin in the organisation a direct channel to every
+ * member. `requireMemberReach` asks both questions, so a consultant must have taken this
+ * member on first, exactly as they must before prescribing.
+ *
+ * The recipient is validated rather than trusted: `resolveMemberAccess` establishes the
+ * member is in the actor's own organisation before the assignment lookup, and
+ * `createNotification` writes against a composite foreign key that requires the recipient
+ * to belong to the stated organisation. A forged id fails at both.
+ */
+export async function sendMemberNotificationAction(
+  _previous: AssignState,
+  formData: FormData,
+): Promise<AssignState> {
+  const parsed = messageSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return {
+      status: "ERROR",
+      message: parsed.error.issues[0]?.message ?? "Check the form and try again.",
+    };
+  }
+
+  const { customerId, title, body } = parsed.data;
+
+  const session = await requireMemberReach(customerId, "notification.send");
+  if (!session) {
+    return { status: "ERROR", message: "You cannot message this member." };
+  }
+
+  const notification = await createNotification({
+    organizationId: session.organizationId,
+    recipientId: customerId,
+    senderId: session.userId,
+    kind: "CONSULTANT_MESSAGE",
+    title,
+    body,
+    // Somewhere real to land. A notification whose only content is "you have a message"
+    // and which goes nowhere is the dead control this pass exists to remove.
+    link: "/notifications",
+  });
+
+  await recordAudit({
+    organizationId: session.organizationId,
+    actorDomain: "TENANT",
+    actorId: session.userId,
+    actorLabel: session.email,
+    action: "notification.send",
+    resourceType: "notification",
+    resourceId: notification.id,
+    outcome: "SUCCESS",
+    /*
+     * The SUBJECT is recorded, the body is not. Who messaged whom and when is the
+     * accountability the trail exists for; the contents are the member's, and copying
+     * them into `audit_logs` would duplicate health-adjacent material into a table with a
+     * different retention and a much wider read.
+     */
+    metadata: { customerId, kind: "CONSULTANT_MESSAGE", title },
+  });
+
+  revalidatePath(`/admin/customers/${customerId}`);
+  return { status: "DONE", message: "Message sent." };
 }

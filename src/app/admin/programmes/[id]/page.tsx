@@ -8,11 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/server/auth/guards";
 import { listMeals, listYogaExercises } from "@/server/repositories/library";
-import { findProgramme, listProgrammeItems } from "@/server/repositories/programmes";
+import {
+  findProgramme,
+  lifecycleOf,
+  listProgrammeItems,
+} from "@/server/repositories/programmes";
 
 import { archiveProgrammeAction, removeProgrammeItemAction } from "../actions";
 import { AddItemForm } from "./add-item-form";
 import { ProgrammeDetailsForm } from "./programme-details-form";
+import { PublishControls } from "./publish-controls";
 
 export const metadata: Metadata = { title: "Programme builder" };
 export const dynamic = "force-dynamic";
@@ -66,6 +71,7 @@ export default async function ProgrammeBuilderPage({
   }
 
   const libraryEmpty = isYoga ? exercises.length === 0 : meals.length === 0;
+  const lifecycle = lifecycleOf(programme);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -90,8 +96,27 @@ export default async function ProgrammeBuilderPage({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {programme.archivedAt ? <Badge variant="secondary">Archived</Badge> : null}
+          <div className="flex items-start gap-2">
+            {/* The state, as a word. It is derived from two timestamps rather than
+                stored, so it cannot contradict the buttons beside it (migration 009). */}
+            <Badge
+              variant={
+                lifecycle === "PUBLISHED"
+                  ? "default"
+                  : lifecycle === "ARCHIVED"
+                    ? "secondary"
+                    : "outline"
+              }
+            >
+              {lifecycle.toLowerCase()}
+            </Badge>
+
+            <PublishControls
+              programmeId={programme.id}
+              lifecycle={lifecycle}
+              itemCount={items.length}
+            />
+
             <form action={archiveProgrammeAction}>
               <input type="hidden" name="programmeId" value={programme.id} />
               <input
@@ -105,6 +130,17 @@ export default async function ProgrammeBuilderPage({
             </form>
           </div>
         </div>
+
+        {/*
+          The consequence of the state, where the state is read. A DRAFT programme is
+          invisible to the assign form, and an admin who does not know that experiences it
+          as their new programme having silently failed to exist.
+        */}
+        {lifecycle === "DRAFT" && (
+          <p className="type-meta mt-4 rounded-lg border border-border bg-muted/40 p-3 text-muted-foreground">
+            This is a draft. It cannot be assigned to anybody until it is published.
+          </p>
+        )}
 
         {/*
           ADR-009 stated where it matters. Without this an admin either fears editing a

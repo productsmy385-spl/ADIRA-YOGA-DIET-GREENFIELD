@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarDays, Plus } from "lucide-react";
 
-import { AppNav } from "@/components/nav/app-nav";
+import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/server/auth/guards";
@@ -144,6 +144,8 @@ export default async function ProgrammesPage() {
           })
         )}
       </main>
+
+      <MobileTabBar role={session.role} currentPath="/admin/programmes" />
     </div>
   );
 }

@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Building2 } from "lucide-react";
 
-import { ThemeToggle } from "@/components/theme-toggle";
-import { branding } from "@/lib/branding";
+import { PlatformNav } from "@/components/nav/platform-nav";
+import { Button } from "@/components/ui/button";
 import { requirePlatformSession } from "@/server/auth/guards";
 import { listTenantSummaries, platformHealth } from "@/server/repositories/analytics";
+import { countRecentDenials } from "@/server/repositories/platform-audit";
 
 export const metadata: Metadata = { title: "Platform" };
 export const dynamic = "force-dynamic";
@@ -54,7 +57,13 @@ function Stat({
 export default async function OwnerPage() {
   await requirePlatformSession();
 
-  const [tenants, health] = await Promise.all([listTenantSummaries(), platformHealth()]);
+  const [tenants, health, denials] = await Promise.all([
+    listTenantSummaries(),
+    platformHealth(),
+    // R8's sibling: a denial spike is the other failure that is invisible unless somebody
+    // is shown it. `audit_logs_denied_idx` makes the count cheap.
+    countRecentDenials(24),
+  ]);
 
   // R8: a stalled cron drain is otherwise undetectable — schedules live in the Railway
   // dashboard, invisible to git, and if one is removed the queue fills in silence.
@@ -63,23 +72,26 @@ export default async function OwnerPage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <header className="mx-auto flex max-w-4xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
-          <img src={branding.icons.mark} alt="" aria-hidden className="size-8" />
-          <span className="font-semibold tracking-tight text-foreground">
-            {branding.name} · platform
-          </span>
+      <PlatformNav currentPath="/super-admin" />
+
+      <main className="mx-auto max-w-4xl px-6 py-10 pb-24">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Platform
+          </h1>
+
+          {/* The operator's actual first action on an empty platform. It used to exist
+              only as an unrendered form component, which is why this console read as a
+              dashboard with nothing to do. */}
+          <Button asChild size="sm">
+            <Link href="/super-admin/organizations">
+              <Building2 aria-hidden />
+              Organisations
+            </Link>
+          </Button>
         </div>
-        <ThemeToggle />
-      </header>
 
-      <main className="mx-auto max-w-4xl px-6 pb-24">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Platform
-        </h1>
-
-        <section aria-label="Health" className="mt-6 grid gap-3 sm:grid-cols-4">
+        <section aria-label="Health" className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <Stat label="Organisations" value={String(health.organizations)} />
           <Stat label="Customers" value={String(health.totalCustomers)} />
           <Stat
@@ -91,6 +103,11 @@ export default async function OwnerPage() {
             label="Dead jobs"
             value={String(health.deadJobs)}
             tone={health.deadJobs > 0 ? "warn" : undefined}
+          />
+          <Stat
+            label="Denied · 24h"
+            value={String(denials)}
+            tone={denials > 0 ? "warn" : undefined}
           />
         </section>
 
@@ -133,6 +150,9 @@ export default async function OwnerPage() {
                     <th scope="col" className="px-5 py-3 font-medium text-muted-foreground">
                       Live plans
                     </th>
+                    <th scope="col" className="px-5 py-3 font-medium text-muted-foreground">
+                      <span className="sr-only">Manage</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -158,13 +178,32 @@ export default async function OwnerPage() {
                       <td className="px-5 py-3 text-card-foreground">
                         {tenant.activeAssignments}
                       </td>
+                      <td className="px-5 py-3 text-right">
+                        <Button asChild size="xs" variant="ghost">
+                          <Link href={`/super-admin/organizations/${tenant.organizationId}`}>
+                            Manage
+                          </Link>
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-muted-foreground">No organisations yet.</p>
+            /* An empty platform is the normal first state. It gets an ACTION, not a full
+               stop — a bare "No organisations yet." was the whole reason this console
+               looked like it did nothing. */
+            <div className="mt-3 rounded-xl border border-dashed border-border p-10 text-center">
+              <Building2 className="mx-auto size-8 text-muted-foreground" aria-hidden />
+              <p className="mt-4 text-sm text-muted-foreground">
+                No organisations yet. Creating one is the first step of onboarding a
+                tenant.
+              </p>
+              <Button asChild size="sm" className="mt-5">
+                <Link href="/super-admin/organizations">Create an organisation</Link>
+              </Button>
+            </div>
           )}
         </section>
 

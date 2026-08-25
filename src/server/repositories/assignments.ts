@@ -104,15 +104,32 @@ export async function createAssignmentFromProgramme(
       duration_weeks: number;
       version: number;
     }>(
+      /*
+       * PUBLISHED, not merely unarchived.
+       *
+       * Migration 009's stated purpose is that "a programme cannot be assigned until
+       * someone deliberately publishes it", and this predicate is where that becomes
+       * true. It previously checked only `archived_at IS NULL`, so a DRAFT — including
+       * an empty one, whose emptiness `publishProgramme` exists to refuse — could be
+       * snapshotted into somebody's plan.
+       *
+       * Filtering the assign form is not sufficient on its own: this is the write, and
+       * the programme id arrives in a form post. The list decides what is offered; this
+       * decides what is possible.
+       */
       `SELECT name, kind, duration_weeks, version
          FROM programmes
-        WHERE id = $1 AND organization_id = $2 AND archived_at IS NULL`,
+        WHERE id = $1 AND organization_id = $2
+          AND archived_at IS NULL
+          AND published_at IS NOT NULL`,
       [input.programmeId, input.organizationId],
     );
 
     if (programme.rowCount === 0) {
       // Scoped by organization, so this is also the cross-tenant answer: a programme in
-      // another organisation is indistinguishable from one that does not exist.
+      // another organisation is indistinguishable from one that does not exist. An
+      // unpublished one is deliberately indistinguishable too — the admin's route to it
+      // is to publish it, not to learn that this endpoint can see it.
       throw new Error("Programme not found.");
     }
 

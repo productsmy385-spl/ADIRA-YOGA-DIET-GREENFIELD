@@ -4,8 +4,7 @@ import { ArrowRight, CalendarCheck, TriangleAlert, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { branding } from "@/lib/branding";
+import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { requireTenantSession } from "@/server/auth/guards";
 import { listActivitiesForDate, organizationToday } from "@/server/repositories/activities";
 import { organizationSummary } from "@/server/repositories/analytics";
@@ -13,8 +12,6 @@ import { listAuditForOrganization } from "@/server/repositories/audit-logs";
 import { listCaseload } from "@/server/repositories/caseload";
 import { actorFromSession } from "@/server/authorization/member-access";
 import { completionPercent, tally } from "@/server/services/metrics";
-
-import { signOutAction } from "../sign-in/actions";
 
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -70,31 +67,17 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
-            <img src={branding.icons.mark} alt="" aria-hidden className="size-8" />
-            <div>
-              <p className="text-sm font-semibold text-foreground">
-                {session.organizationName}
-              </p>
-              <p className="text-xs text-muted-foreground">{branding.name}</p>
-            </div>
-          </div>
+      {/*
+        The shared shell, so this page has the same navigation as every other. It used to
+        carry a bespoke header whose only link was sign-out — which meant the page a
+        customer lands on after signing in had no route to Today, Progress, Reports or
+        Notifications except by typing a URL.
+      */}
+      <AppNav role={session.role} currentPath="/dashboard" />
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <form action={signOutAction}>
-              <Button type="submit" variant="ghost" size="sm">
-                Sign out
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10 pb-28 sm:pb-10">
+        <p className="text-sm text-muted-foreground">{session.organizationName}</p>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             {session.fullName}
@@ -266,6 +249,8 @@ export default async function DashboardPage() {
           </section>
         ) : null}
       </main>
+
+      <MobileTabBar role={session.role} currentPath="/dashboard" />
     </div>
   );
 }

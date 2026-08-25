@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { branding } from "@/lib/branding";
+import { AppNav } from "@/components/nav/app-nav";
 import { requireRole } from "@/server/auth/guards";
 import { consultantLoads, organizationSummary } from "@/server/repositories/analytics";
 
@@ -48,15 +48,13 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="min-h-dvh bg-background">
-      <header className="mx-auto flex max-w-3xl items-center gap-3 px-6 py-6">
-        {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
-        <img src={branding.icons.mark} alt="" aria-hidden className="size-8" />
+      <AppNav role={session.role} currentPath="/admin/analytics" />
+
+      <main className="mx-auto max-w-3xl px-6 py-10 pb-28 sm:pb-10">
         <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
           ← Caseload
         </Link>
-      </header>
 
-      <main className="mx-auto max-w-3xl px-6 pb-24">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {session.organizationName}
         </h1>

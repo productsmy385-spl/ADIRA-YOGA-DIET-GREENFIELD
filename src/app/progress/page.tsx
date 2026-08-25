@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { TrendingUp } from "lucide-react";
 
-import { AppNav } from "@/components/nav/app-nav";
+import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { requireTenantSession } from "@/server/auth/guards";
 import { listStatusesInRange, organizationToday } from "@/server/repositories/activities";
 import { listCheckInsInRange } from "@/server/repositories/checkins";
@@ -207,6 +207,8 @@ export default async function ProgressPage() {
           )}
         </section>
       </main>
+
+      <MobileTabBar role={session.role} currentPath="/progress" />
     </div>
   );
 }

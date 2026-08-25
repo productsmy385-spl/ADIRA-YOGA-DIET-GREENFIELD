@@ -92,7 +92,20 @@ export async function listCaseload(actor: TenantActor): Promise<CaseloadEntry[]>
        SELECT u.id, u.full_name, u.email, u.status
          FROM users u
         WHERE u.organization_id = $1
-          AND u.role = 'CUSTOMER'
+          /*
+           * BOTH member labels, not just the legacy one.
+           *
+           * Migration 006 added 'USER' and 007 backfilled to it, so every member created
+           * after the merge carries 'USER' while pre-merge rows still carry 'CUSTOMER'
+           * (ADR-013 keeps the old label as a tombstone until deployment 3). This
+           * predicate matched the legacy label alone, which meant a newly added member
+           * was missing from their consultant's caseload no matter how they were
+           * assigned — an empty page that looked exactly like "nobody assigned yet".
+           *
+           * listMembers already matched on both. These two must agree, or a member can
+           * be administered on one page and invisible on the other.
+           */
+          AND u.role IN ('USER', 'CUSTOMER')
           AND (
             $2::boolean
             OR EXISTS (

@@ -196,7 +196,7 @@ export async function listOrganizationSummaries(
     `SELECT o.id, o.name, o.slug, o.status, o.timezone, o.locale,
             o.created_at, o.updated_at,
             count(u.id)::text                                             AS user_count,
-            count(u.id) FILTER (WHERE u.role = 'CUSTOMER')::text           AS customer_count
+            count(u.id) FILTER (WHERE u.role IN ('USER', 'CUSTOMER'))::text           AS customer_count
        FROM organizations o
        LEFT JOIN users u ON u.organization_id = o.id
       GROUP BY o.id

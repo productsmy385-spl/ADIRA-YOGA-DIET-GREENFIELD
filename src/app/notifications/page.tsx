@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Bell, BellOff } from "lucide-react";
 
-import { AppNav } from "@/components/nav/app-nav";
+import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { requireTenantSession } from "@/server/auth/guards";
 import { listNotifications } from "@/server/repositories/notifications";
 
+import { markReadAction } from "./actions";
 import { MarkAllReadButton } from "./mark-all-read";
 
 export const metadata: Metadata = { title: "Notifications" };
@@ -109,6 +111,22 @@ export default async function NotificationsPage() {
                 </div>
               );
 
+              /*
+                Dismissing ONE notification, outside the link.
+                It sits beside the card rather than inside it because a form nested in an
+                anchor is invalid HTML, and because "open this" and "clear this" are
+                genuinely different intentions — collapsing them would mean a member could
+                not keep something marked unread after looking at it.
+              */
+              const dismiss = isUnread ? (
+                <form action={markReadAction} className="mt-1 flex justify-end">
+                  <input type="hidden" name="notificationId" value={n.id} />
+                  <Button type="submit" size="xs" variant="ghost">
+                    Mark read
+                  </Button>
+                </form>
+              ) : null;
+
               return (
                 <li key={n.id}>
                   {n.link ? (
@@ -121,12 +139,15 @@ export default async function NotificationsPage() {
                   ) : (
                     card
                   )}
+                  {dismiss}
                 </li>
               );
             })}
           </ul>
         )}
       </main>
+
+      <MobileTabBar role={session.role} currentPath="/notifications" />
     </div>
   );
 }

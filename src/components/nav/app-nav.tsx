@@ -1,7 +1,9 @@
 import Link from "next/link";
 
+import { signOutAction } from "@/app/sign-in/actions";
 import { GlassNavbar } from "@/components/glass/glass";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
 import { branding } from "@/lib/branding";
 
 import { navItemsForRole, type NavItem, type NavRole } from "./nav-items";
@@ -65,8 +67,21 @@ export function AppNav({ role, currentPath }: AppNavProps) {
           ))}
         </ul>
 
-        <div className="ml-auto flex items-center gap-2 sm:ml-0">
+        <div className="ml-auto flex items-center gap-1 sm:ml-0">
           <ThemeToggle />
+
+          {/*
+            SIGN OUT LIVES HERE, not on one page.
+            It previously existed only on `/dashboard`, which meant a customer who went
+            to Today — the page the product is built around, and the one the tab bar
+            opens on — had no way to leave the session at all. A shared shell is the only
+            place a control like this stays reachable from everywhere by construction.
+          */}
+          <form action={signOutAction}>
+            <Button type="submit" variant="ghost" size="sm">
+              Sign out
+            </Button>
+          </form>
         </div>
       </div>
     </GlassNavbar>

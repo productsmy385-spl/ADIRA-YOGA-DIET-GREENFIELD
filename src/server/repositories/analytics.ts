@@ -43,11 +43,11 @@ export async function organizationSummary(
      today AS (SELECT (now() AT TIME ZONE (SELECT timezone FROM tz))::date AS d)
      SELECT
        (SELECT count(*) FROM users
-         WHERE organization_id = $1 AND role = 'CUSTOMER')::int AS total_customers,
+         WHERE organization_id = $1 AND role IN ('USER', 'CUSTOMER'))::int AS total_customers,
        -- "Active" is an assignment PLUS engagement in 14 days. An assignment with no
        -- activity is dormant, and counting it as active flatters every other figure.
        (SELECT count(DISTINCT u.id) FROM users u
-         WHERE u.organization_id = $1 AND u.role = 'CUSTOMER'
+         WHERE u.organization_id = $1 AND u.role IN ('USER', 'CUSTOMER')
            AND EXISTS (SELECT 1 FROM assignments a
                         WHERE a.customer_id = u.id AND a.status = 'ACTIVE')
            AND (
@@ -59,7 +59,7 @@ export async function organizationSummary(
                            AND c.checkin_date > (SELECT d FROM today) - 14)
            ))::int AS active_customers,
        (SELECT count(*) FROM users
-         WHERE organization_id = $1 AND role = 'CUSTOMER'
+         WHERE organization_id = $1 AND role IN ('USER', 'CUSTOMER')
            AND created_at > now() - interval '30 days')::int AS new_customers,
        (SELECT count(*) FROM users
          WHERE organization_id = $1 AND role IN ('ADMIN', 'ORG_OWNER'))::int AS consultants,
@@ -202,7 +202,7 @@ export async function listTenantSummaries(): Promise<TenantSummary[]> {
   }>(
     `SELECT o.id AS organization_id, o.name, o.slug, o.status::text AS status,
             (SELECT count(*) FROM users u
-              WHERE u.organization_id = o.id AND u.role = 'CUSTOMER')::int AS customers,
+              WHERE u.organization_id = o.id AND u.role IN ('USER', 'CUSTOMER'))::int AS customers,
             (SELECT count(*) FROM users u
               WHERE u.organization_id = o.id AND u.role IN ('ADMIN','ORG_OWNER'))::int AS staff,
             (SELECT count(*) FROM assignments a
@@ -251,7 +251,7 @@ export async function platformHealth(): Promise<PlatformHealth> {
   }>(
     `SELECT
        (SELECT count(*) FROM organizations)::int AS organizations,
-       (SELECT count(*) FROM users WHERE role = 'CUSTOMER')::int AS customers,
+       (SELECT count(*) FROM users WHERE role IN ('USER', 'CUSTOMER'))::int AS customers,
        (SELECT count(*) FROM jobs WHERE status = 'QUEUED')::int AS queued,
        (SELECT count(*) FROM jobs WHERE status = 'DEAD')::int AS dead,
        (SELECT EXTRACT(EPOCH FROM (now() - min(run_after))) / 60

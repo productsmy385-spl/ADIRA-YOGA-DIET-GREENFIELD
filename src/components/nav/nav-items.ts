@@ -76,7 +76,19 @@ export function navItemsForRole(role: NavRole): NavItem[] {
  * The platform console (ADR-001). A separate identity domain entirely — this list is
  * never reachable from a tenant session, and `requirePlatformSession` is what enforces
  * that, not the absence of a link.
+ *
+ * This was a single entry pointing at a read-only page, which meant provisioning a tenant
+ * or its first administrator had no route through the interface at all — the actions
+ * existed and were tested, and nothing rendered them. Ordered as the operator's actual
+ * sequence: see the estate, create a tenant, give it an administrator, check the trail.
  */
 export const PLATFORM_NAV: NavItem[] = [
-  { href: "/super-admin", labelKey: "nav.platform", label: "Organisations" },
+  { href: "/super-admin", labelKey: "nav.platform", label: "Overview" },
+  {
+    href: "/super-admin/organizations",
+    labelKey: "nav.organizations",
+    label: "Organisations",
+  },
+  { href: "/super-admin/admins", labelKey: "nav.administrators", label: "Administrators" },
+  { href: "/super-admin/audit", labelKey: "nav.audit", label: "Audit" },
 ];

@@ -1,23 +1,43 @@
 "use client";
 
-import { Check, Loader2, SkipForward } from "lucide-react";
+import { Check, Loader2, Play, SkipForward } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { DailyActivity } from "@/server/repositories/activities";
 
-import { completeActivityAction, skipActivityAction } from "./actions";
+import {
+  completeActivityAction,
+  skipActivityAction,
+  startActivityAction,
+} from "./actions";
 
 /**
- * One activity, with the two actions a customer actually takes.
+ * One activity, and the actions a customer takes on it.
  *
- * There is no "start" button. `USER-JOURNEYS.md` J1 records that the phone will be in
- * another room during practice — a flow requiring the customer to press start beforehand
- * and complete afterwards assumes a device they are not holding. The repository still
- * supports starting, for a future guided session that genuinely tracks duration; the
- * daily loop does not ask for it.
+ * ══════════════════════════════════════════════════════════════════════════════
+ * WHY "START" IS HERE NOW, WHEN IT DELIBERATELY WAS NOT
+ * ══════════════════════════════════════════════════════════════════════════════
  *
- * Completion is one tap and works whenever it happens, including the next morning.
+ * This card previously offered Done and Skip only, on the reasoning recorded in
+ * `USER-JOURNEYS.md` J1: the phone is in another room during practice, so a flow that
+ * REQUIRES pressing start beforehand assumes a device the customer is not holding.
+ *
+ * That reasoning is still right, and the current product requirement supersedes the
+ * conclusion — the lifecycle is specified as PENDING → STARTED → COMPLETED, with
+ * `started_at` persisted. Both hold at once, because Start is OPTIONAL:
+ *
+ *   · Done remains available directly from PENDING. `completeActivity` accepts PENDING,
+ *     STARTED and MISSED, so the one-tap path J1 protects is untouched and completing a
+ *     morning practice that evening still works.
+ *   · Start is offered as a secondary control for somebody who does have their phone,
+ *     and records when they began.
+ *
+ * Start is therefore additive. It is not a step anybody is forced through, which is the
+ * property J1 actually cared about.
+ *
+ * `startActivity` guards its own transition — it updates only rows still in PENDING — so
+ * a double tap or a stale page cannot move an activity backwards.
  */
 
 const DONE_STATUSES = new Set(["COMPLETED", "SKIPPED"]);
@@ -34,6 +54,7 @@ export function ActivityCard({ activity }: { activity: DailyActivity }) {
 
   const settled = DONE_STATUSES.has(activity.status);
   const completed = activity.status === "COMPLETED";
+  const started = activity.status === "STARTED";
   const duration = minutes(activity.durationSeconds);
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
@@ -94,6 +115,12 @@ export function ActivityCard({ activity }: { activity: DailyActivity }) {
               {completed ? "Completed" : "Skipped"}
             </p>
           )}
+
+          {/* In progress, and said so. Without this the card looks identical before and
+              after Start, which makes the button feel like it did nothing. */}
+          {started && (
+            <p className="mt-3 text-xs font-medium text-muted-foreground">In progress</p>
+          )}
         </div>
 
         {!settled && (
@@ -111,6 +138,21 @@ export function ActivityCard({ activity }: { activity: DailyActivity }) {
               )}
               Done
             </Button>
+
+            {/* Only from PENDING — `startActivity` updates nothing once the row has
+                moved on, so offering it to an already-started activity would be a
+                control with no effect. */}
+            {!started && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => run(() => startActivityAction(activity.id))}
+                disabled={pending}
+              >
+                <Play className="size-4" aria-hidden />
+                Start
+              </Button>
+            )}
 
             <Button
               size="sm"

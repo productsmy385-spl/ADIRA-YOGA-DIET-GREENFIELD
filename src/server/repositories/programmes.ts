@@ -110,14 +110,28 @@ export async function listProgrammes(
   organizationId: string,
   kind?: ProgrammeKindValue,
   includeArchived = false,
+  /**
+   * Restrict to programmes that may actually be handed to a member.
+   *
+   * Migration 009 says a programme "cannot be assigned until someone deliberately
+   * publishes it", and until this parameter existed nothing implemented that: the assign
+   * form was populated by the unfiltered list, so a half-built DRAFT was offered
+   * alongside finished templates and generated a schedule from whatever happened to be
+   * in it.
+   *
+   * Defaults to false so the programmes LIST page keeps showing drafts — an admin has to
+   * be able to see the thing they are still building. Only the prescribe path opts in.
+   */
+  publishedOnly = false,
 ): Promise<Programme[]> {
   const rows = await query<ProgrammeRow>(
     `${PROGRAMME_SELECT}
       WHERE p.organization_id = $1
         AND ($2::programme_kind IS NULL OR p.kind = $2::programme_kind)
         AND ($3 OR p.archived_at IS NULL)
+        AND (NOT $4 OR p.published_at IS NOT NULL)
       ORDER BY p.archived_at NULLS FIRST, p.kind, p.name`,
-    [organizationId, kind ?? null, includeArchived],
+    [organizationId, kind ?? null, includeArchived, publishedOnly],
   );
   return rows.map(toProgramme);
 }

@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  CalendarPlus,
+  ClipboardList,
+  Inbox,
+  Salad,
+  UserPlus,
+} from "lucide-react";
 
-import { ThemeToggle } from "@/components/theme-toggle";
-import { branding } from "@/lib/branding";
+import { AppNav } from "@/components/nav/app-nav";
+import { Button } from "@/components/ui/button";
 import { requireRole } from "@/server/auth/guards";
+import { countPendingAccessRequests } from "@/server/repositories/access-requests";
 import { listCaseload, type CaseloadEntry } from "@/server/repositories/caseload";
+import { listMembers } from "@/server/repositories/members";
+import { listProgrammes } from "@/server/repositories/programmes";
 import { actorFromSession } from "@/server/authorization/member-access";
 import type { AttentionSignal } from "@/server/services/metrics";
 
@@ -69,33 +79,191 @@ function CustomerRow({ entry }: { entry: CaseloadEntry }) {
   );
 }
 
+/**
+ * A number that came from the database, with the route that acts on it.
+ *
+ * `href` is not optional by accident: every figure on this page is a thing an admin then
+ * does something about, and a count with nowhere to go is the "passive dashboard" this
+ * page used to be.
+ */
+function Metric({
+  label,
+  value,
+  href,
+  tone,
+}: {
+  label: string;
+  value: number;
+  href: string;
+  tone?: "warn";
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-secondary/40"
+    >
+      <p className="text-xs tracking-widest text-muted-foreground uppercase">{label}</p>
+      <p
+        className={`mt-1 text-2xl font-semibold tabular-nums ${
+          tone === "warn" && value > 0 ? "text-destructive" : "text-card-foreground"
+        }`}
+      >
+        {value}
+      </p>
+    </Link>
+  );
+}
+
 export default async function AdminPage() {
   const session = await requireRole("ADMIN");
+  const actor = actorFromSession(session);
 
-  // A collection query, so the correct behaviour is to return only authorised rows rather
-  // than to refuse — "here are the members you may see" is the honest answer here.
-  const caseload = await listCaseload(actorFromSession(session));
+  /*
+   * TWO DIFFERENT SCOPES ON ONE PAGE, WHICH IS THE POINT OF ADR-013.
+   *
+   *   `listCaseload`  — assignment-scoped. Member practice: adherence, attention signals.
+   *                     An ADMIN sees only the people assigned to them, decided in SQL.
+   *
+   *   `listMembers`,  — organisation-wide ADMINISTRATION. Identity, status, counts. No
+   *   the counts        adherence, no activity, no check-ins. `listMembers` selects an
+   *                     assignment COUNT, never who or what.
+   *
+   * Mixing them would be the failure the ADR exists to prevent, so the sections below are
+   * labelled by which is which rather than blended into one set of figures.
+   */
+  const [caseload, members, pendingRequests, publishedProgrammes] = await Promise.all([
+    listCaseload(actor),
+    listMembers(session.organizationId, { kind: "MEMBERS" }),
+    countPendingAccessRequests(session.organizationId),
+    listProgrammes(session.organizationId, undefined, false, true),
+  ]);
 
   const needsAttention = caseload.filter((c) => c.attention.flagged);
   const rest = caseload.filter((c) => !c.attention.flagged);
 
+  const invited = members.filter((m) => m.status === "INVITED").length;
+  const active = members.filter((m) => m.status === "ACTIVE").length;
+  const unassigned = members.filter((m) => m.assignmentCount === 0).length;
+
+  const yogaProgrammes = publishedProgrammes.filter((p) => p.kind === "YOGA").length;
+  const dietProgrammes = publishedProgrammes.filter((p) => p.kind === "DIET").length;
+
   return (
     <div className="min-h-dvh bg-background">
-      <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
-          <img src={branding.icons.mark} alt="" aria-hidden className="size-8" />
-          <span className="font-semibold tracking-tight text-foreground">
-            {branding.name}
-          </span>
-        </div>
-        <ThemeToggle />
-      </header>
+      <AppNav role={session.role} currentPath="/admin" />
 
-      <main className="mx-auto max-w-3xl px-6 pb-24">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+      <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+              {session.organizationName}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {members.length === 0
+                ? "No members yet — adding the first one is where everything starts."
+                : `${members.length} member${members.length === 1 ? "" : "s"} · ${caseload.length} assigned to you`}
+            </p>
+          </div>
+
+          {/* The primary action of the whole admin surface, on the page an admin lands
+              on. It was previously reachable only by finding the Members tab first. */}
+          <Button asChild size="sm">
+            <Link href="/admin/members/new">
+              <UserPlus aria-hidden />
+              Add member
+            </Link>
+          </Button>
+        </div>
+
+        <section aria-labelledby="admin-metrics" className="mt-8">
+          <h2 id="admin-metrics" className="sr-only">
+            Organisation administration
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Metric label="Members" value={members.length} href="/admin/members" />
+            <Metric label="Active" value={active} href="/admin/members" />
+            <Metric label="Invited" value={invited} href="/admin/members" />
+            <Metric
+              label="Access requests"
+              value={pendingRequests}
+              href="/admin/access-requests"
+              tone="warn"
+            />
+          </div>
+
+          {/*
+            An administrative fact, not a health one: how many members nobody is assigned
+            to. Those people cannot be prescribed for by anyone, and until the caseload
+            control existed there was no way to fix it — so the number is worth surfacing
+            rather than leaving to be discovered one 404 at a time.
+          */}
+          {unassigned > 0 && (
+            <p className="mt-3 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+              {unassigned} member{unassigned === 1 ? " is" : "s are"} not assigned to any
+              admin, so nobody can see their practice or prescribe for them.{" "}
+              <Link href="/admin/members" className="underline hover:text-foreground">
+                Review members
+              </Link>
+            </p>
+          )}
+        </section>
+
+        <section aria-labelledby="quick-actions" className="mt-8">
+          <h2
+            id="quick-actions"
+            className="text-xs font-semibold tracking-widest text-muted-foreground uppercase"
+          >
+            Library and plans
+          </h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/programmes/new">
+                <CalendarPlus aria-hidden />
+                Create programme
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/yoga/new">
+                <ClipboardList aria-hidden />
+                Add exercise
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/diet/new">
+                <Salad aria-hidden />
+                Add meal
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/admin/reports">
+                <Inbox aria-hidden />
+                Reports
+              </Link>
+            </Button>
+          </div>
+
+          <p className="mt-3 text-sm text-muted-foreground">
+            {publishedProgrammes.length === 0 ? (
+              <>
+                No published programmes yet — a programme must be published before it can
+                be assigned.{" "}
+                <Link href="/admin/programmes" className="underline hover:text-foreground">
+                  Go to programmes
+                </Link>
+              </>
+            ) : (
+              <>
+                {yogaProgrammes} yoga and {dietProgrammes} diet{" "}
+                {publishedProgrammes.length === 1 ? "programme" : "programmes"} published
+                and ready to assign.
+              </>
+            )}
+          </p>
+        </section>
+
+        <h2 className="mt-12 text-lg font-semibold tracking-tight text-foreground">
           Your caseload
-        </h1>
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {session.storedRole === "ORG_OWNER"
             ? `Every member in ${session.organizationName}.`
@@ -117,11 +285,25 @@ export default async function AdminPage() {
               ))}
             </ul>
           ) : (
-            <p className="mt-3 rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              {caseload.length === 0
-                ? "You have no customers assigned yet."
-                : "Nobody needs attention today."}
-            </p>
+            <div className="mt-3 rounded-lg border border-dashed border-border p-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                {caseload.length === 0
+                  ? members.length === 0
+                    ? "Nobody is in this organisation yet. Add a member first."
+                    : "No members are assigned to you yet. Open one from Members and take them into your caseload."
+                  : "Nobody needs attention today."}
+              </p>
+
+              {/* The empty state leads to the action that resolves it, rather than
+                  stating a fact and stopping. */}
+              {caseload.length === 0 && (
+                <Button asChild size="sm" variant="outline" className="mt-4">
+                  <Link href={members.length === 0 ? "/admin/members/new" : "/admin/members"}>
+                    {members.length === 0 ? "Add a member" : "Go to members"}
+                  </Link>
+                </Button>
+              )}
+            </div>
           )}
         </section>
 
