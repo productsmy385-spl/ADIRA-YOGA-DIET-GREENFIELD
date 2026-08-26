@@ -175,3 +175,38 @@ export async function rejectRequestAction(
   revalidatePath("/admin/access-requests");
   return { status: "DONE", message: "Rejected. No account was created." };
 }
+
+export async function regenerateJoinCodeAction(): Promise<ReviewState> {
+  const session = await requireRole("ADMIN");
+  const permitted = canManageOrganization(actorFromSession(session));
+  if (!permitted.allowed) {
+    return { status: "ERROR", message: "You do not have permission to manage organization access code." };
+  }
+
+  // Generate random 8-char secure join code like ADIRA-7X4K
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let randomCode = "";
+  for (let i = 0; i < 4; i++) {
+    randomCode += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  const newCode = `ADIRA-${randomCode}`;
+
+  const { updateOrganizationJoinCode } = await import("@/server/repositories/organizations");
+  await updateOrganizationJoinCode(session.organizationId, newCode);
+
+  await recordAudit({
+    organizationId: session.organizationId,
+    actorDomain: "TENANT",
+    actorId: session.userId,
+    actorLabel: session.email,
+    action: "organization.update_join_code",
+    resourceType: "organization",
+    resourceId: session.organizationId,
+    outcome: "SUCCESS",
+    metadata: { joinCodeRegenerated: true },
+  });
+
+  revalidatePath("/admin/access-requests");
+  revalidatePath("/admin/team");
+  return { status: "DONE", message: `New organization access code generated: ${newCode}` };
+}

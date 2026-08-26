@@ -93,7 +93,7 @@ function Section({
           {description}
         </p>
       )}
-      <GlassPanel className="mt-3 p-5">{children}</GlassPanel>
+      <GlassPanel className="mt-3 p-5 border border-border/80 bg-card/90 shadow-xs backdrop-blur-md">{children}</GlassPanel>
     </section>
   );
 }

@@ -110,6 +110,16 @@ export async function getJoinCode(organizationId: string): Promise<string | null
   return row?.join_code ?? null;
 }
 
+export async function updateOrganizationJoinCode(
+  organizationId: string,
+  joinCode: string | null,
+): Promise<void> {
+  await queryOne(
+    `UPDATE organizations SET join_code = $2, updated_at = now() WHERE id = $1`,
+    [organizationId, joinCode],
+  );
+}
+
 export interface NewOrganization {
   name: string;
   slug: string;

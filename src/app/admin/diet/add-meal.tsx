@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Plus } from "lucide-react";
+import { Plus, Salad } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -51,8 +51,8 @@ export function AddMealForm() {
   if (!open) {
     return (
       <div className="mt-6 space-y-3">
-        <Button onClick={() => setOpen(true)} size="sm">
-          <Plus aria-hidden />
+        <Button onClick={() => setOpen(true)} size="sm" className="gap-1.5 font-medium">
+          <Salad className="size-4" aria-hidden />
           Add meal
         </Button>
 

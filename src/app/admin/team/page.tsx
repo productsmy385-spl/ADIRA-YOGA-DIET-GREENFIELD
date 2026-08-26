@@ -5,8 +5,12 @@ import { UserPlus, Users } from "lucide-react";
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { OrganizationAccessKeyCard } from "@/components/ui/organization-access-key-card";
 import { requireRole } from "@/server/auth/guards";
 import { listMembers } from "@/server/repositories/members";
+import { getJoinCode } from "@/server/repositories/organizations";
+import { regenerateJoinCodeAction } from "../access-requests/actions";
 
 export const metadata: Metadata = { title: "Team" };
 export const dynamic = "force-dynamic";
@@ -67,33 +71,37 @@ const ROLE_BLURB: Record<string, string> = {
 export default async function TeamPage() {
   const session = await requireRole("ADMIN");
 
-  const team = await listMembers(session.organizationId, { kind: "STAFF" });
+  const [team, joinCode] = await Promise.all([
+    listMembers(session.organizationId, { kind: "STAFF" }),
+    getJoinCode(session.organizationId),
+  ]);
 
   const trainers = team.filter((t) => t.role === "TRAINER").length;
   const staff = team.filter((t) => t.role === "STAFF").length;
   const invited = team.filter((t) => t.status === "INVITED").length;
 
   return (
-    <div className="min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
+    <div className="theme-bg-wrapper theme-fresh-green min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
       <AppNav role={session.role} currentPath="/admin/team" />
 
       <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Team</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Everyone who delivers care at {session.organizationName} —{" "}
-              {trainers} trainer{trainers === 1 ? "" : "s"} and {staff} staff.
-            </p>
-          </div>
-
+        <PageHeader
+          title="Team"
+          description={`Everyone who delivers care at ${session.organizationName} — ${trainers} trainer${trainers === 1 ? "" : "s"} and ${staff} staff.`}
+        >
           <Button asChild size="sm">
             <Link href="/admin/members/new">
               <UserPlus aria-hidden />
-              Add someone
+              Add team member
             </Link>
           </Button>
-        </div>
+        </PageHeader>
+
+        {/* Organization Access Key Management Card */}
+        <OrganizationAccessKeyCard
+          joinCode={joinCode}
+          onRegenerateAction={regenerateJoinCodeAction}
+        />
 
         {invited > 0 && (
           <p

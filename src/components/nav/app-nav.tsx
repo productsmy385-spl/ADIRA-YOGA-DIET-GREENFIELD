@@ -6,6 +6,7 @@ import {
   CalendarPlus,
   FileText,
   LayoutDashboard,
+  Plus,
   Salad,
   TrendingUp,
   User,
@@ -19,7 +20,6 @@ import { branding } from "@/lib/branding";
 
 import {
   navItemsForRole,
-  primaryNavForRole,
   type NavItem,
   type NavRole,
 } from "./nav-items";
@@ -71,19 +71,21 @@ export function AppNav({ role, currentPath }: AppNavProps) {
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden sm:flex fixed inset-y-0 left-0 z-30 w-[260px] flex-col border-r border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center px-6 border-b border-border/40">
+      {/* Desktop Fixed Sidebar */}
+      <aside className="hidden sm:flex fixed inset-y-0 left-0 z-40 w-[260px] flex-col border-r border-border/40 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 shadow-xs">
+        {/* Brand Header */}
+        <div className="flex h-16 shrink-0 items-center px-6 border-b border-border/40">
           <Link href={role === "CUSTOMER" || role === "USER" ? "/today" : "/admin"} className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={branding.icons.mark} alt="" aria-hidden className="size-7 mix-blend-multiply dark:mix-blend-screen" />
-            <span className="font-semibold tracking-tight text-foreground">
+            <img src={branding.icons.mark} alt="" aria-hidden className="size-7 mix-blend-multiply dark:mix-blend-screen shrink-0" />
+            <span className="font-semibold tracking-tight text-foreground text-base">
               {branding.name}
             </span>
           </Link>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
+        {/* Scrollable Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {items.map((item) => {
             const active = isActive(item, currentPath);
             const Icon = getNavIcon(item.href);
@@ -92,29 +94,38 @@ export function AppNav({ role, currentPath }: AppNavProps) {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                   active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-primary/10 text-primary font-semibold shadow-2xs"
+                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                 }`}
               >
-                <Icon className="size-4" aria-hidden />
-                {item.label}
+                <Icon className="size-4 shrink-0" aria-hidden />
+                <span>{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-border/40 space-y-2">
+        {/* Fixed Bottom Utility Area */}
+        <div className="p-3 border-t border-border/40 bg-muted/20 space-y-1">
           <div className="flex items-center justify-between px-3 py-2">
             <span className="text-xs font-medium text-muted-foreground">Theme</span>
             <ThemeToggle />
           </div>
+          <Link
+            href="/profile"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <User className="size-4 shrink-0" aria-hidden />
+            <span>Profile</span>
+          </Link>
           <form action={signOutAction} className="w-full">
             <Button
               type="submit"
               variant="ghost"
-              className="w-full justify-start text-muted-foreground hover:text-foreground"
+              size="sm"
+              className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             >
               Sign out
             </Button>
@@ -122,55 +133,89 @@ export function AppNav({ role, currentPath }: AppNavProps) {
         </div>
       </aside>
 
-      {/* Mobile Top Header */}
-      <header className="sm:hidden fixed top-0 inset-x-0 z-30 flex h-14 items-center justify-between border-b border-border/40 bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Mobile Top Header (FIXED: Profile icon NOW links to /profile instead of logging out!) */}
+      <header className="sm:hidden fixed top-0 inset-x-0 z-40 flex h-14 items-center justify-between border-b border-border/40 bg-background/95 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 shadow-2xs">
         <Link href={role === "CUSTOMER" || role === "USER" ? "/today" : "/admin"} className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={branding.icons.mark} alt="" aria-hidden className="size-6 mix-blend-multiply dark:mix-blend-screen" />
-          <span className="font-semibold tracking-tight text-foreground">
+          <img src={branding.icons.mark} alt="" aria-hidden className="size-6 mix-blend-multiply dark:mix-blend-screen shrink-0" />
+          <span className="font-semibold tracking-tight text-foreground text-sm">
             {branding.name}
           </span>
         </Link>
         <div className="flex items-center gap-1">
           <ThemeToggle />
-          <form action={signOutAction}>
-            <Button type="submit" variant="ghost" size="icon" className="size-8 text-muted-foreground">
+          {/* FIXED: Clicking Profile links directly to /profile. NO LOGOUT! */}
+          <Button asChild variant="ghost" size="icon" className="size-9 text-muted-foreground">
+            <Link href="/profile" aria-label="Profile Screen">
               <User className="size-4" aria-hidden />
-            </Button>
-          </form>
+            </Link>
+          </Button>
         </div>
       </header>
     </>
   );
 }
 
+/**
+ * 📱 Mobile Bottom Navigation Bar (5 Primary Destinations with Center '+' Action)
+ */
 export function MobileTabBar({ role, currentPath }: AppNavProps) {
-  const items = primaryNavForRole(role);
+  const isMember = role === "CUSTOMER" || role === "USER";
+
+  const mobileNavItems = isMember
+    ? [
+        { href: "/today", label: "Today", Icon: CalendarCheck },
+        { href: "/progress", label: "Progress", Icon: TrendingUp },
+        { href: "/experience/yoga", label: "Practice", isCenter: true, Icon: Plus },
+        { href: "/notifications", label: "Alerts", Icon: Bell },
+        { href: "/profile", label: "Profile", Icon: User },
+      ]
+    : [
+        { href: "/admin", label: "Caseload", Icon: LayoutDashboard },
+        { href: "/admin/programmes", label: "Plans", Icon: CalendarPlus },
+        { href: "/admin/yoga", label: "Add", isCenter: true, Icon: Plus },
+        { href: "/admin/members", label: "Members", Icon: Users },
+        { href: "/profile", label: "Profile", Icon: User },
+      ];
 
   return (
     <nav
-      aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border/40 bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden supports-[backdrop-filter]:bg-background/80"
+      aria-label="Mobile Navigation Bar"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/40 bg-background/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur-md sm:hidden supports-[backdrop-filter]:bg-background/85 shadow-lg"
     >
-      <ul className="flex items-stretch justify-around">
-        {items.map((item) => {
-          const Icon = getNavIcon(item.href);
-          const active = isActive(item, currentPath);
+      <ul className="flex items-center justify-around px-2">
+        {mobileNavItems.map((item) => {
+          const active = isActive({ href: item.href, label: item.label, labelKey: "" }, currentPath);
+          const Icon = item.Icon;
+
+          if (item.isCenter) {
+            return (
+              <li key={item.href} className="flex shrink-0 items-center justify-center">
+                <Link
+                  href={item.href}
+                  aria-label={item.label}
+                  className="flex size-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform duration-200 active:scale-90"
+                >
+                  <Plus className="size-6 stroke-[2.5]" aria-hidden />
+                </Link>
+              </li>
+            );
+          }
 
           return (
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[10px] transition-all duration-200 active:scale-95 ${
+                className={`flex min-h-[48px] flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all duration-200 active:scale-95 ${
                   active
                     ? "font-semibold text-primary"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <div
-                  className={`flex size-7 items-center justify-center rounded-full transition-colors ${
-                    active ? "bg-primary/15 text-primary" : ""
+                  className={`flex size-6 items-center justify-center rounded-full transition-colors ${
+                    active ? "text-primary" : ""
                   }`}
                 >
                   <Icon className="size-4" aria-hidden />

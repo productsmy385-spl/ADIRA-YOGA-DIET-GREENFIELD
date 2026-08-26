@@ -72,10 +72,10 @@ export default async function NotificationsPage() {
 
               const card = (
                 <div
-                  className={`rounded-xl border p-4 transition-colors ${
+                  className={`rounded-xl border p-5 shadow-xs backdrop-blur-md transition-all ${
                     isUnread
-                      ? "border-primary/40 bg-card"
-                      : "border-border bg-card/60"
+                      ? "border-primary/50 bg-card/95 shadow-sm"
+                      : "border-border/80 bg-card/85"
                   }`}
                 >
                   <div className="flex items-start gap-3">

@@ -1,24 +1,17 @@
 import type { Metadata } from "next";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { PageHeader } from "@/components/ui/page-header";
+import { OrganizationAccessKeyCard } from "@/components/ui/organization-access-key-card";
 import { requireRole } from "@/server/auth/guards";
 import { listAccessRequests } from "@/server/repositories/access-requests";
+import { getJoinCode } from "@/server/repositories/organizations";
 
 import { ReviewCard, type RequestView } from "./review-card";
+import { regenerateJoinCodeAction } from "./actions";
 
 export const metadata: Metadata = { title: "Access requests" };
 export const dynamic = "force-dynamic";
-
-/**
- * The admin review queue.
- *
- * Administrative, so organization-wide and needing no assignment — a request is not member
- * data, because nobody has become a member yet.
- *
- * The scope comes from the session and is never read from the URL, so there is no
- * parameter to tamper with. Everything rendered here was submitted by the applicant
- * themselves; nothing is joined from any other table.
- */
 
 function formatDate(value: Date): string {
   return value.toLocaleDateString("en-GB", {
@@ -31,7 +24,11 @@ function formatDate(value: Date): string {
 export default async function AccessRequestsPage() {
   const session = await requireRole("ADMIN");
 
-  const requests = await listAccessRequests(session.organizationId);
+  const [requests, joinCode] = await Promise.all([
+    listAccessRequests(session.organizationId),
+    getJoinCode(session.organizationId),
+  ]);
+
   const pending = requests.filter((r) => r.status === "PENDING");
   const decided = requests.filter((r) => r.status !== "PENDING");
 
@@ -48,16 +45,20 @@ export default async function AccessRequestsPage() {
   });
 
   return (
-    <div className="min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
+    <div className="theme-bg-wrapper theme-fresh-green min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
       <AppNav role={session.role} currentPath="/admin/access-requests" />
 
-      <main className="mx-auto max-w-3xl px-6 py-10">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Access requests
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          People asking to join {session.organizationName}.
-        </p>
+      <main className="mx-auto max-w-3xl px-6 py-10 pb-28 sm:pb-10">
+        <PageHeader
+          title="Access requests"
+          description={`People asking to join ${session.organizationName}.`}
+        />
+
+        {/* Organization Access Key Management Card */}
+        <OrganizationAccessKeyCard
+          joinCode={joinCode}
+          onRegenerateAction={regenerateJoinCodeAction}
+        />
 
         <section aria-labelledby="pending-heading" className="mt-8">
           <h2

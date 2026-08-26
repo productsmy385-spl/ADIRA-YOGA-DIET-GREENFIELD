@@ -78,11 +78,11 @@ export default async function Home() {
     <div className="theme-bg-wrapper theme-green-nature relative flex min-h-dvh flex-col bg-canvas">
       <BotanicalBackdrop />
 
-      <header className="sticky top-0 z-10 border-b border-border/70 bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static mark, no optimisation to gain */}
-            <img src={branding.icons.mark} alt="" aria-hidden className="size-8 mix-blend-multiply" />
+      <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 backdrop-blur-md shadow-xs">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+          <div className="flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
+            <img src={branding.icons.mark} alt="" aria-hidden className="size-8 shrink-0 mix-blend-multiply" />
             <span className="text-lg font-semibold tracking-tight text-foreground">
               {branding.name}
             </span>
@@ -100,7 +100,7 @@ export default async function Home() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative overflow-hidden border-b border-border/70">
-          <div className="relative z-10 mx-auto grid min-h-[min(34rem,72dvh)] max-w-6xl items-center gap-10 px-6 py-12 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
+          <div className="relative z-10 mx-auto grid min-h-[min(34rem,72dvh)] max-w-6xl items-center gap-10 px-6 pt-12 pb-16 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:pt-16">
             <div>
               <p className="text-xs font-semibold tracking-widest text-primary uppercase">
                 {t("eyebrow")}
