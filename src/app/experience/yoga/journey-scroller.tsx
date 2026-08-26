@@ -76,16 +76,60 @@ export function JourneyScroller({ poses }: { poses: YogaPose[] }) {
               </p>
 
               {pose && (
-                <p className="mt-6 text-sm text-muted-foreground">
-                  <span className="font-medium text-foreground">{pose.name}</span>
-                  {pose.sanskritName ? ` · ${pose.sanskritName}` : ""}
-                </p>
+                <div className="mt-6 space-y-4 rounded-xl border border-border/60 bg-card/40 p-5 backdrop-blur-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
+                    <div>
+                      <span className="font-semibold text-foreground">{pose.name}</span>
+                      {pose.sanskritName ? <span className="ml-1 text-xs text-muted-foreground">({pose.sanskritName})</span> : null}
+                    </div>
+                    {pose.difficulty ? (
+                      <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                        {pose.difficulty}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {pose.description ? (
+                    <p className="text-xs/relaxed text-muted-foreground">{pose.description}</p>
+                  ) : null}
+
+                  {pose.instructions ? (
+                    <div className="space-y-1">
+                      <span className="text-xs font-medium text-foreground">Guidance:</span>
+                      <p className="text-xs/relaxed text-muted-foreground">{pose.instructions}</p>
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-4 pt-1 text-xs text-muted-foreground">
+                    {pose.breathing ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-primary">🌬️</span>
+                        <span>{pose.breathing}</span>
+                      </div>
+                    ) : null}
+                    {pose.durationSeconds ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-primary">⏱️</span>
+                        <span>{Math.round(pose.durationSeconds / 60)} mins</span>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
               )}
             </div>
 
-            <div>
+            <div className="space-y-4">
               {pose ? (
-                <YogaViewer pose={pose} />
+                <>
+                  <YogaViewer pose={pose} />
+                  <div className="flex items-center justify-between rounded-lg border border-border/50 bg-card/60 px-4 py-3 text-xs text-muted-foreground backdrop-blur-xs">
+                    <span className="flex items-center gap-2 font-medium text-foreground">
+                      <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
+                      3D Pose Preview
+                    </span>
+                    <span>Drag to rotate • Scroll to zoom</span>
+                  </div>
+                </>
               ) : (
                 /*
                  * Signed-out, or an organisation with an empty library. Says so plainly

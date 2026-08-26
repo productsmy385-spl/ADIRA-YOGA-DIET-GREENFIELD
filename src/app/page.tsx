@@ -141,6 +141,35 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Trust & Stats Section */}
+        <section className="border-b border-border/70 bg-card/40 py-8 backdrop-blur-xs">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="grid grid-cols-2 gap-4 text-center sm:grid-cols-4 lg:gap-8">
+              <div className="rounded-xl border border-border/60 bg-card/60 p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
+                <div className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">500+</div>
+                <div className="mt-1 text-xs font-medium text-muted-foreground">Happy Members</div>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-card/60 p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
+                <div className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">30+</div>
+                <div className="mt-1 text-xs font-medium text-muted-foreground">Yoga Programs</div>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-card/60 p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
+                <div className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">100+</div>
+                <div className="mt-1 text-xs font-medium text-muted-foreground">Healthy Recipes</div>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-card/60 p-5 shadow-xs transition-all hover:border-primary/40 hover:shadow-md">
+                <div className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">98%</div>
+                <div className="mt-1 text-xs font-medium text-muted-foreground">Satisfaction Rate</div>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-center gap-2 text-center text-xs font-medium tracking-wide text-muted-foreground">
+              <span>🌿</span>
+              <span>Wellness. In Balance. Every Day.</span>
+              <span>🌿</span>
+            </div>
+          </div>
+        </section>
+
         <section aria-labelledby="features-heading" className="border-b border-border/70">
           <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
             <div className="text-center">
@@ -271,19 +300,102 @@ export default async function Home() {
           </div>
         </section>
 
-        <section aria-labelledby="status-heading">
+        <section aria-labelledby="testimonials-heading" className="border-b border-border/70">
           <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
-            <div className="rounded-xl border border-border bg-secondary/40 p-6 sm:p-8">
-              <h2
-                id="status-heading"
-                className="text-xs font-semibold tracking-widest text-muted-foreground uppercase"
-              >
-                {t("statusHeading")}
-              </h2>
-              <p className="mt-3 max-w-3xl text-sm/relaxed text-muted-foreground">
-                {t("statusBody")}
+            <div className="text-center">
+              <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+                Member Testimonials
               </p>
+              <h2
+                id="testimonials-heading"
+                className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
+              >
+                Loved by Members &amp; Practitioners
+              </h2>
             </div>
+
+            <div className="mt-12 grid gap-6 sm:grid-cols-3">
+              <GlassCard className="p-6">
+                <div className="flex items-center gap-1 text-amber-500">
+                  ★★★★★
+                </div>
+                <p className="mt-4 text-sm/relaxed text-muted-foreground">
+                  &ldquo;Adira transformed my daily routine. The combination of structured yoga sessions and custom meal plans keeps me energized and mindful.&rdquo;
+                </p>
+                <div className="mt-6 flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-full bg-primary/20 font-semibold text-primary">
+                    AS
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-foreground">Ananya Sharma</div>
+                    <div className="text-xs text-muted-foreground">Yoga Practitioner</div>
+                  </div>
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-6">
+                <div className="flex items-center gap-1 text-amber-500">
+                  ★★★★★
+                </div>
+                <p className="mt-4 text-sm/relaxed text-muted-foreground">
+                  &ldquo;As a wellness consultant, assigning custom programmes and reviewing client progress daily has never been this seamless.&rdquo;
+                </p>
+                <div className="mt-6 flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-full bg-emerald-500/20 font-semibold text-emerald-600 dark:text-emerald-400">
+                    RK
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-foreground">Dr. Rajesh Kumar</div>
+                    <div className="text-xs text-muted-foreground">Wellness Consultant</div>
+                  </div>
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-6">
+                <div className="flex items-center gap-1 text-amber-500">
+                  ★★★★★
+                </div>
+                <p className="mt-4 text-sm/relaxed text-muted-foreground">
+                  &ldquo;The 3D yoga guidance and daily check-ins make building healthy habits easy. Highly recommended for anyone on a wellness journey!&rdquo;
+                </p>
+                <div className="mt-6 flex items-center gap-3">
+                  <div className="flex size-9 items-center justify-center rounded-full bg-sky-500/20 font-semibold text-sky-600 dark:text-sky-400">
+                    PM
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-foreground">Priya Mehta</div>
+                    <div className="text-xs text-muted-foreground">Active Member</div>
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA Banner */}
+        <section className="border-b border-border/70 py-16 sm:py-24">
+          <div className="mx-auto max-w-4xl px-6 text-center">
+            <GlassCard className="p-8 sm:p-12">
+              <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                Ready to Start Your Wellness Journey?
+              </h2>
+              <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
+                Join Adira Wellness today to access personalized yoga routines, tailored nutrition plans, and daily habit tracking.
+              </p>
+              <div className="mt-8 flex flex-wrap justify-center gap-4">
+                <Button asChild size="lg">
+                  <Link href={destination}>
+                    {cta}
+                    <ArrowRight aria-hidden />
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link href="/experience/yoga">
+                    Explore 3D Experience
+                  </Link>
+                </Button>
+              </div>
+            </GlassCard>
           </div>
         </section>
       </main>
