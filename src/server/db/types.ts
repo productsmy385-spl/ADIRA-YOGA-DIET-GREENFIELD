@@ -32,7 +32,25 @@ export type IdentityDomainValue = (typeof IDENTITY_DOMAIN_VALUES)[number];
  * recreates the type. This constant mirrors the DATABASE; the application's own two-role
  * model lives in `src/server/authorization/roles.ts` and is reached through `normaliseRole`.
  */
-export const TENANT_ROLE_VALUES = ["ORG_OWNER", "ADMIN", "CUSTOMER", "USER"] as const;
+/*
+ * Mirrors `tenant_role` in the database, in the order the labels were added.
+ *
+ * ORG_OWNER, ADMIN, CUSTOMER came with 001; USER with migration 006; TRAINER and STAFF
+ * with 011. ORG_OWNER and CUSTOMER are ADR-013 tombstones — PostgreSQL cannot remove an
+ * enum label, so they outlive the code that used them and must stay listed here.
+ *
+ * `tests/enum-parity.test.ts` asserts this array against `pg_enum`, so it cannot drift
+ * from the database in either direction: adding a label here without a migration fails,
+ * and shipping a migration without updating this fails too.
+ */
+export const TENANT_ROLE_VALUES = [
+  "ORG_OWNER",
+  "ADMIN",
+  "CUSTOMER",
+  "USER",
+  "TRAINER",
+  "STAFF",
+] as const;
 export type TenantRoleValue = (typeof TENANT_ROLE_VALUES)[number];
 
 /** `access_request_status` — separate from account status, deliberately (ADR-013). */

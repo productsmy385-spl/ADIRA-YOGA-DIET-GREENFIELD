@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { readPlatformSession, readTenantSession } from "./session";
 import type { PlatformSessionContext, TenantSessionContext } from "./session";
 
-import type { TenantRole } from "@/server/authorization/roles";
+import { homePathForRole, type TenantRole } from "@/server/authorization/roles";
 import { recordAudit } from "@/server/repositories/audit-logs";
 
 /**
@@ -75,10 +75,20 @@ export async function requireRole(
       metadata: { held: session.role, required: [...roles] },
     });
 
-    // Deliberately back to the dashboard, not to a 403 page. The caller is a legitimate
-    // signed-in user who reached somewhere they may not go; an error page that spells out
-    // which role would have been sufficient is a small map of the privilege model.
-    redirect("/dashboard");
+    /*
+     * Back to the caller's OWN home, not to a 403 page and not to `/dashboard`.
+     *
+     * No 403 page, because the caller is a legitimate signed-in user who reached
+     * somewhere they may not go, and an error page spelling out which role would have
+     * sufficed is a small map of the privilege model.
+     *
+     * Not a hardcoded `/dashboard`, because that is the MEMBER dashboard: a TRAINER who
+     * mistyped a URL used to land on a page built for customers, which reads as the
+     * product being broken rather than as a redirect. `homePathForRole` is a total
+     * Record, so every role has an answer and adding one without deciding is a compile
+     * error.
+     */
+    redirect(homePathForRole(session.role));
   }
 
   return session;

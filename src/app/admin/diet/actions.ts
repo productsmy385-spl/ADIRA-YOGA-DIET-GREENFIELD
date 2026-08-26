@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireRole } from "@/server/auth/guards";
-import { canManageOrganization } from "@/server/authorization/permissions";
+import { canManageProgrammes } from "@/server/authorization/permissions";
 import { actorFromSession } from "@/server/authorization/member-access";
 import { recordAudit } from "@/server/repositories/audit-logs";
 import { createMeal, setMealArchived } from "@/server/repositories/library";
@@ -27,9 +27,9 @@ export async function createMealAction(
   _previous: LibraryState,
   formData: FormData,
 ): Promise<LibraryState> {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
 
-  const permitted = canManageOrganization(actorFromSession(session));
+  const permitted = canManageProgrammes(actorFromSession(session));
   if (!permitted.allowed) {
     return { status: "ERROR", message: "You do not have permission to manage the library." };
   }
@@ -88,9 +88,9 @@ export async function archiveMealAction(
   _previous: LibraryState,
   formData: FormData,
 ): Promise<LibraryState> {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
 
-  const permitted = canManageOrganization(actorFromSession(session));
+  const permitted = canManageProgrammes(actorFromSession(session));
   if (!permitted.allowed) {
     return { status: "ERROR", message: "You do not have permission to manage the library." };
   }

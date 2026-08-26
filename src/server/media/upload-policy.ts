@@ -1,5 +1,5 @@
 import { resolveMemberAccess, actorFromSession } from "@/server/authorization/member-access";
-import { canManageOrganization } from "@/server/authorization/permissions";
+import { canManageProgrammes } from "@/server/authorization/permissions";
 import type { TenantSessionContext } from "@/server/repositories/sessions";
 import type { MediaPurpose } from "@/server/repositories/media";
 
@@ -43,7 +43,7 @@ export async function decideUpload(
   customerId: string | null,
 ): Promise<UploadDecision> {
   if (LIBRARY_PURPOSES.has(purpose)) {
-    const decision = canManageOrganization(actorFromSession(session));
+    const decision = canManageProgrammes(actorFromSession(session));
     if (!decision.allowed) return { allowed: false, reason: "NOT_PERMITTED" };
 
     // Library media belongs to the organization, not to a person. Silently dropping a

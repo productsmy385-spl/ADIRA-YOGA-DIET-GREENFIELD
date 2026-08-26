@@ -63,8 +63,19 @@ function toMember(row: MemberRow): MemberSummary {
 }
 
 export interface ListMembersOptions {
-  /** Filter to members only, staff only, or everyone. */
-  kind?: "MEMBERS" | "STAFF" | "ALL";
+  /**
+   * Which population to list.
+   *
+   *   MEMBERS  people receiving care — USER, and the CUSTOMER tombstone.
+   *   STAFF    everyone delivering it — ADMIN, TRAINER, STAFF, and ORG_OWNER.
+   *   ADMINS   organisation ADMINISTRATORS only. Narrower than STAFF, and the distinction
+   *            is load-bearing: the platform console acts on this list with
+   *            `setAdminStatusAction`, which refuses any row that is not ADMIN or
+   *            ORG_OWNER. Feeding it the wider STAFF list renders Suspend buttons beside
+   *            trainers that silently do nothing.
+   *   ALL      no role filter.
+   */
+  kind?: "MEMBERS" | "STAFF" | "ADMINS" | "ALL";
   status?: AccountStatusValue;
   limit?: number;
 }
@@ -82,9 +93,24 @@ export async function listMembers(
   const conditions = ["u.organization_id = $1"];
   const params: unknown[] = [organizationId];
 
+  /*
+   * MEMBERS means "people receiving care", STAFF means "people delivering it".
+   *
+   * TRAINER and STAFF belong to the second group, and adding them here is what makes them
+   * visible to administration at all — a role the roster cannot list is a role nobody can
+   * find, suspend or audit.
+   *
+   * Both member labels are matched because ADR-013 keeps CUSTOMER as a tombstone; the
+   * same applies to ORG_OWNER on the staff side. `listCaseload` matches the same member
+   * pair, and the two must agree or somebody is administrable on one page and invisible
+   * on another.
+   */
   const kind = options.kind ?? "MEMBERS";
   if (kind === "MEMBERS") conditions.push(`u.role IN ('USER', 'CUSTOMER')`);
-  if (kind === "STAFF") conditions.push(`u.role IN ('ADMIN', 'ORG_OWNER')`);
+  if (kind === "STAFF") {
+    conditions.push(`u.role IN ('ADMIN', 'ORG_OWNER', 'TRAINER', 'STAFF')`);
+  }
+  if (kind === "ADMINS") conditions.push(`u.role IN ('ADMIN', 'ORG_OWNER')`);
 
   if (options.status) {
     params.push(options.status);

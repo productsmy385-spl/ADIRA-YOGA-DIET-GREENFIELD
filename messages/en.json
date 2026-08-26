@@ -36,8 +36,8 @@
         "body": "Your studio's people, roles, and records stay yours. Every record is scoped to your organisation by the database itself."
       }
     },
-    "statusHeading": "Build status",
-    "statusBody": "Adira is being built in phases and is not yet feature-complete. Authentication, multi-tenancy, and the database schema are live. Programmes, activity tracking, and reporting are still to come — this page will not claim otherwise before they exist.",
+    "statusHeading": "Built for health data",
+    "statusBody": "Every record is scoped to your organisation by the database itself, not by a filter in application code. One-time sign-in codes are stored only as salted hashes, sessions are signed per identity domain, and reading another person’s practice requires an explicit assignment — being an administrator is not enough on its own. Every privileged action is written to an audit trail.",
     "eyebrow": "Yoga therapy · Diet · Daily practice",
     "howHeading": "How it works",
     "how": {

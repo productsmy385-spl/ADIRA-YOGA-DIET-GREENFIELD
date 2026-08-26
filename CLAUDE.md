@@ -141,6 +141,31 @@ user-facing copy** — `src/app/page.tsx` once told visitors "there is no applic
 sign in to yet" for as long as it took someone to notice, because stale copy fails
 silently.
 
+### The failure mode this codebase actually has
+
+Not broken code — **unreachable code**. A completion pass on 2026-08-26 found seven server
+actions and one whole form component that were written, authorised, audited and unit-tested,
+and that nothing imported. Typecheck, lint, tests and the build all passed; the deployed
+application simply had no route to the feature.
+
+Two of them broke entire workflows:
+
+- `takeIntoCaseloadAction` was the only way to create a `consultant_assignments` row.
+  Without it an admin could add a member, then got a 404 opening them, and could never
+  prescribe. Everything downstream was unreachable behind a missing button.
+- `createOrganizationAction` had a finished form in `platform-forms.tsx` that
+  `super-admin/page.tsx` never imported, so no tenant could be created through the product.
+
+`tests/no-orphaned-actions.test.ts` now fails the build for the import-level version of
+this. It cannot catch a component that is itself orphaned one level up, so **when you add
+a server action, open the page and confirm the control is on it.** "The backend exists" is
+not the same as the feature existing.
+
+Related trap: a query matching `role = 'CUSTOMER'` alone. Migration 007 backfilled members
+to `USER`, so that predicate silently returns nothing for anyone added since. It presented
+as an empty caseload — indistinguishable from "nobody assigned yet", which is why it
+survived. Match `role IN ('USER', 'CUSTOMER')` until ADR-013 deployment 3.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

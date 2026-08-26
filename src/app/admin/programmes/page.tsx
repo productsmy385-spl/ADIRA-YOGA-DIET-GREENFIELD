@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
  * what; the item count is a number about the template itself.
  */
 export default async function ProgrammesPage() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
   // Archived templates stay listed and restorable, as in the libraries.
   const programmes = await listProgrammes(session.organizationId, undefined, true);
 

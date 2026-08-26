@@ -117,6 +117,24 @@ describeIsolated("the complete product workflow", () => {
     w.today = await organizationToday(w.orgId);
   });
 
+  /*
+   * A LONGER TIMEOUT THAN THE PROJECT DEFAULT, and the reason is the point.
+   *
+   * This single test walks the entire product — create exercise, create meal, build two
+   * programmes, publish both, prescribe both, generate the schedule, complete, skip,
+   * check in, read progress back, then monitor as the admin. That is roughly forty
+   * SEQUENTIAL statements against a Railway instance reached over its public proxy, and
+   * each one pays a full network round trip.
+   *
+   * It measured ~30s against the project's 30s ceiling, so it failed or passed depending
+   * on the day's latency. That flakiness is worse than useless on the one test that
+   * proves the acceptance journey: a red run that means nothing trains everybody to
+   * ignore it.
+   *
+   * The timeout is raised rather than the test split, because the sequence IS the
+   * assertion — the value here is that these steps work in this order against one
+   * database, which is exactly what splitting would throw away.
+   */
   it("runs admin → library → programme → publish → assign → member → progress → monitoring", async () => {
     // ---- 2. Admin creates a yoga exercise -------------------------------
     const exercise = await createYogaExercise(w.orgId, {
@@ -340,7 +358,7 @@ describeIsolated("the complete product workflow", () => {
     expect(
       (await resolveMemberAccess(member(w.memberId, w.orgId), w.otherMemberId)).decision,
     ).toEqual({ allowed: false, reason: "NOT_ASSIGNED" });
-  });
+  }, 120_000);
 
   /**
    * A report is a frozen statement about a closed period, and it must be computed from

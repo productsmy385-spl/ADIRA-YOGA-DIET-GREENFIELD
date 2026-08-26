@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
  * no assignment. Nothing here reveals who has been given what.
  */
 export default async function YogaLibraryPage() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
   // Archived exercises are LISTED, greyed and restorable. Hiding them would make
   // archiving a one-way door whose only exit is a database edit.
   const exercises = await listYogaExercises(session.organizationId, true);

@@ -120,6 +120,37 @@ export function AddMemberForm() {
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="role">Role</Label>
+        {/*
+          THREE OPTIONS, AND ADMIN IS NOT ONE OF THEM.
+          `canAssignRole` requires the actor to strictly outrank the role granted, so an
+          ADMIN granting ADMIN is refused server-side regardless of what is posted here —
+          a second administrator is a privilege escalation and belongs to the platform
+          console. Omitting the option keeps the form from offering a choice that would
+          only ever produce an error.
+
+          The server re-checks every one of these against `canAssignRole` on submit. This
+          select decides what is offered, never what is permitted.
+        */}
+        <select
+          id="role"
+          name="role"
+          defaultValue="USER"
+          aria-describedby="role-hint"
+          className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <option value="USER">Customer — follows a plan you assign</option>
+          <option value="TRAINER">Trainer — builds plans and works a caseload</option>
+          <option value="STAFF">Staff — follows a caseload, builds nothing</option>
+        </select>
+        <FieldError id="role-error" message={f.role} />
+        <p id="role-hint" className="text-sm text-muted-foreground">
+          A trainer can create programmes and prescribe them. Staff can see and message the
+          people assigned to them. Neither can administer the organisation or add accounts.
+        </p>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="locale">Language</Label>
         {/*
           A native select. The product supports three languages and this is a three-item

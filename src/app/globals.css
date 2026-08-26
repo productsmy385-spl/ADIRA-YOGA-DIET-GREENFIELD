@@ -484,3 +484,140 @@
     }
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * MOTION PRIMITIVES
+ *
+ * One vocabulary, reused. The alternative — each page inventing its own reveal —
+ * is how timings drift until nothing feels like one product.
+ *
+ * Every primitive is driven by the tokens already defined above
+ * (`--duration-*`, `--ease-*`). No new durations are introduced here.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * THE FAIL-SAFE RULE, WHICH IS THE WHOLE DESIGN
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * A scroll reveal that starts at `opacity: 0` and waits for JavaScript is a page
+ * that renders BLANK when JavaScript does not arrive — a failed hydration, a
+ * blocked bundle, an IntersectionObserver that never fires because the element
+ * was already past the viewport.
+ *
+ * So the hidden state is NOT in the server-rendered markup. Content ships
+ * visible. The `Reveal` component adds `data-reveal="hidden"` on mount, from a
+ * layout effect, and only when it has confirmed it can animate. Every path that
+ * skips that step leaves the content on screen:
+ *
+ *   no JavaScript          → never hidden, content visible
+ *   reduced motion         → component opts out entirely, content visible
+ *   observer unsupported   → component opts out entirely, content visible
+ *   JS error before mount  → never hidden, content visible
+ *
+ * The global `prefers-reduced-motion` block above collapses durations to 0.01ms
+ * as a second net, but it is deliberately not the only one: it would still leave
+ * an un-revealed element at `opacity: 0` forever, because nothing would remove
+ * the hidden state.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer utilities {
+  /* Applied by JS only. See the fail-safe rule above — never author this in
+   * server-rendered markup. */
+  [data-reveal="hidden"] {
+    opacity: 0;
+    transform: translate3d(0, var(--reveal-distance, 8px), 0);
+  }
+
+  [data-reveal="shown"] {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    /* Transform and opacity only — both composited, neither triggers layout.
+     * `--reveal-delay` is what `Stagger` sets per child. */
+    transition:
+      opacity var(--duration-slow) var(--ease-soft) var(--reveal-delay, 0ms),
+      transform var(--duration-slow) var(--ease-soft) var(--reveal-delay, 0ms);
+  }
+
+  /* Breathing — for wellness iconography and the landing hero only.
+   *
+   * Four seconds in, four out: a slow, resting respiratory rate. Faster reads as
+   * a pulsing UI element rather than a breath, which is the opposite of calm.
+   * The scale range is deliberately tiny; anything larger becomes a distraction
+   * on a page somebody is reading. */
+  @keyframes adira-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.035);
+    }
+  }
+
+  .animate-breathe {
+    animation: adira-breathe 8s var(--ease-soft-in-out) infinite;
+    transform-origin: center;
+    will-change: transform;
+  }
+
+  /* Drift — botanical shapes on the landing page. Long, irregular, and never
+   * synchronised with anything else, so the eye does not find a rhythm to lock
+   * onto. LANDING PAGE ONLY: `docs/UX-SPECIFICATION.md` §5 rules ambient
+   * movement out inside the authenticated app, and that decision stands. */
+  @keyframes adira-drift {
+    0% {
+      transform: translate3d(0, 0, 0) rotate(0deg);
+    }
+    50% {
+      transform: translate3d(2%, -3%, 0) rotate(2deg);
+    }
+    100% {
+      transform: translate3d(0, 0, 0) rotate(0deg);
+    }
+  }
+
+  .animate-drift {
+    animation: adira-drift 28s var(--ease-soft-in-out) infinite;
+    will-change: transform;
+  }
+
+  .animate-drift-slow {
+    animation: adira-drift 44s var(--ease-soft-in-out) infinite reverse;
+    will-change: transform;
+  }
+
+  /* A progress ring sweeping to its value, once, on first paint (UX spec §7).
+   * The value is supplied as `--ring-dash` by the component. */
+  @keyframes adira-ring-sweep {
+    from {
+      stroke-dashoffset: var(--ring-circumference);
+    }
+  }
+
+  .animate-ring {
+    animation: adira-ring-sweep var(--duration-slow) var(--ease-soft) forwards;
+  }
+
+  /* Under reduced motion the infinite ambient animations are stopped outright
+   * rather than merely shortened.
+   *
+   * The global block sets `animation-duration: 0.01ms` and
+   * `animation-iteration-count: 1`, which ENDS these — but ends them wherever
+   * the 0.01ms lands, which for `adira-breathe` is a figure frozen mid-scale.
+   * `animation: none` returns the element to its authored resting state, which
+   * is what "no movement" should actually look like. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-breathe,
+    .animate-drift,
+    .animate-drift-slow {
+      animation: none !important;
+    }
+
+    /* Belt and braces: if anything ever leaves an element hidden under reduced
+     * motion, this makes it visible rather than invisible. Information is never
+     * what reduced motion removes. */
+    [data-reveal="hidden"] {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

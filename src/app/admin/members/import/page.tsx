@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
+import Link from "next/link";
+
 import { GlassPanel } from "@/components/glass/glass";
+import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { MemberImport } from "@/components/members/member-import";
 import { requireRole } from "@/server/auth/guards";
 
@@ -22,12 +25,23 @@ export const metadata: Metadata = {
 };
 
 export default async function ImportMembersPage() {
-  await requireRole("ADMIN");
+  const session = await requireRole("ADMIN");
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
+    <div className="min-h-dvh bg-background">
+      {/* The shared shell. Without it this page was a cul-de-sac: no navigation, and no
+          way back to Members except the browser's back button. */}
+      <AppNav role={session.role} currentPath="/admin/members" />
+
+      <main className="mx-auto max-w-3xl space-y-6 px-6 py-10 pb-28 sm:pb-10">
       <header>
-        <h1 className="type-display text-foreground">Import members</h1>
+        <Link
+          href="/admin/members"
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          &larr; Members
+        </Link>
+        <h1 className="type-display mt-3 text-foreground">Import members</h1>
         <p className="type-body mt-2 max-w-prose text-muted-foreground">
           Upload a spreadsheet to invite several people at once. You will see exactly what
           would be created before anything is.
@@ -71,6 +85,9 @@ export default async function ImportMembersPage() {
           <li>It happens in one go, or not at all. A failure part-way leaves nothing behind.</li>
         </ul>
       </GlassPanel>
-    </main>
+      </main>
+
+      <MobileTabBar role={session.role} currentPath="/admin/members" />
+    </div>
   );
 }

@@ -17,8 +17,20 @@
 
 export const PG_ENUM_EXPECTATIONS = {
   identity_domain: ["PLATFORM", "TENANT"],
-  // Four labels: ADR-013 merged the model, but PostgreSQL cannot drop an enum value.
-  tenant_role: ["ORG_OWNER", "ADMIN", "CUSTOMER", "USER"],
+  /*
+   * Six labels, in declaration order.
+   *
+   * ORG_OWNER, ADMIN, CUSTOMER shipped with 001; USER was added by migration 006 when
+   * ADR-013 merged the model — PostgreSQL cannot drop an enum value, so the two merged-away
+   * labels remain as tombstones. TRAINER and STAFF were added by migration 011, completing
+   * the four-role ladder ADR-002 anticipated.
+   *
+   * This is the THIRD representation of the same enum, alongside `TENANT_ROLE_VALUES` in
+   * types.ts and `pg_enum` itself, and `db/types.test.ts` asserts all three agree. That is
+   * why a migration must update this file in the same change: the test is the only thing
+   * that notices, and it noticed this one.
+   */
+  tenant_role: ["ORG_OWNER", "ADMIN", "CUSTOMER", "USER", "TRAINER", "STAFF"],
   access_request_status: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
   account_status: ["INVITED", "PENDING", "ACTIVE", "SUSPENDED", "LOCKED", "DISABLED"],
   organization_status: ["ACTIVE", "SUSPENDED", "CLOSED"],

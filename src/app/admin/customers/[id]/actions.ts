@@ -8,7 +8,10 @@ import {
   actorFromSession,
   resolveMemberAccessAudited,
 } from "@/server/authorization/member-access";
-import { canManageOrganization } from "@/server/authorization/permissions";
+import {
+  canManageOrganization,
+  canPrescribe,
+} from "@/server/authorization/permissions";
 import {
   activateAssignment,
   createAssignmentFromProgramme,
@@ -62,12 +65,35 @@ export interface AssignState {
   message?: string;
 }
 
-/** Both questions asked, in the order that fails cheapest first. */
-async function requireMemberReach(customerId: string, action: string) {
-  const session = await requireRole("ADMIN");
+/**
+ * Both questions asked, in the order that fails cheapest first.
+ *
+ * `capability` is the role-level question — "does your role do this at all" — and it
+ * varies by operation. `resolveMemberAccess` is the resource-level question, and never
+ * varies. Neither substitutes for the other:
+ *
+ *   canPrescribe + assignment   ADMIN or TRAINER writing a plan for someone on their
+ *                               caseload.
+ *   assignment only             any caseload role, for things that read or message
+ *                               rather than prescribe. This is how STAFF reaches a
+ *                               member at all.
+ *
+ * The default is the stricter of the two, so a new action that forgets to pass a
+ * capability gets the prescribing gate rather than the open one.
+ */
+async function requireMemberReach(
+  customerId: string,
+  action: string,
+  capability: (actor: ReturnType<typeof actorFromSession>) => { allowed: boolean } =
+    canPrescribe,
+) {
+  // Every caseload role, not just ADMIN. The role-level question is asked immediately
+  // below by `capability`; this guard only establishes an authenticated tenant identity
+  // that could hold a caseload at all.
+  const session = await requireRole("ADMIN", "TRAINER", "STAFF");
   const actor = actorFromSession(session);
 
-  if (!canManageOrganization(actor).allowed) return null;
+  if (!capability(actor).allowed) return null;
 
   const { decision } = await resolveMemberAccessAudited(actor, customerId, action);
   if (!decision.allowed) return null;
@@ -338,7 +364,19 @@ export async function sendMemberNotificationAction(
 
   const { customerId, title, body } = parsed.data;
 
-  const session = await requireMemberReach(customerId, "notification.send");
+  /*
+   * Gated by ASSIGNMENT ALONE, not by `canPrescribe`.
+   *
+   * Messaging somebody on your caseload is what STAFF is for — the role exists to watch
+   * and support a caseload without deciding what its members practise. Passing the
+   * prescribing capability here would have silently excluded them from the one
+   * communication channel their navigation offers.
+   */
+  const session = await requireMemberReach(
+    customerId,
+    "notification.send",
+    () => ({ allowed: true }),
+  );
   if (!session) {
     return { status: "ERROR", message: "You cannot message this member." };
   }

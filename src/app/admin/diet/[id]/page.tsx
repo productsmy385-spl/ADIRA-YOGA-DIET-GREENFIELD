@@ -24,7 +24,7 @@ export default async function EditMealPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
   const { id } = await params;
 
   const meal = await findMeal(session.organizationId, id);

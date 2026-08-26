@@ -3,6 +3,7 @@ import { FileText } from "lucide-react";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
+import { ReportSummary } from "@/components/reports/report-summary";
 import { requireTenantSession } from "@/server/auth/guards";
 import { listReportsForMember } from "@/server/repositories/reports";
 
@@ -51,10 +52,27 @@ export default async function ReportsPage() {
                     {r.periodStart} — {r.periodEnd}
                   </h2>
                   <Badge variant={r.status === "READY" ? "secondary" : "outline"}>
-                    {r.status}
+                    {r.status.toLowerCase()}
                   </Badge>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{r.kind}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {r.kind.toLowerCase().replace(/_/g, " ")}
+                </p>
+
+                {/*
+                  The report's actual contents. A READY report has a frozen payload; a
+                  PENDING or FAILED one has nothing to show yet, and saying which is more
+                  use than an empty card.
+                */}
+                {r.status === "READY" ? (
+                  <ReportSummary payload={r.payload} />
+                ) : (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    {r.status === "PENDING"
+                      ? "Still being generated. It will appear here shortly."
+                      : "This report could not be generated."}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

@@ -9,6 +9,7 @@
  */
 
 import { query, queryOne } from "@/server/db/pool";
+import { TENANT_ROLE_VALUES } from "@/server/db/types";
 import type { AccountStatusValue, TenantRoleValue } from "@/server/db/types";
 
 export interface TenantUser {
@@ -257,12 +258,19 @@ export async function countUsersByRole(
     [organizationId],
   );
 
-  const counts: Record<TenantRoleValue, number> = {
-    ORG_OWNER: 0,
-    ADMIN: 0,
-    CUSTOMER: 0,
-    USER: 0,
-  };
+  /*
+   * Seeded from TENANT_ROLE_VALUES rather than written out, so a role added to the enum
+   * cannot be silently missing from the result.
+   *
+   * The literal version of this object was already stale the moment TRAINER and STAFF
+   * were added — it typechecked because `Record` was satisfied by the four keys it
+   * happened to list, right up until the union grew. Deriving it means the next role is a
+   * zero here automatically, and a role with no members reports 0 rather than undefined.
+   */
+  const counts = Object.fromEntries(
+    TENANT_ROLE_VALUES.map((role) => [role, 0]),
+  ) as Record<TenantRoleValue, number>;
+
   for (const row of rows) counts[row.role] = Number(row.count);
   return counts;
 }

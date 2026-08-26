@@ -6,7 +6,12 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { branding } from "@/lib/branding";
 
-import { navItemsForRole, type NavItem, type NavRole } from "./nav-items";
+import {
+  navItemsForRole,
+  primaryNavForRole,
+  type NavItem,
+  type NavRole,
+} from "./nav-items";
 
 /**
  * The application shell's navigation.
@@ -99,7 +104,10 @@ export function AppNav({ role, currentPath }: AppNavProps) {
  * kind of bug that only appears on the device.
  */
 export function MobileTabBar({ role, currentPath }: AppNavProps) {
-  const items = navItemsForRole(role);
+  // The PRIMARY subset, not the full menu. Nine admin items in a phone-width bar gives
+  // every one of them about 40px — below the touch target minimum and far below what a
+  // label needs to stay readable. See `primaryNavForRole`.
+  const items = primaryNavForRole(role);
 
   return (
     <nav

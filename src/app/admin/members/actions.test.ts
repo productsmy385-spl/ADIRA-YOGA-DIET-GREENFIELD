@@ -8,7 +8,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  *
  *   1. The organization comes from the SESSION. A form field named `organizationId` must
  *      have no effect whatsoever (ADR-004).
- *   2. The role is USER and cannot be influenced by the request.
+ *   2. The role comes from a restricted allowlist and passes canAssignRole — ADMIN and
+ *      SUPER_ADMIN are refused outright rather than downgraded.
  *   3. The account is INVITED, so it cannot sign in until the address is proven.
  *   4. A non-admin gets nothing.
  *
@@ -77,11 +78,61 @@ describe("tenant scope", () => {
 });
 
 describe("role and status cannot be influenced by the request", () => {
-  it("creates a USER, even when the form asks for ADMIN", async () => {
-    await addMemberAction({ status: "IDLE" }, form({ ...VALID, role: "ADMIN" }));
+  /*
+   * THIS BEHAVIOUR CHANGED, AND THE PROPERTY DID NOT.
+   *
+   * The form used to hardcode `role: "USER"` and ignore whatever was posted, so asking
+   * for ADMIN quietly produced a member. It now offers a genuine choice between USER,
+   * TRAINER and STAFF (migration 011), so the question "can the request influence the
+   * role" has a real answer instead of a trivial one.
+   *
+   * The answer is still no in the way that matters: the role must be one of an allowlist
+   * that does not contain ADMIN, and it must additionally pass `canAssignRole`, which
+   * requires the actor to STRICTLY outrank it. Asking for ADMIN is now REFUSED rather
+   * than silently downgraded — which is the better of the two, because a silent downgrade
+   * tells the caller nothing about why they did not get what they asked for.
+   */
+  it("refuses outright when the form asks for ADMIN, rather than downgrading it", async () => {
+    const result = await addMemberAction(
+      { status: "IDLE" },
+      form({ ...VALID, role: "ADMIN" }),
+    );
+
+    expect(result.status).toBe("ERROR");
+    // Nothing was written. The refusal happens in validation, before any repository call.
+    expect(createUser).not.toHaveBeenCalled();
+  });
+
+  it("refuses SUPER_ADMIN, which is not even on this ladder", async () => {
+    const result = await addMemberAction(
+      { status: "IDLE" },
+      form({ ...VALID, role: "SUPER_ADMIN" }),
+    );
+
+    expect(result.status).toBe("ERROR");
+    expect(createUser).not.toHaveBeenCalled();
+  });
+
+  it("defaults to USER when the form omits a role entirely", async () => {
+    // No role field at all — the schema's default must apply.
+    await addMemberAction({ status: "IDLE" }, form(VALID));
 
     expect(createUser.mock.calls[0][0].role).toBe("USER");
   });
+
+  it.each(["USER", "STAFF", "TRAINER"])(
+    "creates a %s when an admin selects it",
+    async (role) => {
+      // An ADMIN (rank 20) strictly outranks all three, so `canAssignRole` permits each.
+      await addMemberAction({ status: "IDLE" }, form({ ...VALID, role }));
+
+      expect(createUser).toHaveBeenCalledTimes(1);
+      expect(createUser.mock.calls[0][0].role).toBe(role);
+      // Still INVITED regardless of role — a trainer must prove they control the address
+      // exactly as a member must.
+      expect(createUser.mock.calls[0][0].status).toBe("INVITED");
+    },
+  );
 
   it("creates the account INVITED, even when the form asks for ACTIVE", async () => {
     // An ACTIVE account can hold a session. Honouring this field would mean an admin

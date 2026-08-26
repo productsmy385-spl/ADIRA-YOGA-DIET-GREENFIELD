@@ -31,7 +31,7 @@ export const dynamic = "force-dynamic";
  * NOT shown: members, their names, their practice, or anything derived from it. ADR-001
  * gives platform accounts no implicit reach into tenant data, and a console that listed
  * customers would be that reach arriving through the back door. `listMembers` is called
- * with `kind: "STAFF"`, which filters to ADMIN and ORG_OWNER in SQL — the restriction is
+ * with `kind: "ADMINS"`, which filters to ADMIN and ORG_OWNER in SQL — the restriction is
  * in the query, not in what this page chooses to render.
  *
  * The audit strip is the tenant's own trail, which records actions and resource ids, never
@@ -59,7 +59,7 @@ export default async function OrganizationDetailPage({
   if (!organization) notFound();
 
   const [staff, audit] = await Promise.all([
-    listMembers(organization.id, { kind: "STAFF" }),
+    listMembers(organization.id, { kind: "ADMINS" }),
     listPlatformAudit({ organizationId: organization.id, limit: 10 }),
   ]);
 

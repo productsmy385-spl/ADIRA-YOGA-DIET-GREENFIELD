@@ -46,7 +46,7 @@ export default async function AdministratorsPage() {
   const perOrganization = await Promise.all(
     organizations.map(async (organization) => ({
       organization,
-      staff: await listMembers(organization.id, { kind: "STAFF" }),
+      staff: await listMembers(organization.id, { kind: "ADMINS" }),
     })),
   );
 

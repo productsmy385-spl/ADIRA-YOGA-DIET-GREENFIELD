@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { requireRole } from "@/server/auth/guards";
-import { canManageOrganization } from "@/server/authorization/permissions";
+import { canManageProgrammes } from "@/server/authorization/permissions";
 import { actorFromSession } from "@/server/authorization/member-access";
 import { recordAudit } from "@/server/repositories/audit-logs";
-import { createYogaExercise, setYogaExerciseArchived } from "@/server/repositories/library";
+import { createYogaExercise } from "@/server/repositories/library";
 import { DIFFICULTY_LEVEL_VALUES, type DifficultyLevelValue } from "@/server/db/types";
 
 /**
@@ -47,9 +47,9 @@ export async function createExerciseAction(
   _previous: LibraryState,
   formData: FormData,
 ): Promise<LibraryState> {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
 
-  const permitted = canManageOrganization(actorFromSession(session));
+  const permitted = canManageProgrammes(actorFromSession(session));
   if (!permitted.allowed) {
     return { status: "ERROR", message: "You do not have permission to manage the library." };
   }
@@ -96,45 +96,12 @@ export async function createExerciseAction(
   return { status: "DONE", message: `“${exercise.name}” added to the library.` };
 }
 
-export async function archiveExerciseAction(
-  _previous: LibraryState,
-  formData: FormData,
-): Promise<LibraryState> {
-  const session = await requireRole("ADMIN");
-
-  const permitted = canManageOrganization(actorFromSession(session));
-  if (!permitted.allowed) {
-    return { status: "ERROR", message: "You do not have permission to manage the library." };
-  }
-
-  const id = String(formData.get("id") ?? "");
-
-  /*
-   * Archived, never deleted.
-   *
-   * A programme already assigned to somebody references this exercise, and its schedule
-   * was snapshotted at assignment (ADR-009) — but the library row is still what an admin
-   * browses. Deleting it would leave a hole in history for no gain; archiving removes it
-   * from selection while keeping the record intact.
-   */
-  const archived = await setYogaExerciseArchived(session.organizationId, id, true);
-
-  // False means the UPDATE matched nothing — wrong id, or another tenant's. The
-  // organization_id predicate is what makes those two indistinguishable to the caller.
-  if (!archived) return { status: "ERROR", message: "That exercise no longer exists." };
-
-  await recordAudit({
-    organizationId: session.organizationId,
-    actorDomain: "TENANT",
-    actorId: session.userId,
-    actorLabel: session.email,
-    action: "yoga_exercise.archived",
-    resourceType: "yoga_exercise",
-    resourceId: id,
-    outcome: "SUCCESS",
-    metadata: { exerciseId: id },
-  });
-
-  revalidatePath("/admin/yoga");
-  return { status: "DONE", message: "Exercise archived." };
-}
+/*
+ * `archiveExerciseAction` was removed here.
+ *
+ * It was superseded by `archiveYogaExerciseAction` in `../library-actions.ts`, which the
+ * yoga library page actually uses and which handles RESTORE as well as archive. This copy
+ * was archive-only and had no caller — two competing archive paths where the weaker one
+ * was unreachable. Wiring it up would have been the wrong repair; the live path already
+ * does more.
+ */

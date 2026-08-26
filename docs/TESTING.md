@@ -116,8 +116,31 @@ which suites were skipped.
 
 # The two database modes
 
-Adira does not maintain a test database. Local development runs against the real
-production database, by decision — so the destructive test path has nowhere safe to point,
+> **Updated 2026-08-26.** An isolated database now exists — `adira_test`, on the same
+> Railway server — and `.env.local` points both `DATABASE_URL` and `SQL_TEST_DATABASE_URL`
+> at it. `isolationRefusal` treats that exact-equality case as safe deliberately (the
+> protected-name check has already run), so the **only** thing still gating the destructive
+> suites is the `ADIRA_ISOLATED_TEST_DB=1` opt-in.
+>
+> **That matters more than it looks.** A bare `npm run test` skips ten suites and 128
+> tests — including `tenant-isolation`, `caseload-scope`, `activity-lifecycle`,
+> `assignment-snapshot` and `end-to-end-workflow`. Those are the suites that prove the
+> security model and the whole customer journey. A green run without the opt-in is a run
+> in which none of them executed:
+>
+> | Command | Result |
+> |---|---|
+> | `npm test` | 496 passed, 128 skipped |
+> | `ADIRA_ISOLATED_TEST_DB=1 npm test` | 631 passed, 4 skipped |
+>
+> Use the opt-in for any run you intend to report as evidence.
+
+The paragraph below records the original decision and is kept because the *guard* it
+describes is still exactly what runs. Only its premise — that no test database exists —
+has changed.
+
+Adira did not maintain a test database. Local development ran against the real
+production database, by decision — so the destructive test path had nowhere safe to point,
 and it **refuses to run** rather than finding somewhere unsafe.
 
 `tests/helpers/sql-db.ts` therefore has two modes, and the difference is enforced rather
@@ -160,8 +183,8 @@ the suite name**:
 
 # What skipping costs, and where the coverage went
 
-Six suites skip without an isolated database — 114 tests. They are not deleted, and they
-are not to be pointed at production to make a number go up.
+Ten suites skip without an isolated database — 128 tests, as of 2026-08-26. They are not
+deleted, and they are not to be pointed at production to make a number go up.
 
 | Lost | Recovered by |
 |---|---|

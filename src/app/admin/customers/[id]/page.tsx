@@ -20,6 +20,7 @@ import { AssignProgrammeForm } from "./assign-programme-form";
 import { MessageForm } from "./message-form";
 import { ReleaseFromCaseload, TakeIntoCaseload } from "./caseload-controls";
 import { AppNav } from "@/components/nav/app-nav";
+import { ReportSummary } from "@/components/reports/report-summary";
 import { recordAudit } from "@/server/repositories/audit-logs";
 import {
   actorFromSession,
@@ -71,7 +72,7 @@ export default async function CustomerPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER", "STAFF");
   const actor = actorFromSession(session);
 
   // One gate for every member-sensitive read (ADR-013). It performs the assignment
@@ -415,21 +416,25 @@ export default async function CustomerPage({
           {reports.length > 0 ? (
             <ul className="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
               {reports.map((report) => (
-                <li
-                  key={report.id}
-                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5"
-                >
-                  <div>
-                    <p className="text-sm text-card-foreground">
-                      {report.kind.toLowerCase().replace(/_/g, " ")}
-                    </p>
-                    <p className="type-meta mt-0.5 text-muted-foreground">
-                      {report.periodStart} to {report.periodEnd}
-                    </p>
+                <li key={report.id} className="px-5 py-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm text-card-foreground">
+                        {report.kind.toLowerCase().replace(/_/g, " ")}
+                      </p>
+                      <p className="type-meta mt-0.5 text-muted-foreground">
+                        {report.periodStart} to {report.periodEnd}
+                      </p>
+                    </div>
+                    <Badge variant={report.status === "READY" ? "secondary" : "outline"}>
+                      {report.status.toLowerCase()}
+                    </Badge>
                   </div>
-                  <Badge variant={report.status === "READY" ? "secondary" : "outline"}>
-                    {report.status.toLowerCase()}
-                  </Badge>
+
+                  {/* The frozen figures, not a re-query. Same component the member sees,
+                      so a consultant and their member are looking at one set of numbers
+                      rather than two that could disagree. */}
+                  {report.status === "READY" && <ReportSummary payload={report.payload} />}
                 </li>
               ))}
             </ul>

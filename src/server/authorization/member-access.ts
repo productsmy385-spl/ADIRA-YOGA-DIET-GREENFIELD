@@ -2,7 +2,7 @@ import { hasActiveAssignment, isMemberOfOrganization } from "@/server/repositori
 import { recordAudit } from "@/server/repositories/audit-logs";
 
 import { canAccessMemberData, type Decision } from "./permissions";
-import type { TenantActor } from "./roles";
+import { carriesCaseload, type TenantActor } from "./roles";
 import type { TenantSessionContext } from "@/server/repositories/sessions";
 
 /**
@@ -99,7 +99,23 @@ export async function resolveMemberAccess(
   if (withoutAssignment.allowed) {
     return { decision: withoutAssignment, memberExists: true };
   }
-  if (withoutAssignment.reason !== "NOT_ASSIGNED" || actor.role !== "ADMIN") {
+
+  /*
+   * DO NOT NARROW THIS TO A SINGLE ROLE.
+   *
+   * This short-circuit decides whether the assignment lookup happens at all, and it read
+   * `actor.role !== "ADMIN"` — which was correct while ADMIN was the only role that could
+   * hold a caseload, and became a silent denial the moment TRAINER and STAFF arrived.
+   * `canAccessMemberData` was already right about them; this line returned before it was
+   * ever asked with the real answer, so an assigned trainer was refused their own member
+   * and every pure-function test still passed.
+   *
+   * `carriesCaseload` is the same predicate the permission uses, so the two cannot
+   * disagree again. The skip is still worth keeping: querying
+   * `consultant_assignments` for a role that can never hold one is a pointless round trip,
+   * and for a cross-domain actor it would be a timing signal about another tenant's rows.
+   */
+  if (withoutAssignment.reason !== "NOT_ASSIGNED" || !carriesCaseload(actor.role)) {
     return { decision: withoutAssignment, memberExists: true };
   }
 

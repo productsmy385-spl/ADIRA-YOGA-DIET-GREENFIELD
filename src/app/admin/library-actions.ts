@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { requireRole } from "@/server/auth/guards";
 import { actorFromSession } from "@/server/authorization/member-access";
-import { canManageOrganization } from "@/server/authorization/permissions";
+import { canManageProgrammes } from "@/server/authorization/permissions";
 import { isUniqueViolation } from "@/server/db/unique-violation";
 import { recordAudit } from "@/server/repositories/audit-logs";
 import {
@@ -22,7 +22,7 @@ import {
  *
  * ADMINISTRATIVE, and one of the clearest cases of it: an exercise or a meal belongs to the
  * organisation, describes nobody, and carries no health information about anyone. So
- * `canManageOrganization` is the whole authorization question — no assignment is involved,
+ * `canManageProgrammes` is the whole authorization question — no assignment is involved,
  * and ADR-013's data-reach rule never enters.
  *
  * Both halves live in one module because they are the same shape of operation on two
@@ -74,8 +74,8 @@ export async function saveYogaExerciseAction(
   _previous: LibraryState,
   formData: FormData,
 ): Promise<LibraryState> {
-  const session = await requireRole("ADMIN");
-  if (!canManageOrganization(actorFromSession(session)).allowed) {
+  const session = await requireRole("ADMIN", "TRAINER");
+  if (!canManageProgrammes(actorFromSession(session)).allowed) {
     return { status: "ERROR", message: "You do not have permission to edit the library." };
   }
 
@@ -150,8 +150,8 @@ export async function saveYogaExerciseAction(
 }
 
 export async function archiveYogaExerciseAction(formData: FormData): Promise<void> {
-  const session = await requireRole("ADMIN");
-  if (!canManageOrganization(actorFromSession(session)).allowed) return;
+  const session = await requireRole("ADMIN", "TRAINER");
+  if (!canManageProgrammes(actorFromSession(session)).allowed) return;
 
   const exerciseId = String(formData.get("exerciseId") ?? "");
   const archived = String(formData.get("archived") ?? "true") === "true";
@@ -183,8 +183,8 @@ export async function saveMealAction(
   _previous: LibraryState,
   formData: FormData,
 ): Promise<LibraryState> {
-  const session = await requireRole("ADMIN");
-  if (!canManageOrganization(actorFromSession(session)).allowed) {
+  const session = await requireRole("ADMIN", "TRAINER");
+  if (!canManageProgrammes(actorFromSession(session)).allowed) {
     return { status: "ERROR", message: "You do not have permission to edit the library." };
   }
 
@@ -262,8 +262,8 @@ export async function saveMealAction(
 }
 
 export async function archiveMealAction(formData: FormData): Promise<void> {
-  const session = await requireRole("ADMIN");
-  if (!canManageOrganization(actorFromSession(session)).allowed) return;
+  const session = await requireRole("ADMIN", "TRAINER");
+  if (!canManageProgrammes(actorFromSession(session)).allowed) return;
 
   const mealId = String(formData.get("mealId") ?? "");
   const archived = String(formData.get("archived") ?? "true") === "true";

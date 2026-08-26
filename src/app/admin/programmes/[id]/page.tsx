@@ -44,7 +44,7 @@ export default async function ProgrammeBuilderPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
   const { id } = await params;
 
   const programme = await findProgramme(session.organizationId, id);

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { navItemsForRole, PLATFORM_NAV, type NavRole } from "./nav-items";
+import {
+  navItemsForRole,
+  PLATFORM_NAV,
+  primaryNavForRole,
+  type NavRole,
+} from "./nav-items";
 
 /**
  * These tests exist mostly to make one thing impossible to forget:
@@ -89,6 +94,54 @@ describe("navItemsForRole", () => {
           expect(forbidden).not.toContain(key);
         }
       }
+    }
+  });
+});
+
+/**
+ * The mobile tab bar's constraint, asserted rather than trusted to review.
+ *
+ * The admin menu has nine items. If `MobileTabBar` ever renders the full menu again — by
+ * somebody "simplifying" `primaryNavForRole` away — each tab gets roughly 40px on a
+ * 360px phone. That is below the touch-target minimum and well below what a label needs,
+ * and it is invisible on a desktop browser at default width, which is where this change
+ * would be reviewed.
+ */
+describe("primaryNavForRole", () => {
+  it("never offers more than five destinations to a phone", () => {
+    for (const role of ["USER", "CUSTOMER", "ADMIN", "ORG_OWNER"] as NavRole[]) {
+      const items = primaryNavForRole(role);
+      expect(items.length).toBeGreaterThanOrEqual(3);
+      expect(items.length).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it("is a subset of what the role may reach, never a superset", () => {
+    // The tab bar is a shortcut into the menu. An item here that is not in the full menu
+    // would be a destination reachable only on a phone, which is how a route ends up with
+    // no desktop equivalent and no test.
+    for (const role of ["USER", "CUSTOMER", "ADMIN", "ORG_OWNER"] as NavRole[]) {
+      const full = new Set(navItemsForRole(role).map((i) => i.href));
+      for (const item of primaryNavForRole(role)) {
+        expect(full.has(item.href)).toBe(true);
+      }
+    }
+  });
+
+  it("gives every role a route to their own account", () => {
+    // Sign-out and passkey enrolment live on /profile. A role that cannot reach it cannot
+    // register a passkey or end its other sessions.
+    for (const role of ["USER", "CUSTOMER", "ADMIN", "ORG_OWNER"] as NavRole[]) {
+      expect(primaryNavForRole(role).map((i) => i.href)).toContain("/profile");
+      expect(navItemsForRole(role).map((i) => i.href)).toContain("/profile");
+    }
+  });
+
+  it("keeps a member out of admin destinations on mobile too", () => {
+    for (const role of ["USER", "CUSTOMER"] as NavRole[]) {
+      const hrefs = primaryNavForRole(role).map((i) => i.href);
+      expect(hrefs.some((h) => h.startsWith("/admin"))).toBe(false);
+      expect(hrefs.some((h) => h.startsWith("/super-admin"))).toBe(false);
     }
   });
 });

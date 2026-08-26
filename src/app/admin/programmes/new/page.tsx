@@ -26,7 +26,7 @@ export default async function NewProgrammePage({
 }: {
   searchParams: Promise<{ kind?: string }>;
 }) {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
   const { kind } = await searchParams;
 
   return (

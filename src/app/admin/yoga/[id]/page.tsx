@@ -24,7 +24,7 @@ export default async function EditExercisePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
   const { id } = await params;
 
   const exercise = await findYogaExercise(session.organizationId, id);

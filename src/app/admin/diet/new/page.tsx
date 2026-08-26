@@ -14,10 +14,10 @@ export const dynamic = "force-dynamic";
  * Add to the organisation's yoga library.
  *
  * Purely administrative: a meal describes nobody and carries no health data, so
- * `requireRole("ADMIN")` is the entire authorization question and no assignment is involved.
+ * `requireRole("ADMIN", "TRAINER")` is the entire authorization question and no assignment is involved.
  */
 export default async function NewMealPage() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
 
   return (
     <div className="min-h-dvh bg-background">

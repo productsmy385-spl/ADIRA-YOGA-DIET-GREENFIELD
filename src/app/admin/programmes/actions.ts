@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { requireRole } from "@/server/auth/guards";
 import { actorFromSession } from "@/server/authorization/member-access";
-import { canManageOrganization } from "@/server/authorization/permissions";
+import { canManageProgrammes } from "@/server/authorization/permissions";
 import { isUniqueViolation } from "@/server/db/unique-violation";
 import { recordAudit } from "@/server/repositories/audit-logs";
 import {
@@ -29,7 +29,7 @@ import {
  * implementation of this file that drifted from it.
  *
  * ADMINISTRATIVE. A programme is a template owned by the organisation; it names no member
- * and holds no health data, so `canManageOrganization` is the whole question. Assignment —
+ * and holds no health data, so `canManageProgrammes` is the whole question. Assignment —
  * the act that attaches a template to a person — is where member data reach starts, and
  * that lives elsewhere.
  *
@@ -80,8 +80,8 @@ export interface ProgrammeState {
 }
 
 async function requireAdmin() {
-  const session = await requireRole("ADMIN");
-  if (!canManageOrganization(actorFromSession(session)).allowed) return null;
+  const session = await requireRole("ADMIN", "TRAINER");
+  if (!canManageProgrammes(actorFromSession(session)).allowed) return null;
   return session;
 }
 
@@ -365,9 +365,9 @@ export async function publishProgrammeAction(
   _previous: ProgrammeState,
   formData: FormData,
 ): Promise<ProgrammeState> {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
 
-  const permitted = canManageOrganization(actorFromSession(session));
+  const permitted = canManageProgrammes(actorFromSession(session));
   if (!permitted.allowed) {
     return { status: "ERROR", message: "You do not have permission to manage programmes." };
   }
@@ -412,9 +412,9 @@ export async function unpublishProgrammeAction(
   _previous: ProgrammeState,
   formData: FormData,
 ): Promise<ProgrammeState> {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
 
-  const permitted = canManageOrganization(actorFromSession(session));
+  const permitted = canManageProgrammes(actorFromSession(session));
   if (!permitted.allowed) {
     return { status: "ERROR", message: "You do not have permission to manage programmes." };
   }

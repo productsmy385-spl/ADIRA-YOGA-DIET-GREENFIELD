@@ -1,4 +1,5 @@
 import {
+  carriesCaseload,
   isLegacyOrganizationOwner,
   isTenantActor,
   rankOf,
@@ -71,6 +72,27 @@ export function canActOn(actor: Actor, target: Actor): Decision {
  *  - SUPER_ADMIN is not grantable through this surface at any rank. It is not merely
  *    senior to ORG_OWNER, it belongs to a different identity domain and a different
  *    table. There is no ladder connecting the two, so there is no rung to climb.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * THIS FUNCTION IS HALF A GATE. NEVER USE IT ALONE.
+ * ══════════════════════════════════════════════════════════════════════════════
+ *
+ * It is a pure rank comparison, so it answers only "does this actor outrank this role".
+ * Read in isolation it looks alarmingly permissive: a TRAINER (15) strictly outranks
+ * STAFF (12) and USER (10), so this returns ALLOW for both.
+ *
+ * A trainer cannot create anybody, and the reason is the COMPOSITION every caller
+ * performs — `canManageOrganization` FIRST, which is ADMIN-only:
+ *
+ *     if (!canManageOrganization(actor).allowed) return;   // a TRAINER stops here
+ *     if (!canAssignRole(actor, role).allowed) return;     // never reached
+ *
+ * Both call sites do this — `addMemberAction` and `api/members/import` — and a new one
+ * MUST. Calling this function on its own would grant account creation to every role that
+ * happens to outrank the one being granted, which is not what any of them are for.
+ *
+ * `tests/role-acceptance.test.ts` asserts the composition rather than this function, and
+ * says why at length; the first draft asserted this in isolation and failed.
  */
 export function canAssignRole(actor: Actor, role: TenantRole | "SUPER_ADMIN"): Decision {
   if (role === "SUPER_ADMIN") return deny("UNGRANTABLE_ROLE");
@@ -99,7 +121,57 @@ export function canAssignRole(actor: Actor, role: TenantRole | "SUPER_ADMIN"): D
  */
 export function canManageOrganization(actor: Actor): Decision {
   if (!isTenantActor(actor)) return deny("CROSS_DOMAIN");
+  /*
+   * ADMIN alone, and NOT "rank >= ADMIN". The comparison is against the exact role
+   * because this is the permission that TRAINER and STAFF exist to be excluded from — a
+   * rank threshold here would silently admit any future role placed above 20.
+   */
   if (actor.role !== "ADMIN") return deny("INSUFFICIENT_RANK");
+  return ALLOW;
+}
+
+/**
+ * May this actor author the organization's LIBRARY and PROGRAMME TEMPLATES — yoga
+ * exercises, meals, programmes, and their publish state?
+ *
+ * ADMIN and TRAINER. This is the clinical half of the old admin role: building the plans
+ * an organization offers is what a trainer is for, and gating it on
+ * `canManageOrganization` would have meant a trainer could be handed a caseload and then
+ * be unable to write anything for it.
+ *
+ * STAFF is excluded deliberately. A published programme is what generates a member's
+ * schedule, and authoring one is a clinical judgement rather than an operational task.
+ *
+ * NOTE WHAT THIS IS NOT. Library content belongs to the organization and names nobody, so
+ * this permission involves no assignment and reads no member data. Handing a plan TO a
+ * person is `canPrescribe` plus `canAccessMemberData`, which are separate questions asked
+ * at the point the member is known.
+ */
+export function canManageProgrammes(actor: Actor): Decision {
+  if (!isTenantActor(actor)) return deny("CROSS_DOMAIN");
+  if (actor.role !== "ADMIN" && actor.role !== "TRAINER") {
+    return deny("INSUFFICIENT_RANK");
+  }
+  return ALLOW;
+}
+
+/**
+ * May this actor PRESCRIBE — assign a programme to a member, or change that assignment's
+ * state?
+ *
+ * ADMIN and TRAINER, and this is only half the gate. Prescribing writes into somebody's
+ * health record and generates their schedule, so the call site must ALSO establish
+ * `canAccessMemberData` for the member in question. Neither check substitutes for the
+ * other: this one says "your role prescribes", the other says "for this person".
+ *
+ * STAFF may watch a caseload and may message the people on it, and may not decide what
+ * they practise.
+ */
+export function canPrescribe(actor: Actor): Decision {
+  if (!isTenantActor(actor)) return deny("CROSS_DOMAIN");
+  if (actor.role !== "ADMIN" && actor.role !== "TRAINER") {
+    return deny("INSUFFICIENT_RANK");
+  }
   return ALLOW;
 }
 
@@ -139,7 +211,19 @@ export function canAccessMemberData(
 
   if (actor.userId === member.userId) return ALLOW;
 
-  if (actor.role !== "ADMIN") return deny("NOT_ASSIGNED");
+  /*
+   * A role that cannot hold a caseload can never be authorised by one.
+   *
+   * `carriesCaseload` covers ADMIN, TRAINER and STAFF — and covering them changes
+   * nothing about the strength of this gate, because membership only buys the right to
+   * be asked the next question. All three still need an active assignment, and a USER
+   * still reaches nobody but themselves.
+   *
+   * Written as a named predicate rather than `actor.role !== "USER"`: the two happen to
+   * agree today, and they are different claims. Inverting a USER check would silently
+   * grant any future role the moment it was added.
+   */
+  if (!carriesCaseload(actor.role)) return deny("NOT_ASSIGNED");
 
   /*
    * TRANSITIONAL — remove with ADR-013 deployment 3.

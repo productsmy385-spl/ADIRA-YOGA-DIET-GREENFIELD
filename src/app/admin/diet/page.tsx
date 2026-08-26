@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
  * be member data and would need an assignment.
  */
 export default async function DietLibraryPage() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER");
   // Archived meals are listed, greyed and restorable — see the yoga library for why.
   const meals = await listMeals(session.organizationId, true);
 

@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AVAILABLE_LOCALES, LOCALE_LABELS } from "@/i18n/locales";
 import {
   createAdminAction,
   createOrganizationAction,
@@ -97,11 +98,29 @@ export function CreateOrganizationForm() {
 
         <div className="space-y-2">
           <Label htmlFor="org-locale">Language</Label>
+          {/*
+            Driven by AVAILABLE_LOCALES, not by a hard-coded list.
+
+            This offered English, हिन्दी and తెలుగు. Only `messages/en.json` exists, and
+            `AVAILABLE_LOCALES` is `["en"]` precisely because a locale must not be listed
+            until its messages file does — so choosing either of the other two set a
+            column that `loadMessages` then quietly fell back to English for. A control
+            with two options that do nothing is worse than a control with one that works;
+            when a translation lands, adding it to AVAILABLE_LOCALES lights this up with
+            no change here.
+          */}
           <select id="org-locale" name="locale" defaultValue="en" className={SELECT_CLASS}>
-            <option value="en">English</option>
-            <option value="hi">हिन्दी</option>
-            <option value="te">తెలుగు</option>
+            {AVAILABLE_LOCALES.map((locale) => (
+              <option key={locale} value={locale} lang={locale}>
+                {LOCALE_LABELS[locale]}
+              </option>
+            ))}
           </select>
+          {AVAILABLE_LOCALES.length === 1 && (
+            <p className="type-meta text-muted-foreground">
+              English is the only translated interface so far.
+            </p>
+          )}
         </div>
       </div>
 

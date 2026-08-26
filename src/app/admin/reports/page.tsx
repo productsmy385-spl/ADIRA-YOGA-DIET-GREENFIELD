@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
  * `resolveMemberAccess`, and deliberately not listed here.
  */
 export default async function AdminReportsPage() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TRAINER", "STAFF");
   const reports = await listOrganizationReports(session.organizationId);
 
   return (
