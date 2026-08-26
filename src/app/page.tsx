@@ -99,14 +99,8 @@ export default async function Home() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden border-b border-border/70 bg-gradient-to-b from-emerald-500/10 via-teal-500/5 to-transparent">
-          {/* Botanical hero texture overlay */}
-          <div className="absolute inset-0 z-0 opacity-20 dark:opacity-30 pointer-events-none mix-blend-overlay">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hero-bg.jpg" alt="" aria-hidden className="h-full w-full object-cover" />
-          </div>
-
-          <div className="relative z-10 mx-auto grid min-h-[min(34rem,72dvh)] max-w-6xl items-center gap-10 px-6 py-16 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
+        <section className="relative overflow-hidden border-b border-border/70">
+          <div className="relative z-10 mx-auto grid min-h-[min(34rem,72dvh)] max-w-6xl items-center gap-10 px-6 py-12 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
             <div>
               <p className="text-xs font-semibold tracking-widest text-primary uppercase">
                 {t("eyebrow")}
@@ -140,9 +134,9 @@ export default async function Home() {
               </p>
             </div>
 
-            {/* Hero Illustration - Visible on desktop and tablet */}
-            <div className="flex justify-center">
-              <BreathingFigure className="max-w-md" />
+            {/* Clean Mobile-Responsive Hero Illustration */}
+            <div className="w-full flex justify-center">
+              <BreathingFigure className="w-full" />
             </div>
           </div>
         </section>
