@@ -674,40 +674,25 @@
    * THEME BACKGROUND SET (6 COLORFUL BOTANICAL BACKGROUNDS)
    * ========================================================================= */
   /* =========================================================================
-   * CALM BOTANICAL WELLNESS APP BACKGROUND (GLOBAL AUTHENTICATED CANVAS)
+   * PURE WHITE PLATFORM BACKGROUND (GLOBAL AUTHENTICATED CANVAS)
    * =========================================================================
-   * Clean, minimal, low-saturation canvas for all authenticated surfaces.
-   * Light mode: warm ivory / light sage (#F7F8F2).
-   * Dark mode: deep botanical charcoal (#101914).
+   * Clean, pure white canvas (#ffffff) for all authenticated surfaces.
+   * Dark mode: deep charcoal canvas (#101914).
    * ========================================================================= */
   .theme-bg-wrapper {
     position: relative;
     min-height: 100dvh;
-    background-color: oklch(0.978 0.008 115);
-    background-image:
-      radial-gradient(at 0% 0%, oklch(0.96 0.015 145 / 0.4) 0px, transparent 40%),
-      radial-gradient(at 100% 100%, oklch(0.95 0.012 120 / 0.3) 0px, transparent 40%);
-    background-attachment: fixed;
+    background-color: #ffffff;
+    background-image: none;
   }
 
   .theme-bg-wrapper::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.4), transparent 70%);
-    pointer-events: none;
-    z-index: 0;
+    display: none;
   }
 
   .dark .theme-bg-wrapper {
     background-color: oklch(0.16 0.018 145);
-    background-image:
-      radial-gradient(at 0% 0%, oklch(0.20 0.025 145 / 0.4) 0px, transparent 40%),
-      radial-gradient(at 100% 100%, oklch(0.18 0.02 125 / 0.3) 0px, transparent 40%);
-  }
-
-  .dark .theme-bg-wrapper::before {
-    background: radial-gradient(circle at 50% 20%, rgba(0, 0, 0, 0.2), transparent 70%);
+    background-image: none;
   }
 
   /* Expressive Landing Page Background */
@@ -718,13 +703,14 @@
     background-repeat: no-repeat;
   }
 
-  /* Authenticated Theme Classes: all map to the calm minimal background */
+  /* Authenticated Theme Classes: all map to pure white background */
   .theme-green-nature,
   .theme-orange-energy,
   .theme-pink-harmony,
   .theme-blue-calm,
   .theme-fresh-green,
   .theme-purple-serenity {
-    /* Calm minimal background: no saturated image behind content */
+    background-color: #ffffff;
+    background-image: none;
   }
 }
