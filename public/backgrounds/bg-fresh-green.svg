@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="fg-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4fd677" />
+      <stop offset="50%" stop-color="#23a950" />
+      <stop offset="100%" stop-color="#0e692e" />
+    </linearGradient>
+    <radialGradient id="fg-glow" cx="80%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#8bf5a7" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#23a950" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1440" height="900" fill="url(#fg-bg)" />
+  <rect width="1440" height="900" fill="url(#fg-glow)" />
+  <g opacity="0.22">
+    <path d="M-100,480 C380,280 780,680 1540,380 L1540,900 L-100,900 Z" fill="#094a20" />
+    <path d="M-100,620 C320,520 720,820 1540,580 L1540,900 L-100,900 Z" fill="#042e13" />
+    <!-- Botanical Growth Leaf Motifs -->
+    <path d="M1200,90 Q1320,150 1260,290 Q1140,230 1200,90 Z" fill="#adfbbf" opacity="0.4" />
+    <path d="M1260,290 Q1380,320 1390,440 Q1270,410 1260,290 Z" fill="#4fd677" opacity="0.5" />
+  </g>
+</svg>

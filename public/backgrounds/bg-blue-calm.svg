@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bc-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2bbce2" />
+      <stop offset="50%" stop-color="#0f81c7" />
+      <stop offset="100%" stop-color="#074886" />
+    </linearGradient>
+    <radialGradient id="bc-glow" cx="70%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#72dbf7" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#0f81c7" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1440" height="900" fill="url(#bc-bg)" />
+  <rect width="1440" height="900" fill="url(#bc-glow)" />
+  <g opacity="0.22">
+    <path d="M-100,500 C400,300 800,700 1540,400 L1540,900 L-100,900 Z" fill="#043261" />
+    <path d="M-100,640 C350,540 750,840 1540,600 L1540,900 L-100,900 Z" fill="#021c3b" />
+    <!-- Botanical Wave Motifs -->
+    <path d="M1180,90 Q1300,140 1240,290 Q1120,230 1180,90 Z" fill="#9de6f9" opacity="0.4" />
+    <path d="M1240,290 Q1350,320 1370,440 Q1250,400 1240,290 Z" fill="#46cdfa" opacity="0.5" />
+  </g>
+</svg>

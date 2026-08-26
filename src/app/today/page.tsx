@@ -71,7 +71,7 @@ export default async function TodayPage() {
   return (
     // bg-canvas is the layered background from globals.css. It carries no 3D and no
     // animation — /today must stay the fastest surface in the product (ADR-014).
-    <div className="min-h-dvh bg-canvas">
+    <div className="theme-bg-wrapper theme-pink-harmony min-h-dvh bg-canvas sm:pl-[260px] pt-14 sm:pt-0">
       <AppNav role={session.role} currentPath="/today" />
 
       <main className="relative z-10 mx-auto max-w-2xl px-6 pt-8 pb-28 sm:pb-24">

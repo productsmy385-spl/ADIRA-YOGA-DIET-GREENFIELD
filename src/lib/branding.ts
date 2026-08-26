@@ -38,8 +38,8 @@ export const branding = {
    * a placeholder would mean regenerating it all again from the real logo.
    */
   icons: {
-    mark: "/brand/mark.svg",
-    favicon: "/icon.svg",
+    mark: "/brand/mark.png",
+    favicon: "/icon.png",
   },
 
   /**

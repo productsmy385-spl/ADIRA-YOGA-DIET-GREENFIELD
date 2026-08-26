@@ -53,7 +53,7 @@ export default async function TrainerPage() {
   const diet = publishedProgrammes.filter((p) => p.kind === "DIET").length;
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="theme-bg-wrapper theme-green-nature min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
       <AppNav role={session.role} currentPath="/trainer" />
 
       <main className="mx-auto max-w-3xl px-6 py-10 pb-28 sm:pb-10">

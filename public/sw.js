@@ -29,7 +29,7 @@ const SHELL_CACHE = `${VERSION}-shell`;
  * Router, HTML is per-route and often per-session, and precaching a rendered page is how
  * one user's dashboard ends up in another's cache.
  */
-const PRECACHE = ["/offline", "/icon.svg", "/brand/mark.svg", "/manifest.webmanifest"];
+const PRECACHE = ["/offline", "/icon.png", "/brand/mark.png", "/manifest.webmanifest"];
 
 /**
  * Paths that must never touch the cache, checked before anything else.

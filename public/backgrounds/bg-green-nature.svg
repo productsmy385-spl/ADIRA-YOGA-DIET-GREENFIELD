@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="gn-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#88c93b" />
+      <stop offset="40%" stop-color="#b2e043" />
+      <stop offset="100%" stop-color="#559929" />
+    </linearGradient>
+    <radialGradient id="gn-glow" cx="80%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#d4f763" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#88c93b" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1440" height="900" fill="url(#gn-bg)" />
+  <rect width="1440" height="900" fill="url(#gn-glow)" />
+  <g opacity="0.25">
+    <path d="M-100,500 C300,300 700,700 1540,400 L1540,900 L-100,900 Z" fill="#4d8b22" />
+    <path d="M-100,650 C400,550 800,850 1540,600 L1540,900 L-100,900 Z" fill="#366816" />
+    <!-- Botanical Leaf Motifs -->
+    <path d="M1200,100 Q1300,150 1250,300 Q1150,250 1200,100 Z" fill="#a1e336" opacity="0.4" />
+    <path d="M1250,300 Q1350,320 1380,450 Q1260,420 1250,300 Z" fill="#88c93b" opacity="0.5" />
+    <path d="M1100,50 Q1180,120 1120,220 Q1040,150 1100,50 Z" fill="#b9f048" opacity="0.3" />
+  </g>
+</svg>

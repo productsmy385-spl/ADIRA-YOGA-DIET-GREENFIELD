@@ -20,7 +20,7 @@ export default async function NewExercisePage() {
   const session = await requireRole("ADMIN", "TRAINER");
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="theme-bg-wrapper theme-blue-calm min-h-dvh bg-background">
       <AppNav role={session.role} currentPath="/admin/yoga" />
 
       <main className="mx-auto max-w-2xl px-6 py-10 pb-28 sm:pb-10">

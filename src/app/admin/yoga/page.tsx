@@ -5,6 +5,7 @@ import { Flower2, Plus } from "lucide-react";
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { requireRole } from "@/server/auth/guards";
 import { listYogaExercises } from "@/server/repositories/library";
 
@@ -29,29 +30,16 @@ export default async function YogaLibraryPage() {
   const exercises = await listYogaExercises(session.organizationId, true);
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="theme-bg-wrapper theme-blue-calm min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
       <AppNav role={session.role} currentPath="/admin/yoga" />
 
       <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Yoga library
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Exercises available to {session.organizationName} when building a programme.
-            </p>
-          </div>
-
-        <AddExerciseForm />
-
-          <Button asChild size="sm">
-            <Link href="/admin/yoga/new">
-              <Plus aria-hidden />
-              Add exercise
-            </Link>
-          </Button>
-        </div>
+        <PageHeader 
+          title="Yoga library" 
+          description={`Exercises available to ${session.organizationName} when building a programme.`}
+        >
+          <AddExerciseForm />
+        </PageHeader>
 
         {exercises.length === 0 ? (
           <div className="mt-8 rounded-xl border border-dashed border-border p-10 text-center">

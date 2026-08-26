@@ -620,4 +620,102 @@
       transform: none;
     }
   }
+
+  /* =========================================================================
+   * WELLNESS BACKGROUND GRADIENTS & GLOW UTILITIES
+   * ========================================================================= */
+  .bg-wellness-gradient {
+    background: radial-gradient(circle at 50% 0%, oklch(0.96 0.03 155 / 0.6) 0%, transparent 70%),
+                linear-gradient(180deg, var(--ivory) 0%, oklch(0.97 0.015 130) 100%);
+  }
+
+  .dark .bg-wellness-gradient {
+    background: radial-gradient(circle at 50% 0%, oklch(0.3 0.06 155 / 0.4) 0%, transparent 70%),
+                linear-gradient(180deg, var(--background) 0%, oklch(0.18 0.03 155) 100%);
+  }
+
+  .bg-yoga-gradient {
+    background: linear-gradient(135deg, oklch(0.95 0.03 155) 0%, oklch(0.94 0.03 195) 100%);
+  }
+
+  .dark .bg-yoga-gradient {
+    background: linear-gradient(135deg, oklch(0.25 0.05 155) 0%, oklch(0.22 0.05 195) 100%);
+  }
+
+  .bg-diet-gradient {
+    background: linear-gradient(135deg, oklch(0.96 0.03 140) 0%, oklch(0.96 0.04 70) 100%);
+  }
+
+  .dark .bg-diet-gradient {
+    background: linear-gradient(135deg, oklch(0.24 0.05 140) 0%, oklch(0.26 0.06 70) 100%);
+  }
+
+  .bg-progress-gradient {
+    background: linear-gradient(135deg, oklch(0.94 0.03 195) 0%, oklch(0.93 0.04 230) 100%);
+  }
+
+  .dark .bg-progress-gradient {
+    background: linear-gradient(135deg, oklch(0.22 0.05 195) 0%, oklch(0.20 0.06 230) 100%);
+  }
+
+  .glow-botanical {
+    box-shadow: 0 0 35px -5px oklch(0.582 0.098 155 / 0.25);
+  }
+
+  .glow-saffron {
+    box-shadow: 0 0 35px -5px oklch(0.792 0.128 78 / 0.25);
+  }
+
+  .glow-sky {
+    box-shadow: 0 0 35px -5px oklch(0.7 0.1 210 / 0.25);
+  }
+
+  /* =========================================================================
+   * THEME BACKGROUND SET (6 COLORFUL BOTANICAL BACKGROUNDS)
+   * ========================================================================= */
+  .theme-bg-wrapper {
+    position: relative;
+    min-height: 100dvh;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  .theme-bg-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.15);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .dark .theme-bg-wrapper::before {
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .theme-green-nature {
+    background-image: url("/backgrounds/bg-green-nature.svg");
+  }
+
+  .theme-orange-energy {
+    background-image: url("/backgrounds/bg-orange-energy.svg");
+  }
+
+  .theme-pink-harmony {
+    background-image: url("/backgrounds/bg-pink-harmony.svg");
+  }
+
+  .theme-blue-calm {
+    background-image: url("/backgrounds/bg-blue-calm.svg");
+  }
+
+  .theme-fresh-green {
+    background-image: url("/backgrounds/bg-fresh-green.svg");
+  }
+
+  .theme-purple-serenity {
+    background-image: url("/backgrounds/bg-purple-serenity.svg");
+  }
 }

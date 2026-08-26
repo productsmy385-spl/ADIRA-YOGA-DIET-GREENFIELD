@@ -31,7 +31,7 @@ export default async function EditExercisePage({
   if (!exercise) notFound();
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="theme-bg-wrapper theme-blue-calm min-h-dvh bg-background">
       <AppNav role={session.role} currentPath="/admin/yoga" />
 
       <main className="mx-auto max-w-2xl px-6 py-10 pb-28 sm:pb-10">

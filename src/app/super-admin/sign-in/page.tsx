@@ -29,7 +29,7 @@ export default async function SuperAdminSignInPage() {
       <main className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
-          <img src={branding.icons.mark} alt="" aria-hidden className="size-10" />
+          <img src={branding.icons.mark} alt="" aria-hidden className="size-10 mix-blend-multiply" />
           <h1 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
             {branding.name} platform
           </h1>

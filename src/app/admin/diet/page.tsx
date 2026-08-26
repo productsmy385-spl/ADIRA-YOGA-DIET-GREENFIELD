@@ -5,6 +5,7 @@ import { Plus, Salad } from "lucide-react";
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { requireRole } from "@/server/auth/guards";
 import { listMeals } from "@/server/repositories/library";
 
@@ -28,29 +29,16 @@ export default async function DietLibraryPage() {
   const meals = await listMeals(session.organizationId, true);
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="theme-bg-wrapper theme-orange-energy min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
       <AppNav role={session.role} currentPath="/admin/diet" />
 
       <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Diet library
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Meals available to {session.organizationName} when building a plan.
-            </p>
-          </div>
-
-        <AddMealForm />
-
-          <Button asChild size="sm">
-            <Link href="/admin/diet/new">
-              <Plus aria-hidden />
-              Add meal
-            </Link>
-          </Button>
-        </div>
+        <PageHeader 
+          title="Diet library" 
+          description={`Meals available to ${session.organizationName} when building a plan.`}
+        >
+          <AddMealForm />
+        </PageHeader>
 
         {meals.length === 0 ? (
           <div className="mt-8 rounded-xl border border-dashed border-border p-10 text-center">

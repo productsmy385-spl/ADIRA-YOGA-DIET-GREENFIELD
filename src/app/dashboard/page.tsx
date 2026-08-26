@@ -66,7 +66,7 @@ export default async function DashboardPage() {
   const flagged = caseload?.filter((entry) => entry.attention.flagged).length ?? 0;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="theme-bg-wrapper theme-green-nature flex min-h-dvh flex-col bg-background">
       {/*
         The shared shell, so this page has the same navigation as every other. It used to
         carry a bespoke header whose only link was sign-out — which meant the page a

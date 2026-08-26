@@ -5,6 +5,7 @@ import { Download, FileUp, UserPlus, Users } from "lucide-react";
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { requireRole } from "@/server/auth/guards";
 import { listMembers } from "@/server/repositories/members";
 
@@ -43,46 +44,35 @@ export default async function MembersPage() {
   const members = await listMembers(session.organizationId, { kind: "MEMBERS" });
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
       <AppNav role={session.role} currentPath="/admin/members" />
 
       <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Members</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Everyone in {session.organizationName}. Administration only — open a member to
-              see their practice, which needs an assignment.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {/* The common case first, and the only primary action here: one person, typed
-                in. Bulk import is the exception and reads as one. */}
-            <Button asChild size="sm">
-              <Link href="/admin/members/new">
-                <UserPlus aria-hidden />
-                Add member
-              </Link>
-            </Button>
+        <PageHeader
+          title="Members"
+          description={`Everyone in ${session.organizationName}. Administration only — open a member to see their practice, which needs an assignment.`}
+        >
+          <Button asChild size="sm">
+            <Link href="/admin/members/new">
+              <UserPlus aria-hidden />
+              Add member
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline">
+            <Link href="/admin/members/import">
+              <FileUp aria-hidden />
+              Import CSV
+            </Link>
+          </Button>
+          {members.length > 0 ? (
             <Button asChild size="sm" variant="outline">
-              <Link href="/admin/members/import">
-                <FileUp aria-hidden />
-                Import CSV
-              </Link>
+              <a href="/api/members/export">
+                <Download aria-hidden />
+                Export CSV
+              </a>
             </Button>
-            {members.length > 0 ? (
-              <Button asChild size="sm" variant="outline">
-                {/* A plain link, not fetch: the browser handles the download, and there is
-                    no client state to keep in sync. */}
-                <a href="/api/members/export">
-                  <Download aria-hidden />
-                  Export CSV
-                </a>
-              </Button>
-            ) : null}
-          </div>
-        </div>
+          ) : null}
+        </PageHeader>
 
         {members.length === 0 ? (
           <div className="mt-8 rounded-xl border border-dashed border-border p-10 text-center">

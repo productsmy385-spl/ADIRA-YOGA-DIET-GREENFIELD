@@ -47,12 +47,12 @@ export default async function YogaExperiencePage() {
     : [];
 
   return (
-    <div className="min-h-dvh bg-canvas">
+    <div className="theme-bg-wrapper theme-blue-calm min-h-dvh bg-canvas">
       <header className="sticky top-0 z-30 border-b border-border-glass bg-surface-glass backdrop-blur-glass">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <Link href="/" className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
-            <img src={branding.icons.mark} alt="" aria-hidden className="size-7" />
+            <img src={branding.icons.mark} alt="" aria-hidden className="size-7 mix-blend-multiply" />
             <span className="font-semibold tracking-tight text-foreground">
               {branding.name}
             </span>

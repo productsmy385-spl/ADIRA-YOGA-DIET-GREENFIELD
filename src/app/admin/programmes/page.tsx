@@ -5,6 +5,7 @@ import { CalendarDays, Plus } from "lucide-react";
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { requireRole } from "@/server/auth/guards";
 import { listProgrammes } from "@/server/repositories/programmes";
 
@@ -34,28 +35,21 @@ export default async function ProgrammesPage() {
   ];
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
       <AppNav role={session.role} currentPath="/admin/programmes" />
 
       <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Programmes
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Reusable plans built once and assigned many times. Editing one never changes a
-              plan somebody is already following.
-            </p>
-          </div>
-
+        <PageHeader 
+          title="Programmes" 
+          description="Reusable plans built once and assigned many times. Editing one never changes a plan somebody is already following."
+        >
           <Button asChild size="sm">
             <Link href="/admin/programmes/new">
               <Plus aria-hidden />
               New programme
             </Link>
           </Button>
-        </div>
+        </PageHeader>
 
         {programmes.length === 0 ? (
           <div className="mt-8 rounded-xl border border-dashed border-border p-10 text-center">

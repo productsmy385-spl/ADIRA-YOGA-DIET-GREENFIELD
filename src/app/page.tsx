@@ -75,14 +75,14 @@ export default async function Home() {
      * imported ONLY here. See that component for why motion is permitted on this page and
      * forbidden inside the authenticated application.
      */
-    <div className="relative flex min-h-dvh flex-col bg-canvas">
+    <div className="theme-bg-wrapper theme-green-nature relative flex min-h-dvh flex-col bg-canvas">
       <BotanicalBackdrop />
 
       <header className="sticky top-0 z-10 border-b border-border/70 bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element -- static mark, no optimisation to gain */}
-            <img src={branding.icons.mark} alt="" aria-hidden className="size-8" />
+            <img src={branding.icons.mark} alt="" aria-hidden className="size-8 mix-blend-multiply" />
             <span className="text-lg font-semibold tracking-tight text-foreground">
               {branding.name}
             </span>
@@ -141,6 +141,75 @@ export default async function Home() {
           </div>
         </section>
 
+        <section aria-labelledby="features-heading" className="border-b border-border/70">
+          <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+            <div className="text-center">
+              <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+                Complete Wellness Platform
+              </p>
+              <h2
+                id="features-heading"
+                className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl"
+              >
+                Everything You Need for <span className="text-primary">Balanced Living</span>
+              </h2>
+              <p className="mx-auto mt-3 max-w-2xl text-base text-muted-foreground">
+                Personalized yoga, nutrition plans, daily activity tracking, and progress reporting tailored for you and your consultant.
+              </p>
+            </div>
+
+            <Stagger className="mt-12 grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-4" step={60}>
+              <GlassCard interactive className="group h-full">
+                <div className="flex h-full flex-col">
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                    <ClipboardList className="size-6" />
+                  </div>
+                  <h3 className="mt-5 font-semibold text-card-foreground">Yoga &amp; Meditation</h3>
+                  <p className="mt-2 text-sm/relaxed text-muted-foreground">
+                    Guided yoga sessions, meditation, and breathing practices structured by your practitioner.
+                  </p>
+                </div>
+              </GlassCard>
+
+              <GlassCard interactive className="group h-full">
+                <div className="flex h-full flex-col">
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 transition-colors group-hover:bg-amber-500 group-hover:text-white">
+                    <TrendingUp className="size-6" />
+                  </div>
+                  <h3 className="mt-5 font-semibold text-card-foreground">Healthy Nutrition</h3>
+                  <p className="mt-2 text-sm/relaxed text-muted-foreground">
+                    Personalized meal schedules, dietary guidance, and daily nutrition tracking for optimal health.
+                  </p>
+                </div>
+              </GlassCard>
+
+              <GlassCard interactive className="group h-full">
+                <div className="flex h-full flex-col">
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 transition-colors group-hover:bg-sky-500 group-hover:text-white">
+                    <CalendarCheck className="size-6" />
+                  </div>
+                  <h3 className="mt-5 font-semibold text-card-foreground">Daily Wellness</h3>
+                  <p className="mt-2 text-sm/relaxed text-muted-foreground">
+                    Simple daily check-ins for mood, sleep, water, and habits to build sustainable wellness routines.
+                  </p>
+                </div>
+              </GlassCard>
+
+              <GlassCard interactive className="group h-full">
+                <div className="flex h-full flex-col">
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-colors group-hover:bg-emerald-500 group-hover:text-white">
+                    <Users className="size-6" />
+                  </div>
+                  <h3 className="mt-5 font-semibold text-card-foreground">Progress &amp; Reports</h3>
+                  <p className="mt-2 text-sm/relaxed text-muted-foreground">
+                    Transparent adherence metrics and progress reports shared directly with your care team.
+                  </p>
+                </div>
+              </GlassCard>
+            </Stagger>
+          </div>
+        </section>
+
         <section aria-labelledby="how-heading" className="border-b border-border/70">
           <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
             <h2
@@ -173,6 +242,8 @@ export default async function Home() {
           </div>
         </section>
 
+
+
         <section aria-labelledby="audience-heading" className="border-b border-border/70">
           <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
             <h2
@@ -184,10 +255,6 @@ export default async function Home() {
 
             <Stagger className="mt-8 grid gap-4 sm:grid-cols-3" step={70}>
               {AUDIENCES.map(({ key, Icon }) => (
-                /* GlassCard, not a plain bordered box — this is the one section where a
-                   glass surface earns its cost, floating over the drifting shapes. Its
-                   inner surface is opaque, so the text contrast is testable regardless of
-                   what is behind it (glass.tsx, rule 1). */
                 <GlassCard key={key} interactive className="h-full">
                   <div className="flex h-full flex-col p-6">
                     <Icon className="size-5 text-primary" aria-hidden />
@@ -225,7 +292,7 @@ export default async function Home() {
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
-            <img src={branding.icons.mark} alt="" aria-hidden className="size-6" />
+            <img src={branding.icons.mark} alt="" aria-hidden className="size-6 mix-blend-multiply" />
             <span className="text-sm font-medium text-foreground">{branding.name}</span>
           </div>
 

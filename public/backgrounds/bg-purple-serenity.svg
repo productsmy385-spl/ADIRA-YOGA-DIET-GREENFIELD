@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="ps-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ab5ce6" />
+      <stop offset="50%" stop-color="#7a2bc7" />
+      <stop offset="100%" stop-color="#461280" />
+    </linearGradient>
+    <radialGradient id="ps-glow" cx="70%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#d499ff" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#7a2bc7" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="1440" height="900" fill="url(#ps-bg)" />
+  <rect width="1440" height="900" fill="url(#ps-glow)" />
+  <g opacity="0.22">
+    <path d="M-100,500 C400,300 800,700 1540,400 L1540,900 L-100,900 Z" fill="#300a5c" />
+    <path d="M-100,640 C350,540 750,840 1540,600 L1540,900 L-100,900 Z" fill="#1d043b" />
+    <!-- Botanical Twilight Motifs -->
+    <path d="M1180,90 Q1300,140 1240,290 Q1120,230 1180,90 Z" fill="#e5b8ff" opacity="0.4" />
+    <path d="M1240,290 Q1350,320 1370,440 Q1250,400 1240,290 Z" fill="#ab5ce6" opacity="0.5" />
+  </g>
+</svg>
