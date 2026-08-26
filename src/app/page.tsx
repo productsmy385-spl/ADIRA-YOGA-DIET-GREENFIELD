@@ -75,7 +75,7 @@ export default async function Home() {
      * imported ONLY here. See that component for why motion is permitted on this page and
      * forbidden inside the authenticated application.
      */
-    <div className="theme-bg-wrapper theme-green-nature relative flex min-h-dvh flex-col bg-canvas">
+    <div className="theme-bg-wrapper theme-landing-nature relative flex min-h-dvh flex-col bg-canvas">
       <BotanicalBackdrop />
 
       <header className="sticky top-0 z-50 border-b border-border/80 bg-background/95 backdrop-blur-md shadow-xs">
