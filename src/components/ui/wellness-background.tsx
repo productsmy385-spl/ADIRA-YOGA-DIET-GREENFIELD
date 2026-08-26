@@ -19,36 +19,36 @@ interface WellnessBackgroundProps {
   className?: string;
 }
 
-const VARIANT_CLASS: Record<BackgroundVariant, string> = {
-  yoga: "theme-green-nature",
-  diet: "theme-orange-energy",
-  progress: "theme-blue-calm",
-  notifications: "theme-purple-serenity",
-  profile: "theme-purple-serenity",
-  admin: "theme-green-nature",
-  "access-requests": "theme-fresh-green",
-  programmes: "theme-green-nature",
-  members: "theme-blue-calm",
-  team: "theme-fresh-green",
+const ACCENT_CLASS: Record<BackgroundVariant, string> = {
+  yoga: "border-t-2 border-t-emerald-500/30",
+  diet: "border-t-2 border-t-amber-500/30",
+  progress: "border-t-2 border-t-sky-500/30",
+  notifications: "border-t-2 border-t-purple-500/30",
+  profile: "border-t-2 border-t-teal-500/30",
+  admin: "border-t-2 border-t-emerald-600/30",
+  "access-requests": "border-t-2 border-t-teal-600/30",
+  programmes: "border-t-2 border-t-emerald-500/30",
+  members: "border-t-2 border-t-sky-600/30",
+  team: "border-t-2 border-t-teal-500/30",
 };
 
 /**
- * Atmospheric Botanical Background Layer System.
- * Supplies consistent, subtle wellness gradients and decorative elements
- * while preserving 100% text readability.
+ * Global Calm Wellness Background System (<WellnessAppBackground />).
+ * Provides a minimal, warm ivory / light sage canvas (#F7F8F2) in light mode
+ * and deep botanical charcoal (#101914) in dark mode for all authenticated pages.
  */
 export function WellnessBackground({
   variant,
   children,
   className = "",
 }: WellnessBackgroundProps) {
-  const themeClass = VARIANT_CLASS[variant] ?? "theme-green-nature";
+  const accentBorder = ACCENT_CLASS[variant] ?? "border-t-2 border-t-emerald-500/30";
 
   return (
     <div
       className={cn(
-        "theme-bg-wrapper min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0 transition-colors duration-300",
-        themeClass,
+        "theme-bg-wrapper min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0 transition-colors duration-300 relative z-0",
+        accentBorder,
         className
       )}
     >
@@ -56,3 +56,5 @@ export function WellnessBackground({
     </div>
   );
 }
+
+export { WellnessBackground as WellnessAppBackground };
