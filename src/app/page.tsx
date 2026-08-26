@@ -98,45 +98,51 @@ export default async function Home() {
       </header>
 
       <main className="flex-1">
-        {/* Hero. `items-center` plus a min-height means the fold is filled on a laptop
-            without the content drifting to the top of a tall desktop monitor. */}
-        <section className="border-b border-border/70">
-          <div className="mx-auto grid min-h-[min(34rem,72dvh)] max-w-6xl items-center gap-10 px-6 py-20 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
-            {/* The hero copy is NOT wrapped in Reveal. It is above the fold and it is the
-                first thing anybody reads — animating it in delays the only content that
-                has to be instant, and on a slow connection produces a visible blank. */}
+        {/* Hero Section */}
+        <section className="relative overflow-hidden border-b border-border/70 bg-gradient-to-b from-emerald-500/10 via-teal-500/5 to-transparent">
+          {/* Botanical hero texture overlay */}
+          <div className="absolute inset-0 z-0 opacity-20 dark:opacity-30 pointer-events-none mix-blend-overlay">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/hero-bg.jpg" alt="" aria-hidden className="h-full w-full object-cover" />
+          </div>
+
+          <div className="relative z-10 mx-auto grid min-h-[min(34rem,72dvh)] max-w-6xl items-center gap-10 px-6 py-16 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
             <div>
-              <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
+              <p className="text-xs font-semibold tracking-widest text-primary uppercase">
                 {t("eyebrow")}
               </p>
 
-              <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight text-balance text-foreground sm:text-5xl lg:text-6xl">
-                {branding.tagline}
+              <h1 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-tight text-balance text-foreground sm:text-5xl lg:text-6xl">
+                Your Daily <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 bg-clip-text text-transparent dark:from-emerald-400 dark:to-teal-300">Wellness Companion</span>
               </h1>
 
-              <p className="mt-6 max-w-2xl text-lg text-pretty text-muted-foreground">
-                {t("heroLead")}
+              <p className="mt-5 max-w-2xl text-base text-pretty text-muted-foreground sm:text-lg">
+                Personalized yoga therapy, nutrition plans, daily activity tracking, and progress reporting to help you live a healthier, balanced life.
               </p>
 
-              <div className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-3">
-                <Button asChild size="lg">
+              <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-3">
+                <Button asChild size="lg" className="rounded-full shadow-md transition-all hover:shadow-lg">
                   <Link href={destination}>
-                    {cta}
+                    Start Your Journey
                     <ArrowRight aria-hidden />
                   </Link>
                 </Button>
 
-                <p className="text-sm text-muted-foreground">
-                  {session ? t("signedInAs", { name: session.fullName }) : t("ctaHint")}
-                </p>
+                <Button asChild size="lg" variant="outline" className="rounded-full backdrop-blur-xs">
+                  <Link href="#features-heading">
+                    Learn More
+                  </Link>
+                </Button>
               </div>
+
+              <p className="mt-4 text-xs text-muted-foreground">
+                {session ? t("signedInAs", { name: session.fullName }) : t("ctaHint")}
+              </p>
             </div>
 
-            {/* Hidden below `lg` rather than shrunk. On a phone the copy and the call to
-                action should own the fold; a decorative figure competing for that space
-                pushes the button below it. */}
-            <div className="hidden justify-center lg:flex">
-              <BreathingFigure className="max-w-sm" />
+            {/* Hero Illustration - Visible on desktop and tablet */}
+            <div className="flex justify-center">
+              <BreathingFigure className="max-w-md" />
             </div>
           </div>
         </section>
