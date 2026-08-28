@@ -84,11 +84,13 @@ export function AppNav({ role, currentPath }: AppNavProps) {
 
   const items = navItemsForRole(role);
   const effectivePath = currentPath || pathname;
+  const [prevPath, setPrevPath] = useState(effectivePath);
 
   // Auto-close drawer on route navigation
-  useEffect(() => {
+  if (effectivePath !== prevPath) {
+    setPrevPath(effectivePath);
     setDrawerOpen(false);
-  }, [effectivePath]);
+  }
 
   // Handle ESC key press to close drawer
   useEffect(() => {

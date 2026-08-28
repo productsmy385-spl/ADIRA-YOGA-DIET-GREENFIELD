@@ -38,6 +38,24 @@ export const IVORY = 0xfbfaf6;
 /** Mirrors the dark-theme `--background`. */
 export const CHARCOAL = 0x1b2620;
 
+/** Avocado green. */
+export const AVOCADO = 0x7cb03c;
+
+/** Berry red. */
+export const BERRY = 0xd6385b;
+
+/** Purple berry. */
+export const PURPLE_BERRY = 0x5b38d6;
+
+/** Water blue. */
+export const WATER_BLUE = 0x389ce0;
+
+/** Cream white. */
+export const CREAM_WHITE = 0xfcfaf7;
+
+/** Orange gold lighting. */
+export const ORANGE_GOLD = 0xfdb813;
+
 /**
  * Scene lighting, expressed as tokens rather than magic numbers at call sites.
  *
@@ -49,6 +67,8 @@ export const LIGHT = {
   key: 0xfff6e8,
   fill: 0xdfe9f0,
   ambient: 0xffffff,
+  warm: 0xfff4db,
+  orangeFill: 0xe58e38,
 } as const;
 
 /**

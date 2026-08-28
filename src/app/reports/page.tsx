@@ -26,7 +26,7 @@ export default async function ReportsPage() {
   const reports = await listReportsForMember(session.organizationId, session.userId);
 
   return (
-    <div className="theme-bg-wrapper theme-fresh-green min-h-dvh bg-background">
+    <div className="theme-bg-wrapper theme-blue-calm min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
       <AppNav role={session.role} currentPath="/reports" />
 
       <main className="mx-auto max-w-2xl px-6 py-10 pb-28 sm:pb-10">

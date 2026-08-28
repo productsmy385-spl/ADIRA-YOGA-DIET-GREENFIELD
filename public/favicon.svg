@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="favLeaf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3cb067" />
+      <stop offset="100%" stop-color="#2f5d43" />
+    </linearGradient>
+    <radialGradient id="favSun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fdb813" />
+      <stop offset="100%" stop-color="#f37021" />
+    </radialGradient>
+  </defs>
+
+  <rect width="100" height="100" rx="24" fill="#2f5d43" />
+  <circle cx="50" cy="24" r="10" fill="url(#favSun)" />
+  <circle cx="50" cy="40" r="7" fill="#ffffff" />
+  <path d="M50 47 v18" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+  <path d="M28 75 c10-12 22-12 32 0 c10-12 22-12 32 0" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+  <path d="M 22 42 C 12 27, 27 12, 37 27 C 32 37, 27 42, 22 42 Z" fill="url(#favLeaf)" />
+  <path d="M 78 42 C 88 27, 73 12, 63 27 C 68 37, 73 42, 78 42 Z" fill="url(#favLeaf)" />
+</svg>

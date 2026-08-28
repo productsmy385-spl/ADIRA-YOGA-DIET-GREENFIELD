@@ -682,35 +682,38 @@
   .theme-bg-wrapper {
     position: relative;
     min-height: 100dvh;
-    background-color: #ffffff;
-    background-image: none;
-  }
-
-  .theme-bg-wrapper::before {
-    display: none;
+    background-color: var(--background);
   }
 
   .dark .theme-bg-wrapper {
-    background-color: oklch(0.16 0.018 145);
-    background-image: none;
+    background-color: var(--background);
   }
 
   /* Expressive Landing Page Background */
   .theme-landing-nature {
-    background-image: url("/backgrounds/bg-green-nature.svg");
+    background-image: url("/backgrounds/botanical-green.webp");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
   }
 
-  /* Authenticated Theme Classes: all map to pure white background */
-  .theme-green-nature,
-  .theme-orange-energy,
-  .theme-pink-harmony,
-  .theme-blue-calm,
-  .theme-fresh-green,
+  /* Authenticated Theme Classes: integrated with WellnessBackground WebP system */
+  .theme-green-nature {
+    background-image: url("/backgrounds/botanical-green.webp");
+  }
+  .theme-orange-energy {
+    background-image: url("/backgrounds/nutrition-orange.webp");
+  }
+  .theme-pink-harmony {
+    background-image: url("/backgrounds/wellness-pink.webp");
+  }
+  .theme-blue-calm {
+    background-image: url("/backgrounds/ocean-blue.webp");
+  }
+  .theme-fresh-green {
+    background-image: url("/backgrounds/lime-green.webp");
+  }
   .theme-purple-serenity {
-    background-color: #ffffff;
-    background-image: none;
+    background-image: url("/backgrounds/meditation-purple.webp");
   }
 }

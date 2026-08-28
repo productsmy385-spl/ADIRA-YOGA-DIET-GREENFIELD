@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { Building2, FileKey, Fingerprint, LayoutDashboard, User } from "lucide-react";
+import { Building2, FileKey, Fingerprint, LayoutDashboard } from "lucide-react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { branding } from "@/lib/branding";
-import { Button } from "@/components/ui/button";
 import { PLATFORM_NAV, type NavItem } from "./nav-items";
 
 function isActive(item: NavItem, currentPath?: string): boolean {
