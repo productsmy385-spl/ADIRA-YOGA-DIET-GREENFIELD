@@ -685,6 +685,10 @@
     max-width: 100vw;
     overflow-x: hidden;
     background-color: var(--background);
+    background-image: url("/backgrounds/platform-bg.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
   .dark .theme-bg-wrapper {
@@ -699,23 +703,29 @@
     background-repeat: no-repeat;
   }
 
-  /* Authenticated Theme Classes: integrated with WellnessBackground WebP system */
+  /* Authenticated Theme Classes: Clean, calm wellness color atmospheres (NO photographic images) */
   .theme-green-nature {
-    background-image: url("/backgrounds/botanical-green.webp");
+    background-color: var(--background);
+    background-image: radial-gradient(circle at 20% 10%, rgba(47, 125, 85, 0.05), transparent 45%);
   }
   .theme-orange-energy {
-    background-image: url("/backgrounds/nutrition-orange.webp");
+    background-color: var(--background);
+    background-image: radial-gradient(circle at 20% 10%, rgba(229, 142, 56, 0.05), transparent 45%);
   }
   .theme-pink-harmony {
-    background-image: url("/backgrounds/wellness-pink.webp");
+    background-color: var(--background);
+    background-image: radial-gradient(circle at 20% 10%, rgba(224, 86, 56, 0.04), transparent 45%);
   }
   .theme-blue-calm {
-    background-image: url("/backgrounds/ocean-blue.webp");
+    background-color: var(--background);
+    background-image: radial-gradient(circle at 20% 10%, rgba(56, 156, 224, 0.05), transparent 45%);
   }
   .theme-fresh-green {
-    background-image: url("/backgrounds/lime-green.webp");
+    background-color: var(--background);
+    background-image: radial-gradient(circle at 20% 10%, rgba(90, 161, 127, 0.05), transparent 45%);
   }
   .theme-purple-serenity {
-    background-image: url("/backgrounds/meditation-purple.webp");
+    background-color: var(--background);
+    background-image: radial-gradient(circle at 20% 10%, rgba(155, 76, 224, 0.04), transparent 45%);
   }
 }

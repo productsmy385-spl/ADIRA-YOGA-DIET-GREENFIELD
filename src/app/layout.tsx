@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
@@ -73,7 +74,12 @@ export default async function RootLayout({
         {/* The nonce comes from proxy.ts. Without it the CSP blocks this script and the
             page renders in the wrong theme until hydration — the exact flash the inline
             script exists to prevent. */}
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Script
+          id="adira-theme-script"
+          strategy="beforeInteractive"
+          nonce={nonce}
+          dangerouslySetInnerHTML={{ __html: themeScript }}
+        />
       </head>
       <body className={`${sans.variable} ${mono.variable}`}>
         <NextIntlClientProvider>

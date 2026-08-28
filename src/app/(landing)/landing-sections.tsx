@@ -91,6 +91,7 @@ export function HeroSection({ destination }: { destination: string; ctaText?: st
     <WellnessBackground
       id="hero"
       variant="botanical"
+      isLanding={true}
       overlayOpacity="light"
       className="min-h-[calc(100vh-73px)] flex items-center py-16 lg:py-0"
     >
@@ -182,6 +183,7 @@ export function YogaSection() {
     <WellnessBackground
       id="yoga"
       variant="botanical"
+      isLanding={true}
       overlayOpacity="medium"
       className="py-24 border-b border-border/40"
     >
@@ -284,6 +286,7 @@ export function DietSection() {
     <WellnessBackground
       id="diet"
       variant="nutrition"
+      isLanding={true}
       overlayOpacity="medium"
       className="py-24 border-b border-border/40"
     >
@@ -351,6 +354,7 @@ export function DailyWellnessSection() {
     <WellnessBackground
       id="wellness"
       variant="wellness"
+      isLanding={true}
       overlayOpacity="medium"
       className="py-24 border-b border-border/40"
     >
@@ -410,6 +414,7 @@ export function PersonalizationSection() {
   return (
     <WellnessBackground
       variant="lime"
+      isLanding={true}
       overlayOpacity="medium"
       className="py-24 border-b border-border/40"
     >
@@ -459,6 +464,7 @@ export function ProgressSection() {
     <WellnessBackground
       id="progress"
       variant="ocean"
+      isLanding={true}
       overlayOpacity="medium"
       className="py-24 border-b border-border/40"
     >
@@ -505,6 +511,7 @@ export function LandingCTA({ destination, ctaText }: { destination: string; ctaT
   return (
     <WellnessBackground
       variant="meditation"
+      isLanding={true}
       overlayOpacity="medium"
       className="py-20 text-center border-b border-border/40"
     >
