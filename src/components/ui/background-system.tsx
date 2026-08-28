@@ -41,11 +41,11 @@ function usePrefersReducedMotion(): boolean {
 
 const LANDING_BACKGROUND_MAP: Record<WellnessBackgroundVariant, string> = {
   botanical: "/backgrounds/platform-bg.png",
-  nutrition: "/backgrounds/nutrition-orange.webp",
-  wellness: "/backgrounds/wellness-pink.webp",
-  ocean: "/backgrounds/ocean-blue.webp",
+  nutrition: "/backgrounds/platform-bg.png",
+  wellness: "/backgrounds/platform-bg.png",
+  ocean: "/backgrounds/platform-bg.png",
   lime: "/backgrounds/platform-bg.png",
-  meditation: "/backgrounds/meditation-purple.webp",
+  meditation: "/backgrounds/platform-bg.png",
 };
 
 const APP_ATMOSPHERE_GLOW: Record<WellnessBackgroundVariant, string> = {

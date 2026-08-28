@@ -110,6 +110,23 @@ function GlowingChakraPoints() {
   );
 }
 
+function OrbitalEnergyRing({ paused }: { paused?: boolean }) {
+  const ringRef = useRef<Mesh>(null);
+
+  useFrame((state, delta) => {
+    if (paused || !ringRef.current) return;
+    ringRef.current.rotation.z += delta * 0.4;
+    ringRef.current.rotation.x = Math.sin(state.clock.getElapsedTime() * 0.8) * 0.2 + 0.4;
+  });
+
+  return (
+    <mesh ref={ringRef} position={[0, 0.85, 0]}>
+      <torusGeometry args={[0.95, 0.018, 16, 64]} />
+      <meshStandardMaterial color={JADE} roughness={0.2} transparent opacity={0.65} />
+    </mesh>
+  );
+}
+
 function MeditatingYogaSubject({ paused, isMobile }: { paused?: boolean; isMobile?: boolean }) {
   const group = useRef<Group>(null);
   const headRef = useRef<Mesh>(null);
@@ -157,6 +174,7 @@ function MeditatingYogaSubject({ paused, isMobile }: { paused?: boolean; isMobil
       </mesh>
 
       <GlowingChakraPoints />
+      <OrbitalEnergyRing paused={paused} />
     </group>
   );
 }
