@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Suspense, useRef } from "react";
+import { Suspense, useRef, useSyncExternalStore } from "react";
 import { Group } from "three";
 import {
   EMERALD,
@@ -18,6 +18,20 @@ interface DietSceneProps {
   paused?: boolean;
 }
 
+function subscribeResize(onChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+}
+
+function useIsMobile(): boolean {
+  return useSyncExternalStore(
+    subscribeResize,
+    () => (typeof window !== "undefined" ? window.innerWidth < 768 : false),
+    () => true
+  );
+}
+
 function FloatingNutrientElements({ paused }: { paused?: boolean }) {
   const groupRef = useRef<Group>(null);
 
@@ -31,25 +45,21 @@ function FloatingNutrientElements({ paused }: { paused?: boolean }) {
 
   return (
     <group ref={groupRef}>
-      {/* 3D Bowl Base */}
       <mesh position={[0, -0.4, 0]}>
         <cylinderGeometry args={[0.9, 0.5, 0.45, 32]} />
         <meshStandardMaterial color={CREAM_WHITE} roughness={0.3} metalness={0.05} />
       </mesh>
 
-      {/* 3D Salad Greens Composition */}
       <mesh position={[0, -0.15, 0]}>
         <sphereGeometry args={[0.75, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
         <meshStandardMaterial color={EMERALD} roughness={0.6} />
       </mesh>
 
-      {/* 3D Avocado Slices */}
       <mesh position={[-0.3, 0.1, 0.2]} rotation={[0.4, 0.2, 0.3]}>
         <torusGeometry args={[0.2, 0.08, 12, 24, Math.PI * 0.8]} />
         <meshStandardMaterial color={AVOCADO} roughness={0.4} />
       </mesh>
 
-      {/* 3D Fresh Berries */}
       <mesh position={[0.3, 0.15, 0.2]}>
         <sphereGeometry args={[0.1, 16, 16]} />
         <meshStandardMaterial color={BERRY} roughness={0.3} />
@@ -60,7 +70,6 @@ function FloatingNutrientElements({ paused }: { paused?: boolean }) {
         <meshStandardMaterial color={PURPLE_BERRY} roughness={0.3} />
       </mesh>
 
-      {/* Floating Water Droplet */}
       <mesh position={[0, 0.65, 0]}>
         <octahedronGeometry args={[0.12, 2]} />
         <meshStandardMaterial color={WATER_BLUE} transparent opacity={0.8} roughness={0.1} />
@@ -81,11 +90,13 @@ function DietSceneLighting() {
 }
 
 export default function DietWellnessScene({ paused = false }: DietSceneProps) {
+  const isMobile = useIsMobile();
+
   return (
     <div className="relative aspect-square w-full max-w-sm mx-auto overflow-hidden rounded-3xl" aria-hidden>
       <Canvas
         camera={{ position: [0, 0.5, 3.2], fov: 45 }}
-        dpr={[1, 1.75]}
+        dpr={isMobile ? 1 : [1, 1.75]}
         frameloop={paused ? "demand" : "always"}
         gl={{ antialias: true, powerPreference: "low-power" }}
       >
