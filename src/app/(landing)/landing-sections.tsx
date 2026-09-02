@@ -36,7 +36,7 @@ interface LandingNavProps {
  */
 export function LandingHeader({ destination, ctaText }: LandingNavProps) {
   return (
-    <header className="sticky top-0 z-50 border-b border-border/40 bg-background/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-border-glass bg-surface-glass backdrop-blur-glass shadow-[0_1px_0_0_var(--glass-highlight)_inset]">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5">
@@ -84,7 +84,8 @@ export function LandingHeader({ destination, ctaText }: LandingNavProps) {
 }
 
 /**
- * 2. Hero Section — Integrated Botanical Background (botanical-green.webp)
+ * 2. Hero Section — immersive botanical gradient, no enclosing card.
+ * The gradient lives behind the content; text sits on the opaque canvas.
  */
 export function HeroSection({ destination }: { destination: string; ctaText?: string }) {
   return (
@@ -139,7 +140,7 @@ export function HeroSection({ destination }: { destination: string; ctaText?: st
  */
 export function StatsSection() {
   return (
-    <section className="border-y border-border/40 bg-muted/30 backdrop-blur-xs py-10">
+    <section className="border-y border-border-glass bg-surface-glass/50 backdrop-blur-glass py-10">
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
         <div>
           <div className="text-3xl font-extrabold tracking-tight text-primary">
@@ -174,7 +175,7 @@ export function StatsSection() {
 }
 
 /**
- * 4. Yoga Section — Integrated Botanical Green Environment (botanical-green.webp)
+ * 4. Yoga Section — layered botanical green gradient environment
  */
 export function YogaSection() {
   const [activePractice, setActivePractice] = useState("Asana Flow");
@@ -185,7 +186,7 @@ export function YogaSection() {
       variant="botanical"
       isLanding={true}
       overlayOpacity="medium"
-      className="py-24 border-b border-border/40"
+      className="py-24 border-b border-border-glass"
     >
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         {/* Left Visual Composition with Floating Labels */}
@@ -279,7 +280,7 @@ export function YogaSection() {
 }
 
 /**
- * 5. Diet Section — Integrated Nutrition Orange Environment (nutrition-orange.webp)
+ * 5. Diet Section — warm nutrition gradient environment
  */
 export function DietSection() {
   return (
@@ -288,7 +289,7 @@ export function DietSection() {
       variant="nutrition"
       isLanding={true}
       overlayOpacity="medium"
-      className="py-24 border-b border-border/40"
+      className="py-24 border-b border-border-glass"
     >
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         {/* Left Storytelling Text */}
@@ -356,7 +357,7 @@ export function DailyWellnessSection() {
       variant="wellness"
       isLanding={true}
       overlayOpacity="medium"
-      className="py-24 border-b border-border/40"
+      className="py-24 border-b border-border-glass"
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="text-center max-w-2xl mx-auto mb-12">
@@ -416,7 +417,7 @@ export function PersonalizationSection() {
       variant="lime"
       isLanding={true}
       overlayOpacity="medium"
-      className="py-24 border-b border-border/40"
+      className="py-24 border-b border-border-glass"
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="text-center max-w-2xl mx-auto mb-16">
@@ -434,9 +435,9 @@ export function PersonalizationSection() {
             const IconComp = step.Icon;
             return (
               <React.Fragment key={idx}>
-                <div className="flex flex-col items-center text-center space-y-2 max-w-[140px]">
-                  <div className="size-12 rounded-full border border-primary/30 bg-background/90 text-primary flex items-center justify-center shadow-xs backdrop-blur-xs">
-                    <IconComp size={22} />
+                <div className="group flex flex-col items-center text-center space-y-2 max-w-[140px]">
+                  <div className="size-14 rounded-full border border-primary/30 bg-surface-glass text-primary flex items-center justify-center shadow-xs backdrop-blur-glass transition-transform duration-[var(--duration-fast)] ease-[var(--ease-soft)] group-hover:scale-110">
+                    <IconComp size={24} />
                   </div>
                   <h3 className="text-sm font-semibold text-foreground">{step.title}</h3>
                   <p className="text-xs text-muted-foreground">{step.desc}</p>
@@ -457,7 +458,7 @@ export function PersonalizationSection() {
 }
 
 /**
- * 8. Progress Section — Integrated Ocean Blue Environment (ocean-blue.webp)
+ * 8. Progress Section — calm ocean gradient environment
  */
 export function ProgressSection() {
   return (
@@ -466,7 +467,7 @@ export function ProgressSection() {
       variant="ocean"
       isLanding={true}
       overlayOpacity="medium"
-      className="py-24 border-b border-border/40"
+      className="py-24 border-b border-border-glass"
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="text-center max-w-2xl mx-auto mb-12">
@@ -480,7 +481,7 @@ export function ProgressSection() {
 
         {/* Central Progress Circle Composition */}
         <div className="flex flex-col items-center text-center space-y-6">
-          <div className="relative size-44 flex items-center justify-center bg-background/80 rounded-full p-4 border border-sky-500/20 backdrop-blur-md shadow-lg">
+          <div className="relative size-44 flex items-center justify-center bg-surface-glass-strong rounded-full p-4 border border-sky-500/20 backdrop-blur-glass shadow-[0_8px_32px_-12px_var(--glass-shadow)]">
             <svg className="size-full transform -rotate-90" viewBox="0 0 36 36">
               <path className="text-muted/30 stroke-current" strokeWidth="2.5" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
               <path className="text-emerald-500 stroke-current" strokeWidth="2.5" strokeDasharray="88, 100" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -505,7 +506,7 @@ export function ProgressSection() {
 }
 
 /**
- * 9. CTA Section — Integrated Meditation Twilight Environment (meditation-purple.webp)
+ * 9. CTA Section — serene meditation gradient environment
  */
 export function LandingCTA({ destination, ctaText }: { destination: string; ctaText: string }) {
   return (
@@ -513,7 +514,7 @@ export function LandingCTA({ destination, ctaText }: { destination: string; ctaT
       variant="meditation"
       isLanding={true}
       overlayOpacity="medium"
-      className="py-20 text-center border-b border-border/40"
+      className="py-20 text-center border-b border-border-glass"
     >
       <div className="mx-auto max-w-3xl px-6 space-y-6">
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
