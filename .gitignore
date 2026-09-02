@@ -51,3 +51,4 @@ public/decoders/
 
 # Local env backups taken when repointing the development database.
 .env.local.bak-*
+.env
