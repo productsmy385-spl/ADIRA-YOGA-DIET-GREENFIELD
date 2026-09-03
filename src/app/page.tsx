@@ -13,6 +13,7 @@ import {
   LandingCTA,
   LandingFooter,
 } from "./(landing)/landing-sections";
+import { YogaJourneySection } from "./(landing)/yoga-journey-section";
 import { readTenantSession } from "@/server/auth/session";
 
 /**
@@ -47,6 +48,9 @@ export default async function Home() {
 
         {/* Yoga & Meditation Asanas Section */}
         <YogaSection />
+
+        {/* 3D Yoga Pose Journey — scroll-driven pose showcase */}
+        <YogaJourneySection />
 
         {/* Healthy Diet & Nutrition Section */}
         <DietSection />

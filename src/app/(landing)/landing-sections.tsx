@@ -25,6 +25,9 @@ import {
 import { branding } from "@/lib/branding";
 import { Hero3DScene } from "./hero-3d-scene";
 import { Diet3DScene } from "./diet-3d-scene";
+import { YogaJourneySection } from "./yoga-journey-section";
+import { Reveal } from "@/components/motion/reveal";
+import { Stagger } from "@/components/motion/reveal";
 
 interface LandingNavProps {
   destination: string;
@@ -59,6 +62,9 @@ export function LandingHeader({ destination, ctaText }: LandingNavProps) {
           </Link>
           <Link href="#yoga" className="transition-colors hover:text-foreground">
             Yoga
+          </Link>
+          <Link href="#yoga-journey" className="transition-colors hover:text-foreground">
+            Poses
           </Link>
           <Link href="#diet" className="transition-colors hover:text-foreground">
             Diet
@@ -99,17 +105,28 @@ export function HeroSection({ destination }: { destination: string; ctaText?: st
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center w-full">
         {/* Left Headline & Content */}
         <div className="lg:col-span-6 space-y-6">
+          <Reveal distance={16}>
+            <span className="inline-flex items-center gap-2 rounded-full border border-border-glass bg-surface-glass px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-glass">
+              <span className="size-2 rounded-full bg-emerald-500 animate-breathe" aria-hidden />
+              Yoga · Diet · Daily Wellness
+            </span>
+          </Reveal>
+          <Reveal distance={16} delay={60}>
           <h1 className="type-display text-4xl sm:text-6xl font-extrabold tracking-tight text-foreground text-balance">
             Wellness, <br />
             <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 bg-clip-text text-transparent dark:from-emerald-400 dark:to-teal-300">
               in Balance.
             </span>
           </h1>
+          </Reveal>
 
+          <Reveal delay={120}>
           <p className="type-body text-base sm:text-lg text-muted-foreground max-w-lg">
             Personalized yoga, nutrition and daily wellness guidance designed around you.
           </p>
+          </Reveal>
 
+          <Reveal delay={180}>
           <div className="pt-2 flex flex-wrap items-center gap-4">
             <Button asChild size="lg" className="rounded-full px-8 shadow-md">
               <Link href={destination}>
@@ -119,11 +136,12 @@ export function HeroSection({ destination }: { destination: string; ctaText?: st
             </Button>
 
             <Button asChild size="lg" variant="outline" className="rounded-full px-8 backdrop-blur-xs">
-              <Link href="#yoga">
-                Explore Wellness
+              <Link href="#yoga-journey">
+                Explore Poses
               </Link>
             </Button>
           </div>
+          </Reveal>
         </div>
 
         {/* Right 3D Visual Subject */}
@@ -141,7 +159,7 @@ export function HeroSection({ destination }: { destination: string; ctaText?: st
 export function StatsSection() {
   return (
     <section className="border-y border-border-glass bg-surface-glass/50 backdrop-blur-glass py-10">
-      <div className="mx-auto max-w-7xl px-6 grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
+      <Stagger className="mx-auto max-w-7xl px-6 grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
         <div>
           <div className="text-3xl font-extrabold tracking-tight text-primary">
             <AnimatedNumber value={500} suffix="+" />
@@ -169,7 +187,7 @@ export function StatsSection() {
           </div>
           <div className="mt-1 text-xs font-medium text-muted-foreground">Satisfaction Rate</div>
         </div>
-      </div>
+      </Stagger>
     </section>
   );
 }
@@ -191,7 +209,7 @@ export function YogaSection() {
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         {/* Left Visual Composition with Floating Labels */}
         <div className="lg:col-span-6 relative flex items-center justify-center">
-          <div className="relative z-10 size-72 sm:size-80 rounded-full border border-emerald-500/20 bg-emerald-500/10 flex items-center justify-center backdrop-blur-xs">
+          <div className="relative z-10 size-72 sm:size-80 rounded-full border border-emerald-500/20 bg-emerald-500/10 flex items-center justify-center backdrop-blur-glass shadow-[0_0_60px_-20px_var(--emerald)]">
             <YogaIcon size={120} className="text-emerald-600 dark:text-emerald-400 animate-breathe" />
           </div>
 
@@ -243,15 +261,17 @@ export function YogaSection() {
 
         {/* Right Storytelling Content */}
         <div className="lg:col-span-6 space-y-6">
+          <Reveal>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Move with Intention
           </h2>
+          </Reveal>
 
           <p className="type-body text-muted-foreground">
             Guided yoga, meditation, breathing and daily movement structured specifically around your body and schedule.
           </p>
 
-          <div className="pt-2 space-y-4">
+          <Stagger className="pt-2 space-y-4">
             <div className="flex items-center gap-3 text-sm text-foreground">
               <div className="size-5 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center">
                 <Check size={14} />
@@ -272,7 +292,7 @@ export function YogaSection() {
               </div>
               <span>Prescribed directly by certified yoga practitioners</span>
             </div>
-          </div>
+          </Stagger>
         </div>
       </div>
     </WellnessBackground>
@@ -294,9 +314,11 @@ export function DietSection() {
       <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         {/* Left Storytelling Text */}
         <div className="lg:col-span-6 space-y-6">
+          <Reveal>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Nourish Your Balance
           </h2>
+          </Reveal>
 
           <p className="type-body text-muted-foreground">
             Personalized nutrition plans built around your routine. Wholesome recipes and nutrient tracking aligned with your daily practice.
@@ -360,14 +382,14 @@ export function DailyWellnessSection() {
       className="py-24 border-b border-border-glass"
     >
       <div className="mx-auto max-w-7xl px-6">
-        <div className="text-center max-w-2xl mx-auto mb-12">
+        <Reveal className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Small Habits. Meaningful Progress.
           </h2>
           <p className="mt-3 type-body text-muted-foreground">
             Monitor water, sleep, mood, and daily movement in one clear visual composition.
           </p>
-        </div>
+        </Reveal>
 
         {/* Single Cohesive Composition Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
