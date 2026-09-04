@@ -39,13 +39,13 @@ function usePrefersReducedMotion(): boolean {
   );
 }
 
-const LANDING_BACKGROUND_MAP: Record<WellnessBackgroundVariant, string> = {
-  botanical: "/backgrounds/platform-bg.png",
-  nutrition: "/backgrounds/platform-bg.png",
-  wellness: "/backgrounds/platform-bg.png",
-  ocean: "/backgrounds/platform-bg.png",
-  lime: "/backgrounds/platform-bg.png",
-  meditation: "/backgrounds/platform-bg.png",
+const LANDING_GRADIENT_MAP: Record<WellnessBackgroundVariant, string> = {
+  botanical: "radial-gradient(45rem 30rem at 20% 10%, color-mix(in oklch, var(--emerald) 14%, transparent), transparent 70%), radial-gradient(40rem 28rem at 85% 20%, color-mix(in oklch, var(--jade) 12%, transparent), transparent 72%)",
+  nutrition: "radial-gradient(45rem 30rem at 20% 10%, color-mix(in oklch, var(--saffron) 12%, transparent), transparent 70%), radial-gradient(40rem 28rem at 85% 20%, color-mix(in oklch, var(--champagne) 10%, transparent), transparent 72%)",
+  wellness: "radial-gradient(45rem 30rem at 20% 10%, color-mix(in oklch, var(--terracotta) 10%, transparent), transparent 70%), radial-gradient(40rem 28rem at 85% 20%, color-mix(in oklch, var(--saffron) 8%, transparent), transparent 72%)",
+  ocean: "radial-gradient(45rem 30rem at 20% 10%, color-mix(in oklch, var(--info) 12%, transparent), transparent 70%), radial-gradient(40rem 28rem at 85% 20%, color-mix(in oklch, var(--jade) 10%, transparent), transparent 72%)",
+  lime: "radial-gradient(45rem 30rem at 20% 10%, color-mix(in oklch, var(--sage) 14%, transparent), transparent 70%), radial-gradient(40rem 28rem at 85% 20%, color-mix(in oklch, var(--emerald) 10%, transparent), transparent 72%)",
+  meditation: "radial-gradient(45rem 30rem at 20% 10%, color-mix(in oklch, var(--info) 10%, transparent), transparent 70%), radial-gradient(40rem 28rem at 85% 20%, color-mix(in oklch, var(--brand-400) 8%, transparent), transparent 72%)",
 };
 
 const APP_ATMOSPHERE_GLOW: Record<WellnessBackgroundVariant, string> = {
@@ -73,7 +73,7 @@ export function WellnessBackground({
   ...props
 }: WellnessBackgroundProps) {
   const reducedMotion = usePrefersReducedMotion();
-  const bgImage = LANDING_BACKGROUND_MAP[variant] || LANDING_BACKGROUND_MAP.botanical;
+  const gradient = LANDING_GRADIENT_MAP[variant] || LANDING_GRADIENT_MAP.botanical;
 
   const overlayStyles: Record<"light" | "medium" | "strong" | "none", string> = {
     none: "bg-transparent",
@@ -100,16 +100,16 @@ export function WellnessBackground({
       )}
       {...props}
     >
-      {/* Photographic Background Layer (Only on Landing Page) */}
+      {/* CSS Gradient Background Layer (Only on Landing Page) */}
       {isLanding && (
         <>
           <div
             aria-hidden
             className={cn(
-              "pointer-events-none absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat transition-opacity duration-700",
-              reducedMotion ? "opacity-25 dark:opacity-15" : "opacity-35 dark:opacity-25"
+              "pointer-events-none absolute inset-0 -z-20 transition-opacity duration-700",
+              reducedMotion ? "opacity-30 dark:opacity-20" : "opacity-50 dark:opacity-35"
             )}
-            style={{ backgroundImage: `url('${bgImage}')` }}
+            style={{ backgroundImage: gradient }}
           />
 
           <div
