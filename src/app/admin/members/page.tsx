@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Download, FileUp, UserPlus, Users } from "lucide-react";
+import { ArrowRight, Download, FileUp, UserPlus, Users } from "lucide-react";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
@@ -129,7 +129,10 @@ export default async function MembersPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Button asChild size="xs" variant="ghost">
-                        <Link href={`/admin/customers/${m.id}`}>Open</Link>
+                        <Link href={`/admin/customers/${m.id}`}>
+                          Open
+                          <ArrowRight aria-hidden />
+                        </Link>
                       </Button>
                     </td>
                   </tr>

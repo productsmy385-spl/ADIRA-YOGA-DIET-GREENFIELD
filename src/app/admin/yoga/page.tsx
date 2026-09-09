@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Flower2, Plus } from "lucide-react";
+import { Archive, ArchiveRestore, Flower2 } from "lucide-react";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +112,7 @@ export default async function YogaLibraryPage() {
                       value={e.archivedAt ? "false" : "true"}
                     />
                     <Button type="submit" size="sm" variant="ghost">
+                      {e.archivedAt ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
                       {e.archivedAt ? "Restore" : "Archive"}
                     </Button>
                   </form>

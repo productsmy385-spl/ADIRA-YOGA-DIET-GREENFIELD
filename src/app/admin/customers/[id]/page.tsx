@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Pause, Play } from "lucide-react";
 
 import { requireRole } from "@/server/auth/guards";
 import {
@@ -264,6 +265,7 @@ export default async function CustomerPage({
                       <input type="hidden" name="customerId" value={id} />
                       <input type="hidden" name="assignmentId" value={assignment.id} />
                       <Button type="submit" size="sm" variant="ghost">
+                        <Pause aria-hidden />
                         Pause
                       </Button>
                     </form>
@@ -272,6 +274,7 @@ export default async function CustomerPage({
                       <input type="hidden" name="customerId" value={id} />
                       <input type="hidden" name="assignmentId" value={assignment.id} />
                       <Button type="submit" size="sm" variant="outline">
+                        <Play aria-hidden />
                         {assignment.status === "DRAFT" ? "Start" : "Resume"}
                       </Button>
                     </form>

@@ -42,40 +42,160 @@ function isActive(item: NavItem, currentPath?: string): boolean {
   return currentPath === item.href || currentPath.startsWith(`${item.href}/`);
 }
 
-function getNavIcon(href: string) {
-  switch (href) {
-    case "/today":
-      return CalendarCheck;
-    case "/progress":
-      return TrendingUp;
-    case "/reports":
-    case "/admin/reports":
-      return FileText;
-    case "/notifications":
-      return Bell;
-    case "/profile":
-      return User;
-    case "/admin":
-    case "/dashboard":
-      return LayoutDashboard;
-    case "/admin/access-requests":
-      return KeyRound;
-    case "/admin/members":
-    case "/trainer":
-    case "/staff":
-    case "/admin/team":
-      return Users;
-    case "/admin/programmes":
-      return CalendarPlus;
-    case "/admin/yoga":
-      return Activity;
-    case "/admin/diet":
-      return Salad;
-    case "/admin/analytics":
-      return BarChart3;
-    default:
-      return LayoutDashboard;
-  }
+/**
+ * Nav icon + colour, per destination.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * WHY EACH ROUTE CARRIES A HUE
+ * ══════════════════════════════════════════════════════════════════════════════
+ *
+ * Every nav item used to render `text-muted-foreground` and became `text-primary` when
+ * active — one green, eighteen destinations. In a sidebar that long, colour is the only
+ * thing that makes an item findable at a glance without reading it, and a single hue
+ * throws that away.
+ *
+ * The hues are the product's own domain language, not decoration: yoga is emerald,
+ * nutrition amber, rest indigo, analysis sky, requests orange. They match the custom
+ * icon set in `@/components/icons`, which already colours itself this way — so the two
+ * systems agree instead of quietly diverging.
+ *
+ * These are Tailwind utility classes, not colour VALUES. Invariant 7 forbids a hex
+ * literal in `src/`; it does not forbid a palette utility, and expressing 18 tints as
+ * tokens in `globals.css` would add 54 declarations used in exactly one file.
+ */
+interface NavVisual {
+  Icon: typeof LayoutDashboard;
+  /** Idle: tinted glass tile. Active: saturated, so the current page is unmistakable. */
+  idle: string;
+  active: string;
+}
+
+const DEFAULT_VISUAL: NavVisual = {
+  Icon: LayoutDashboard,
+  idle: "border-brand-500/25 bg-brand-500/10 text-primary",
+  active: "border-transparent bg-primary text-primary-foreground",
+};
+
+const NAV_VISUALS: Record<string, NavVisual> = {
+  "/today": {
+    Icon: CalendarCheck,
+    idle: "border-emerald-500/25 bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
+    active: "border-transparent bg-emerald-600 text-white",
+  },
+  "/progress": {
+    Icon: TrendingUp,
+    idle: "border-violet-500/25 bg-violet-500/12 text-violet-600 dark:text-violet-400",
+    active: "border-transparent bg-violet-600 text-white",
+  },
+  "/reports": {
+    Icon: FileText,
+    idle: "border-purple-500/25 bg-purple-500/12 text-purple-600 dark:text-purple-400",
+    active: "border-transparent bg-purple-600 text-white",
+  },
+  "/admin/reports": {
+    Icon: FileText,
+    idle: "border-purple-500/25 bg-purple-500/12 text-purple-600 dark:text-purple-400",
+    active: "border-transparent bg-purple-600 text-white",
+  },
+  "/notifications": {
+    Icon: Bell,
+    idle: "border-pink-500/25 bg-pink-500/12 text-pink-600 dark:text-pink-400",
+    active: "border-transparent bg-pink-600 text-white",
+  },
+  "/profile": {
+    Icon: User,
+    idle: "border-blue-500/25 bg-blue-500/12 text-blue-600 dark:text-blue-400",
+    active: "border-transparent bg-blue-600 text-white",
+  },
+  "/admin": {
+    Icon: LayoutDashboard,
+    idle: "border-indigo-500/25 bg-indigo-500/12 text-indigo-600 dark:text-indigo-400",
+    active: "border-transparent bg-indigo-600 text-white",
+  },
+  "/dashboard": {
+    Icon: LayoutDashboard,
+    idle: "border-indigo-500/25 bg-indigo-500/12 text-indigo-600 dark:text-indigo-400",
+    active: "border-transparent bg-indigo-600 text-white",
+  },
+  "/admin/access-requests": {
+    Icon: KeyRound,
+    idle: "border-orange-500/25 bg-orange-500/12 text-orange-600 dark:text-orange-400",
+    active: "border-transparent bg-orange-600 text-white",
+  },
+  "/admin/members": {
+    Icon: Users,
+    idle: "border-emerald-500/25 bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
+    active: "border-transparent bg-emerald-600 text-white",
+  },
+  "/admin/team": {
+    Icon: Users,
+    idle: "border-teal-500/25 bg-teal-500/12 text-teal-600 dark:text-teal-400",
+    active: "border-transparent bg-teal-600 text-white",
+  },
+  "/trainer": {
+    Icon: Users,
+    idle: "border-teal-500/25 bg-teal-500/12 text-teal-600 dark:text-teal-400",
+    active: "border-transparent bg-teal-600 text-white",
+  },
+  "/staff": {
+    Icon: Users,
+    idle: "border-teal-500/25 bg-teal-500/12 text-teal-600 dark:text-teal-400",
+    active: "border-transparent bg-teal-600 text-white",
+  },
+  "/admin/programmes": {
+    Icon: CalendarPlus,
+    idle: "border-cyan-500/25 bg-cyan-500/12 text-cyan-600 dark:text-cyan-400",
+    active: "border-transparent bg-cyan-600 text-white",
+  },
+  "/admin/yoga": {
+    Icon: Activity,
+    idle: "border-emerald-500/25 bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
+    active: "border-transparent bg-emerald-600 text-white",
+  },
+  "/admin/diet": {
+    Icon: Salad,
+    idle: "border-amber-500/25 bg-amber-500/12 text-amber-600 dark:text-amber-400",
+    active: "border-transparent bg-amber-600 text-white",
+  },
+  "/admin/analytics": {
+    Icon: BarChart3,
+    idle: "border-sky-500/25 bg-sky-500/12 text-sky-600 dark:text-sky-400",
+    active: "border-transparent bg-sky-600 text-white",
+  },
+};
+
+function visualFor(href: string): NavVisual {
+  return NAV_VISUALS[href] ?? DEFAULT_VISUAL;
+}
+
+/**
+ * The glass tile an icon sits in.
+ *
+ * A translucent tinted square with a hairline border reads as depth at 32px in a way a
+ * bare stroke icon does not, and it gives the active state somewhere to go that is not
+ * "the same icon, greener".
+ */
+function NavIcon({
+  href,
+  active,
+  size = "md",
+}: {
+  href: string;
+  active: boolean;
+  size?: "md" | "sm";
+}) {
+  const { Icon, idle, active: activeTone } = visualFor(href);
+
+  return (
+    <span
+      aria-hidden
+      className={`flex shrink-0 items-center justify-center rounded-lg border backdrop-blur-xs transition-all duration-(--duration-fast) ${
+        size === "md" ? "size-8" : "size-7"
+      } ${active ? `${activeTone} shadow-sm` : idle}`}
+    >
+      <Icon className={size === "md" ? "size-4" : "size-3.5"} />
+    </span>
+  );
 }
 
 export function AppNav({ role, currentPath }: AppNavProps) {
@@ -133,19 +253,18 @@ export function AppNav({ role, currentPath }: AppNavProps) {
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {items.map((item) => {
             const active = isActive(item, effectivePath);
-            const Icon = getNavIcon(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                className={`flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-all duration-(--duration-fast) ${
                   active
-                    ? "bg-primary/10 text-primary font-semibold shadow-2xs"
+                    ? "bg-primary/10 font-semibold text-primary shadow-2xs"
                     : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                 }`}
               >
-                <Icon className="size-4 shrink-0" aria-hidden />
+                <NavIcon href={item.href} active={active} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -160,9 +279,9 @@ export function AppNav({ role, currentPath }: AppNavProps) {
           </div>
           <Link
             href="/profile"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            <User className="size-4 shrink-0" aria-hidden />
+            <NavIcon href="/profile" active={isActive({ href: "/profile", label: "Profile", labelKey: "" }, effectivePath)} />
             <span>Profile</span>
           </Link>
           <form action={signOutAction} className="w-full">
@@ -281,20 +400,19 @@ export function AppNav({ role, currentPath }: AppNavProps) {
         <nav className="flex-1 overflow-y-auto py-4 space-y-1">
           {items.map((item) => {
             const active = isActive(item, effectivePath);
-            const Icon = getNavIcon(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setDrawerOpen(false)}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors ${
+                className={`flex min-h-11 items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? "bg-primary/10 text-primary font-semibold shadow-2xs"
+                    ? "bg-primary/10 font-semibold text-primary shadow-2xs"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
-                <Icon className="size-4 shrink-0" aria-hidden />
+                <NavIcon href={item.href} active={active} />
                 <span>{item.label}</span>
               </Link>
             );
@@ -356,7 +474,6 @@ export function MobileTabBar({ role, currentPath }: AppNavProps) {
       <ul className="flex items-center justify-around px-2">
         {mobileNavItems.map((item) => {
           const active = isActive({ href: item.href, label: item.label, labelKey: "" }, currentPath);
-          const Icon = item.Icon;
 
           if (item.isCenter) {
             return (
@@ -377,19 +494,13 @@ export function MobileTabBar({ role, currentPath }: AppNavProps) {
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[48px] flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all duration-200 active:scale-95 ${
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 py-1 text-[10px] font-medium transition-all duration-(--duration-fast) active:scale-95 motion-reduce:active:scale-100 ${
                   active
                     ? "font-semibold text-primary"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <div
-                  className={`flex size-6 items-center justify-center rounded-full transition-colors ${
-                    active ? "text-primary" : ""
-                  }`}
-                >
-                  <Icon className="size-4" aria-hidden />
-                </div>
+                <NavIcon href={item.href} active={active} size="sm" />
                 <span>{item.label}</span>
               </Link>
             </li>

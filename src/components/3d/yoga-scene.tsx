@@ -4,6 +4,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Component, Suspense, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Group } from "three";
 
+import { AutoFrame } from "./auto-frame";
 import { YogaFallback, type FallbackReason } from "./yoga-fallback";
 import { EMERALD, FOREST, JADE, LIGHT } from "./palette";
 import { YogaModel } from "./yoga-model";
@@ -170,6 +171,13 @@ export default function YogaScene({ pose, paused = false, className }: YogaScene
         aria-hidden
       >
         <Canvas
+          /*
+           * These are the STARTING values only. `AutoFrame` overwrites position, aspect,
+           * near and far from the model's own bounding box before the first paint, so the
+           * framing follows whatever character `model_reference` resolves to rather than
+           * the one figure these numbers were once hand-tuned against. `fov` is the one
+           * value it reads rather than writes.
+           */
           camera={{ position: [0, 1.1, 3.2], fov: 42 }}
           dpr={[1, 1.75]}
           /*
@@ -186,7 +194,14 @@ export default function YogaScene({ pose, paused = false, className }: YogaScene
           }}
         >
           <YogaLighting />
-          <Figure pose={pose} paused={paused} onError={() => setFailed(true)} />
+          {/*
+            `signature` changes whenever the geometry could change — a different model, or
+            a different clip holding a different shape. Without it a pose switch would keep
+            the previous pose's framing and crop whatever is now wider.
+          */}
+          <AutoFrame signature={`${model.reference}:${pose.animationReference ?? ""}`}>
+            <Figure pose={pose} paused={paused} onError={() => setFailed(true)} />
+          </AutoFrame>
         </Canvas>
       </div>
 

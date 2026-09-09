@@ -18,7 +18,6 @@ import {
   CoachIcon,
   SettingsIcon,
 } from "@/components/ui/wellness-icons";
-import { GlassCard } from "@/components/glass/glass";
 
 const ICONS = [
   { name: "Yoga", Icon: YogaIcon },

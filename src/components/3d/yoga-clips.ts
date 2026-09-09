@@ -29,8 +29,19 @@ export const CONTRACT_CLIPS = [
   "forward-fold",
   "tree-left",
   "tree-right",
-  "warrior-1-left",
-  "warrior-1-right",
+  /*
+   * Warrior II, not Warrior I — a correction made 2026-09-09, recorded in contract §11.
+   *
+   * They are different asanas: Warrior II holds the arms level front-to-back over a wide
+   * stance, Warrior I reaches overhead with the hips squared. The interface has always
+   * named Warrior II; §5 asked for Warrior I. Renaming here was safe because no
+   * `animation_reference` is seeded anywhere and no asset had been delivered.
+   *
+   * If Warrior I is ever wanted, it is ADDED as `warrior-1-*`. Redefining these names
+   * would silently repoint every row that already references them.
+   */
+  "warrior-2-left",
+  "warrior-2-right",
   "seated-meditation",
   "child-pose",
   "transition-in",

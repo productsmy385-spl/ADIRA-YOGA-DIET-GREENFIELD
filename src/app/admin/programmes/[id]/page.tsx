@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Archive, ArchiveRestore, ArrowRight, X } from "lucide-react";
 
 import { AppNav } from "@/components/nav/app-nav";
 import { GlassPanel } from "@/components/glass/glass";
@@ -125,6 +126,7 @@ export default async function ProgrammeBuilderPage({
                 value={programme.archivedAt ? "false" : "true"}
               />
               <Button type="submit" size="sm" variant="outline">
+                {programme.archivedAt ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
                 {programme.archivedAt ? "Restore" : "Archive"}
               </Button>
             </form>
@@ -232,6 +234,7 @@ export default async function ProgrammeBuilderPage({
                                 />
                                 <input type="hidden" name="itemId" value={item.id} />
                                 <Button type="submit" size="sm" variant="ghost">
+                                  <X aria-hidden />
                                   Remove
                                 </Button>
                               </form>
@@ -261,6 +264,7 @@ export default async function ProgrammeBuilderPage({
               <Button asChild size="sm" className="mt-4">
                 <Link href={isYoga ? "/admin/yoga/new" : "/admin/diet/new"}>
                   Add to the library first
+                  <ArrowRight aria-hidden />
                 </Link>
               </Button>
             </div>

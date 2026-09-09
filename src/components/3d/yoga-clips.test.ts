@@ -54,7 +54,7 @@ describe("resolveClip", () => {
   const full = [...CONTRACT_CLIPS];
 
   it("plays what was asked for when it exists", () => {
-    expect(resolveClip("warrior-1-left", full)).toBe("warrior-1-left");
+    expect(resolveClip("warrior-2-left", full)).toBe("warrior-2-left");
   });
 
   it("falls back to the idle clip when the requested one is absent", () => {

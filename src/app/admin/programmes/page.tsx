@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarDays, Plus } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowRight, CalendarDays, Copy, Plus } from "lucide-react";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
@@ -108,12 +108,16 @@ export default async function ProgrammesPage() {
 
                       <div className="flex items-center gap-1">
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/admin/programmes/${p.id}`}>Open</Link>
+                          <Link href={`/admin/programmes/${p.id}`}>
+                            Open
+                            <ArrowRight aria-hidden />
+                          </Link>
                         </Button>
 
                         <form action={duplicateProgrammeAction}>
                           <input type="hidden" name="programmeId" value={p.id} />
                           <Button type="submit" size="sm" variant="ghost">
+                            <Copy aria-hidden />
                             Duplicate
                           </Button>
                         </form>
@@ -126,6 +130,11 @@ export default async function ProgrammesPage() {
                             value={p.archivedAt ? "false" : "true"}
                           />
                           <Button type="submit" size="sm" variant="ghost">
+                            {p.archivedAt ? (
+                              <ArchiveRestore aria-hidden />
+                            ) : (
+                              <Archive aria-hidden />
+                            )}
                             {p.archivedAt ? "Restore" : "Archive"}
                           </Button>
                         </form>

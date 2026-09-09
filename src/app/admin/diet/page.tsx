@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus, Salad } from "lucide-react";
+import { Archive, ArchiveRestore, Salad } from "lucide-react";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +99,7 @@ export default async function DietLibraryPage() {
                       value={m.archivedAt ? "false" : "true"}
                     />
                     <Button type="submit" size="sm" variant="ghost">
+                      {m.archivedAt ? <ArchiveRestore aria-hidden /> : <Archive aria-hidden />}
                       {m.archivedAt ? "Restore" : "Archive"}
                     </Button>
                   </form>

@@ -83,8 +83,8 @@ hyphenated.
 | `forward-fold` | loop | 4–6 s | Uttanasana |
 | `tree-left` | loop | 4–6 s | Vrksasana, left leg raised |
 | `tree-right` | loop | 4–6 s | Mirror of the above |
-| `warrior-1-left` | loop | 4–6 s | |
-| `warrior-1-right` | loop | 4–6 s | |
+| `warrior-2-left` | loop | 4–6 s | Virabhadrasana II, LEFT foot forward. Arms level and extended front-to-back, front knee stacked over the ankle, gaze over the front hand |
+| `warrior-2-right` | loop | 4–6 s | Mirror of the above, right foot forward |
 | `seated-meditation` | loop | 6–8 s | Sukhasana |
 | `child-pose` | loop | 4–6 s | Balasana |
 | `transition-in` | once | ≤ 1.5 s | Neutral → the pose |
@@ -96,6 +96,17 @@ practice animation, because the viewer is watching it for minutes.
 
 Left/right variants are separate clips rather than a mirrored playback flag: mirroring at
 runtime is a common source of inverted normals and reversed root motion.
+
+**Warrior II, not Warrior I** — see §11. They are different asanas, not two names for one
+pose, and an artist briefed on the wrong one delivers an unusable clip. Warrior II has the
+arms extended level front-to-back over a wide stance with the torso upright and open to
+the side; Warrior I has the arms overhead with the hips squared forward. The product uses
+Warrior II. If Warrior I is ever wanted for the exercise library, it is added as
+`warrior-1-left` / `warrior-1-right` alongside these — never by redefining them.
+
+`warrior-2-left` is the variant the landing experience plays when it shows a single
+warrior. Left-foot-forward is the convention throughout this document, matching
+`tree-left`.
 
 **No root motion.** The character stays at the origin; the camera moves, not the figure.
 
@@ -148,6 +159,21 @@ On delivery, the asset is checked against this. A failure on any line is a rejec
 | Decode failure | `ModelBoundary` in `yoga-scene.tsx` → the pose's written instructions |
 | Loading | Suspense, showing the placeholder figure until the real model parses |
 | Bundle guard | `three` still absent from `/today`, `/dashboard`, `/admin` — verified against the emitted production chunks |
+| **Camera framing** | **computed from the model's own bounding box — `framing.ts` (pure, 38 tests) + `auto-frame.tsx`. Added 2026-09-09** |
+
+**Framing is no longer hand-tuned.** `yoga-scene.tsx` previously carried
+`position: [0, 1.1, 3.2], fov: 42` — three numbers correct for one figure at one aspect
+ratio, with nothing saying so. `AutoFrame` now measures the loaded object and derives
+distance, target, `near` and `far` from it, checking BOTH axes so a wide pose on a portrait
+phone does not lose its hands. A taller character frames itself; a rotated phone reframes.
+The arithmetic is asserted against every breakpoint in the brief (360–1920) for a standing,
+a Warrior II and a Child's-pose bounding box.
+
+One caveat worth knowing before a delivery is judged: `Box3.setFromObject` measures a
+skinned mesh in its **bind pose**, not mid-animation. `DEFAULT_MARGIN` (1.22) absorbs the
+difference. If a real character still crops on one clip, raise the margin for that pose —
+do not re-measure per frame, which would traverse the skeleton every frame for a number
+that changes slowly.
 
 Two decisions worth knowing, because both are invisible until they break:
 
@@ -187,3 +213,74 @@ seamlessly**. Check those two first; everything else is fixable in a DCC tool.
 A generated character is acceptable **only** if it arrives with a real skeleton, real skin
 weights, and real clips meeting §5. A generated mesh with no rig is not a shortcut to 15C —
 it is the same placeholder problem with better lighting.
+
+## 10. Assessed and rejected
+
+Recording rejections stops the same asset being proposed twice.
+
+### Sketchfab `bc5d931c85bb4066b98a3a968c7118c1` — "A. Yoga Pose"
+
+Assessed **2026-09-09** through the public Sketchfab metadata API. Not downloaded, not
+scraped, not referenced in the application. **Rejected on four independent grounds:**
+
+| §7 line | Value | |
+|---|---|---|
+| Licence permits SaaS redistribution (§6) | `license: {}` — empty, default copyright | ❌ |
+| Obtainable at all | `isDownloadable: false` | ❌ |
+| Every clip in §5 present | `animationCount: 0` | ❌ |
+| ≤ 25,000 triangles (§3) | `faceCount: 277,353` — 11× over | ❌ |
+
+The model page additionally carries a **NoAI** restriction. Author: Another-me
+(@fredlucazeau).
+
+This is the ordinary outcome rather than bad luck: §9 warns that the two things most often
+wrong with stock assets are licence terms forbidding SaaS redistribution and clips that do
+not loop. This one fails the first before the second is even reachable.
+
+## 11. Warrior II is the canonical warrior pose — RESOLVED
+
+**Decided 2026-09-09 by the product owner. Warrior II. Do not substitute Warrior I.**
+
+### What the mismatch was
+
+§5 originally specified `warrior-1-left` / `warrior-1-right` — **Warrior I** — while the
+landing experience has always been designed around **Warrior II** (Virabhadrasana II).
+Those are different asanas:
+
+| | Warrior I | Warrior II |
+|---|---|---|
+| Arms | Overhead, reaching up | Level, extended front-to-back |
+| Hips | Squared to the front | Open to the side |
+| Gaze | Up, past the hands | Forward, over the front hand |
+| Bounding box | Tall and narrow | **Wide** — the widest pose in the set |
+
+This was never cosmetic. Briefing an artist on Warrior I would have produced a clip that
+does not match the pose the interface names, described or paid for — discovered at
+integration, after the money is spent. The wide bounding box also matters to framing:
+`framing.test.ts` sizes its Warrior case at 1.75 m wide against a 1.45 m height, and it is
+the case that crops first on a portrait phone.
+
+### The resolution
+
+`warrior-1-left` / `warrior-1-right` are **replaced by** `warrior-2-left` /
+`warrior-2-right`. The required clip count stays at **eleven** — this is a correction to
+the specification, not additional animation work.
+
+Replacing rather than adding was safe to do, and was verified before doing it:
+
+- no `animation_reference` value is seeded in any migration, script or repository
+- `warrior-1-*` appeared in exactly one place outside this document — a single example line
+  in `yoga-clips.test.ts`
+- no asset has been delivered, so no delivery is invalidated
+
+Warrior I is therefore not currently required of any artist. If the exercise library later
+wants it, it is **added** as `warrior-1-left` / `warrior-1-right` — never by redefining the
+Warrior II names, which would silently repoint every row already referencing them.
+
+### What stays true
+
+No clip name has been invented. `warrior-2-left` / `warrior-2-right` are now part of what
+§5 asks an artist to deliver, and `yoga-clips.test.ts` parses this document's §5 table and
+fails the build if the names in code ever drift from the names in this table. A delivered
+asset that omits them fails the §7 acceptance check, and `auditClips()` names them as
+missing rather than letting them resolve quietly to `idle-breathing`.

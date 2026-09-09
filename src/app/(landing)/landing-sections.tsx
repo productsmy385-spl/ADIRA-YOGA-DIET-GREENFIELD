@@ -23,9 +23,8 @@ import {
   CoachIcon,
 } from "@/components/icons";
 import { branding } from "@/lib/branding";
-import { Hero3DScene } from "./hero-3d-scene";
+import { HeroFigure } from "./hero-figure";
 import { Diet3DScene } from "./diet-3d-scene";
-import { YogaJourneySection } from "./yoga-journey-section";
 import { Reveal } from "@/components/motion/reveal";
 import { Stagger } from "@/components/motion/reveal";
 
@@ -114,7 +113,7 @@ export function HeroSection({ destination }: { destination: string; ctaText?: st
           <Reveal distance={16} delay={60}>
           <h1 className="type-display text-4xl sm:text-6xl font-extrabold tracking-tight text-foreground text-balance">
             Wellness, <br />
-            <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 bg-clip-text text-transparent dark:from-emerald-400 dark:to-teal-300">
+            <span className="bg-linear-to-r from-emerald-600 via-teal-600 to-emerald-500 bg-clip-text text-transparent dark:from-emerald-400 dark:to-teal-300">
               in Balance.
             </span>
           </h1>
@@ -128,25 +127,48 @@ export function HeroSection({ destination }: { destination: string; ctaText?: st
 
           <Reveal delay={180}>
           <div className="pt-2 flex flex-wrap items-center gap-4">
-            <Button asChild size="lg" className="rounded-full px-8 shadow-md">
+            {/* The one gradient button on the page. `ml-2` is gone from the arrow: the
+                button's base already sets `gap-2`, so the margin was double-spacing it,
+                and the base now animates the trailing icon on hover. */}
+            <Button asChild size="lg" variant="gradient" className="rounded-full px-8">
               <Link href={destination}>
                 Start Your Journey
-                <ArrowRight className="ml-2 size-4" />
+                <ArrowRight aria-hidden />
               </Link>
             </Button>
 
-            <Button asChild size="lg" variant="outline" className="rounded-full px-8 backdrop-blur-xs">
+            <Button asChild size="lg" variant="glass" className="rounded-full px-8">
               <Link href="#yoga-journey">
+                <YogaIcon size={16} className="text-current" />
                 Explore Poses
               </Link>
             </Button>
           </div>
           </Reveal>
+
+          {/* Glass information chips — the three claims worth making above the fold. */}
+          <Reveal delay={240}>
+            <ul className="flex flex-wrap gap-2 pt-2">
+              {[
+                { Icon: YogaIcon, label: "Guided asanas" },
+                { Icon: NutritionIcon, label: "Personalised nutrition" },
+                { Icon: ProgressIcon, label: "Progress you can see" },
+              ].map(({ Icon, label }) => (
+                <li
+                  key={label}
+                  className="inline-flex items-center gap-2 rounded-full border border-border-glass bg-surface-glass px-3 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur-glass"
+                >
+                  <Icon size={14} />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </Reveal>
         </div>
 
-        {/* Right 3D Visual Subject */}
+        {/* Right visual subject — an illustrated figure, not WebGL geometry. */}
         <div className="lg:col-span-6 flex justify-center">
-          <Hero3DScene className="w-full max-w-md" />
+          <HeroFigure />
         </div>
       </div>
     </WellnessBackground>
@@ -195,8 +217,45 @@ export function StatsSection() {
 /**
  * 4. Yoga Section — layered botanical green gradient environment
  */
+/**
+ * The four practices, and what the centre of the composition shows for each.
+ *
+ * Previously these four buttons set `activePractice` and NOTHING read it except the
+ * buttons' own highlight — the centre icon was hardcoded to `YogaIcon`. Pressing
+ * "Pranayama" therefore recoloured a pill and changed nothing else, which is the
+ * definition of a dead control even though a handler was attached.
+ */
+const PRACTICES = [
+  {
+    id: "asana",
+    label: "Yoga Asanas",
+    Icon: YogaIcon,
+    blurb: "Postures sequenced for your body, held long enough to matter.",
+  },
+  {
+    id: "pranayama",
+    label: "Pranayama",
+    Icon: BreathingIcon,
+    blurb: "Breath work that paces the nervous system rather than the clock.",
+  },
+  {
+    id: "stillness",
+    label: "Stillness",
+    Icon: MeditationIcon,
+    blurb: "Guided meditation, from two minutes upward. No streak to protect.",
+  },
+  {
+    id: "flexibility",
+    label: "Flexibility",
+    Icon: WorkoutIcon,
+    blurb: "Mobility work that opens the hips, shoulders and spine over weeks.",
+  },
+] as const;
+
 export function YogaSection() {
-  const [activePractice, setActivePractice] = useState("Asana Flow");
+  const [activePractice, setActivePractice] = useState<string>(PRACTICES[0].id);
+  const practice = PRACTICES.find((p) => p.id === activePractice) ?? PRACTICES[0];
+  const ActiveIcon = practice.Icon;
 
   return (
     <WellnessBackground
@@ -206,57 +265,61 @@ export function YogaSection() {
       overlayOpacity="medium"
       className="py-24 border-b border-border-glass"
     >
-      <div className="mx-auto max-w-7xl px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        {/* Left Visual Composition with Floating Labels */}
-        <div className="lg:col-span-6 relative flex items-center justify-center">
-          <div className="relative z-10 size-72 sm:size-80 rounded-full border border-emerald-500/20 bg-emerald-500/10 flex items-center justify-center backdrop-blur-glass shadow-[0_0_60px_-20px_var(--emerald)]">
-            <YogaIcon size={120} className="text-emerald-600 dark:text-emerald-400 animate-breathe" />
+      <div className="mx-auto max-w-7xl px-5 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        {/* Left Visual Composition */}
+        <div className="lg:col-span-6 flex flex-col items-center gap-6">
+          <div className="relative z-10 size-64 sm:size-80 rounded-full border border-emerald-500/20 bg-emerald-500/10 flex flex-col items-center justify-center gap-3 backdrop-blur-glass shadow-[0_0_60px_-20px_var(--emerald)]">
+            {/*
+              Keyed on the practice so React remounts it — the breathe animation then
+              restarts on each change, which is what makes the switch legible.
+            */}
+            <ActiveIcon
+              key={practice.id}
+              size={110}
+              className="text-emerald-600 dark:text-emerald-400 animate-breathe"
+            />
+            <span className="px-6 text-center text-sm font-semibold text-foreground">
+              {practice.label}
+            </span>
           </div>
 
-          {/* Floating Practice Labels */}
-          <button
-            onClick={() => setActivePractice("Asana Flow")}
-            className={`absolute top-4 left-4 z-20 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold backdrop-blur-md transition-all ${
-              activePractice === "Asana Flow"
-                ? "border-emerald-500 bg-emerald-500 text-white shadow-md"
-                : "border-border bg-background/90 text-foreground"
-            }`}
+          {/* aria-live so a screen reader is told the centre changed, not just that a
+              button was pressed. */}
+          <p
+            aria-live="polite"
+            className="min-h-10 max-w-sm text-center text-sm text-muted-foreground"
           >
-            <YogaIcon size={16} /> Yoga Asanas
-          </button>
+            {practice.blurb}
+          </p>
 
-          <button
-            onClick={() => setActivePractice("Pranayama")}
-            className={`absolute top-4 right-4 z-20 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold backdrop-blur-md transition-all ${
-              activePractice === "Pranayama"
-                ? "border-emerald-500 bg-emerald-500 text-white shadow-md"
-                : "border-border bg-background/90 text-foreground"
-            }`}
+          {/*
+            A wrapping row, not four absolutely-positioned corners. The corner layout
+            overlapped the circle below ~380px and put two pills on top of each other.
+          */}
+          <div
+            role="group"
+            aria-label="Choose a practice"
+            className="flex flex-wrap items-center justify-center gap-2"
           >
-            <BreathingIcon size={16} /> Pranayama
-          </button>
-
-          <button
-            onClick={() => setActivePractice("Meditation")}
-            className={`absolute bottom-4 left-4 z-20 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold backdrop-blur-md transition-all ${
-              activePractice === "Meditation"
-                ? "border-emerald-500 bg-emerald-500 text-white shadow-md"
-                : "border-border bg-background/90 text-foreground"
-            }`}
-          >
-            <MeditationIcon size={16} /> Stillness
-          </button>
-
-          <button
-            onClick={() => setActivePractice("Flexibility")}
-            className={`absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold backdrop-blur-md transition-all ${
-              activePractice === "Flexibility"
-                ? "border-emerald-500 bg-emerald-500 text-white shadow-md"
-                : "border-border bg-background/90 text-foreground"
-            }`}
-          >
-            <WorkoutIcon size={16} /> Flexibility
-          </button>
+            {PRACTICES.map(({ id, label, Icon }) => {
+              const selected = id === activePractice;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setActivePractice(id)}
+                  aria-pressed={selected}
+                  className={`flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold backdrop-blur-md transition-all duration-(--duration-fast) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    selected
+                      ? "border-emerald-500 bg-emerald-600 text-primary-foreground shadow-md"
+                      : "border-border bg-background/90 text-foreground hover:-translate-y-0.5 hover:shadow-sm motion-reduce:hover:translate-y-0"
+                  }`}
+                >
+                  <Icon size={16} /> {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Right Storytelling Content */}
@@ -276,7 +339,14 @@ export function YogaSection() {
               <div className="size-5 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center">
                 <Check size={14} />
               </div>
-              <span>Guided 3D pose alignment indicators</span>
+              {/*
+                Was "Guided 3D pose alignment indicators". No 3D character asset exists —
+                see docs/3D-ASSET-CONTRACT.md §10 — so that sentence promised a capability
+                the product does not have. Stale user-facing copy fails silently, which is
+                exactly how "there is no application to sign in to yet" survived on this
+                page for weeks. Restore the 3D wording when a licensed GLB actually ships.
+              */}
+              <span>Guided pose alignment and posture cues</span>
             </div>
 
             <div className="flex items-center gap-3 text-sm text-foreground">

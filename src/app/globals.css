@@ -585,6 +585,32 @@
     will-change: transform;
   }
 
+  /* Orbit — the hero's energy rings, turning slowly around the seated figure.
+   * Replaces the WebGL `OrbitalEnergyRing`: a transform-only animation the
+   * compositor handles on its own thread, so it costs no main-thread work and no
+   * GPU context, which is the whole reason the hero no longer needs `three`.
+   * LANDING PAGE ONLY, same rule as `adira-drift`. */
+  @keyframes adira-orbit {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-orbit {
+    animation: adira-orbit 38s linear infinite;
+    transform-origin: center;
+    will-change: transform;
+  }
+
+  .animate-orbit-reverse {
+    animation: adira-orbit 56s linear infinite reverse;
+    transform-origin: center;
+    will-change: transform;
+  }
+
   /* A progress ring sweeping to its value, once, on first paint (UX spec §7).
    * The value is supplied as `--ring-dash` by the component. */
   @keyframes adira-ring-sweep {
@@ -608,7 +634,9 @@
   @media (prefers-reduced-motion: reduce) {
     .animate-breathe,
     .animate-drift,
-    .animate-drift-slow {
+    .animate-drift-slow,
+    .animate-orbit,
+    .animate-orbit-reverse {
       animation: none !important;
     }
 
