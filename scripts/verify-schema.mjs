@@ -207,10 +207,32 @@ async function checkUniqueIndexes(client) {
   );
   const byName = new Map(rows.map((r) => [r.indexname, r.indexdef]));
 
-  const ownerIdx = byName.get("users_one_org_owner_idx");
+  /*
+   * `users_one_org_owner_idx` must be ABSENT, and its absence is an assertion rather than
+   * a gap.
+   *
+   * Migration 001 created it to enforce "at most one ORG_OWNER per organization".
+   * Migration 007 drops it (line 112, "LAST, once no row holds ORG_OWNER") because
+   * ADR-013 merged ORG_OWNER into a single ADMIN role — there is no longer a singleton
+   * owner for it to constrain. CLAUDE.md invariant 3 records the same thing: ORG_OWNER is
+   * transitional and removed in deployment 3.
+   *
+   * This check still asserted the index EXISTED, so it described the pre-007 schema and
+   * failed against every correctly-migrated database. Inverting it rather than deleting it
+   * keeps the acceptance check meaningful: it now fails if the index comes BACK, which
+   * would mean 007 was reverted or a migration reintroduced a constraint the role model no
+   * longer has.
+   *
+   * NOTE this removes no tenant protection. Isolation is carried by the composite foreign
+   * keys and `users_email_org_unique` verified above, none of which mention ORG_OWNER.
+   * What is gone is a uniqueness rule about a role that no longer exists.
+   */
   record(
-    Boolean(ownerIdx?.includes("UNIQUE") && ownerIdx?.includes("ORG_OWNER")),
-    "at most one ORG_OWNER per organization (partial unique index)",
+    !byName.has("users_one_org_owner_idx"),
+    "users_one_org_owner_idx is gone (ADR-013 merged ORG_OWNER away, migration 007)",
+    byName.has("users_one_org_owner_idx")
+      ? "index still present — migration 007 has not been applied to this database"
+      : "",
   );
 
   record(
