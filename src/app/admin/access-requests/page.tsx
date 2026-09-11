@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { PageHeader } from "@/components/ui/page-header";
+import { PageShell } from "@/components/ui/page-shell";
 import { OrganizationAccessKeyCard } from "@/components/ui/organization-access-key-card";
 import { requireRole } from "@/server/auth/guards";
 import { listAccessRequests } from "@/server/repositories/access-requests";
@@ -45,10 +46,10 @@ export default async function AccessRequestsPage() {
   });
 
   return (
-    <div className="theme-bg-wrapper theme-fresh-green app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-fresh-green app-shell">
       <AppNav role={session.role} currentPath="/admin/access-requests" />
 
-      <main className="mx-auto max-w-3xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-requests" width="narrow">
         <PageHeader
           title="Access requests"
           description={`People asking to join ${session.organizationName}.`}
@@ -97,7 +98,7 @@ export default async function AccessRequestsPage() {
             </ul>
           </section>
         ) : null}
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/admin/access-requests" />
     </div>

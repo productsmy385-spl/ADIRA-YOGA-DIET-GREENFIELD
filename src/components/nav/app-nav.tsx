@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -9,12 +9,13 @@ import {
   Bell,
   CalendarCheck,
   CalendarPlus,
+  ChevronDown,
   FileText,
-  Home,
   KeyRound,
   LayoutDashboard,
   LogOut,
   Menu,
+  MoreHorizontal,
   Plus,
   Salad,
   TrendingUp,
@@ -31,37 +32,34 @@ import { branding } from "@/lib/branding";
 import { navItemsForRole, type NavItem, type NavRole } from "./nav-items";
 
 /**
- * The application shell's navigation: a top header, a fixed full-height sidebar, and the
- * mobile tab bar.
+ * Top navigation. There is no desktop sidebar.
  *
  * ══════════════════════════════════════════════════════════════════════════════
- * WHY THE SIDEBAR NO LONGER SCROLLS
+ * WHY THE SIDEBAR IS GONE RATHER THAN FIXED
  * ══════════════════════════════════════════════════════════════════════════════
  *
- * It used to carry `overflow-y-auto` on its nav list, which produced a second scrolling
- * viewport inside the page — a scrollbar of its own, next to the page's scrollbar. That
- * reads as unfinished, and it is also genuinely worse to use: an operator who scrolls the
- * page expects the page to move, not for the pointer's position over the navigation to
- * silently change what scrolls.
+ * A 260px column cost a fifth of a 1280px screen permanently, to show nine links that are
+ * read once and then navigated by muscle memory. It also could not stop growing: every
+ * new destination made the column taller until it needed its own scrollbar, which is the
+ * defect that started this.
  *
- * The fix is not to hide the scrollbar. Hiding it leaves items unreachable, which is
- * strictly worse than showing one. The fix is to MAKE THE LIST FIT:
+ * Moving navigation into the header removes the failure mode rather than managing it —
+ * a horizontal bar that runs out of room degrades into a "More" menu, which is bounded,
+ * whereas a vertical list just gets taller.
  *
- *   - the brand moved OUT of the sidebar and into the header's left cell, which is
- *     otherwise dead space and buys back ~72px
- *   - Notifications moved to the header's bell, where a notification belongs and where it
- *     can carry an unread dot
- *   - Profile moved to the secondary group at the bottom, beside Sign out
+ * ── How the bar stays inside its width ─────────────────────────────────────────
+ * Nine destinations at ~76px is ~684px, plus ~200px of brand and ~230px of account
+ * controls: about 1114px. That fits 1280 and does NOT fit 1024. So the split is by
+ * breakpoint, not by hope:
  *
- * Nine primary destinations at 42px is 378px, plus a secondary group of about 150px. On
- * the shortest laptop this product targets — 768px tall, so 692px below the header —
- * that leaves well over 100px spare. `overflow-hidden` is then a guard rather than a
- * mechanism: nothing should ever reach it, and if a tenth item is added it fails loudly
- * in review rather than quietly growing a scrollbar again.
+ *   ≥1280px  all destinations inline
+ *   ≥640px   the five primary ones inline, the rest in "More"
+ *   <640px   no top nav at all — the drawer and the bottom tab bar, as before
  *
- * NOTHING HERE IS AUTHORIZATION. `nav-items.ts` says so at length and it remains true:
- * filtering an item out of this list grants nothing and protects nothing, and every route
- * keeps its own server-side guard.
+ * Nothing scrolls horizontally at any width, which is the property a header has to have.
+ *
+ * NOTHING HERE IS AUTHORIZATION. `nav-items.ts` says so at length and it stays true:
+ * hiding a link grants nothing, and every route keeps its own server-side guard.
  */
 
 export interface AppNavProps {
@@ -74,171 +72,122 @@ function isActive(item: { href: string }, currentPath?: string): boolean {
   return currentPath === item.href || currentPath.startsWith(`${item.href}/`);
 }
 
-/* ── colour per destination ────────────────────────────────────────────── */
+/* ── one hue per destination ───────────────────────────────────────────── */
 
-/**
- * One hue per destination, because colour is what makes a nine-item list scannable
- * without reading it. Every item used to be `text-muted-foreground`, going `text-primary`
- * when active — one green for nine places.
- *
- * The four brand accents (`accent-green`/`blue`/`red`/`cyan`) are tokens from
- * `globals.css`; orange, purple, pink and violet are Tailwind palette utilities. Both are
- * utility classes rather than colour VALUES, so invariant 7 holds — what it forbids is a
- * hex literal in `src/`, not the use of a named ramp.
- */
 interface NavVisual {
   Icon: typeof LayoutDashboard;
-  /** Resting: a tinted glass tile. */
-  idle: string;
-  /** Selected: the same hue, filled. */
-  active: string;
-  /** The selected row's background and its focus ring. */
-  row: string;
+  /** Tile paint at rest. */
+  tile: string;
+  /** Tile paint when this is the current page — the same hue, filled. */
+  tileActive: string;
   ring: string;
 }
 
-const DEFAULT_VISUAL: NavVisual = {
-  Icon: LayoutDashboard,
-  idle: "bg-accent-green/12 text-accent-green-ink",
-  active: "bg-accent-green text-accent-green-fg",
-  row: "bg-accent-green/12 text-accent-green-ink",
-  ring: "focus-visible:ring-accent-green/50",
-};
-
-function visual(
+function v(
   Icon: NavVisual["Icon"],
-  tint: string,
-  fill: string,
-  ink: string,
+  tile: string,
+  tileActive: string,
   ring: string,
 ): NavVisual {
-  return {
-    Icon,
-    idle: `${tint} ${ink}`,
-    active: `${fill}`,
-    row: `${tint} ${ink}`,
-    ring,
-  };
+  return { Icon, tile, tileActive, ring };
 }
 
+const DEFAULT_VISUAL = v(
+  LayoutDashboard,
+  "bg-accent-green/14 text-accent-green-ink",
+  "bg-accent-green text-accent-green-fg",
+  "focus-visible:ring-accent-green/50",
+);
+
+/**
+ * Colour is what makes a nine-item bar scannable without reading it. Every item was once
+ * `text-muted-foreground` going `text-primary` when active — one green for nine places.
+ *
+ * The four `accent-*` values are tokens from `globals.css`; orange, purple, pink and
+ * violet are Tailwind ramps. Both are utility classes rather than colour VALUES, so
+ * invariant 7 holds — it forbids a hex literal in `src/`, not the use of a named ramp.
+ */
 const NAV_VISUALS: Record<string, NavVisual> = {
-  "/admin": visual(
-    LayoutDashboard,
-    "bg-accent-green/12",
-    "bg-accent-green text-accent-green-fg",
-    "text-accent-green-ink",
-    "focus-visible:ring-accent-green/50",
-  ),
-  "/trainer": visual(
-    LayoutDashboard,
-    "bg-accent-green/12",
-    "bg-accent-green text-accent-green-fg",
-    "text-accent-green-ink",
-    "focus-visible:ring-accent-green/50",
-  ),
-  "/staff": visual(
-    LayoutDashboard,
-    "bg-accent-green/12",
-    "bg-accent-green text-accent-green-fg",
-    "text-accent-green-ink",
-    "focus-visible:ring-accent-green/50",
-  ),
-  "/dashboard": visual(
-    LayoutDashboard,
-    "bg-accent-green/12",
-    "bg-accent-green text-accent-green-fg",
-    "text-accent-green-ink",
-    "focus-visible:ring-accent-green/50",
-  ),
-  "/today": visual(
+  "/admin": DEFAULT_VISUAL,
+  "/trainer": DEFAULT_VISUAL,
+  "/staff": DEFAULT_VISUAL,
+  "/dashboard": DEFAULT_VISUAL,
+  "/today": v(
     CalendarCheck,
-    "bg-accent-green/12",
+    "bg-accent-green/14 text-accent-green-ink",
     "bg-accent-green text-accent-green-fg",
-    "text-accent-green-ink",
     "focus-visible:ring-accent-green/50",
   ),
-  "/admin/access-requests": visual(
+  "/admin/access-requests": v(
     KeyRound,
-    "bg-accent-blue/12",
+    "bg-accent-blue/14 text-accent-blue-ink",
     "bg-accent-blue text-accent-blue-fg",
-    "text-accent-blue-ink",
     "focus-visible:ring-accent-blue/50",
   ),
-  "/admin/programmes": visual(
+  "/admin/programmes": v(
     CalendarPlus,
-    "bg-accent-red/12",
+    "bg-accent-red/12 text-accent-red-ink",
     "bg-accent-red text-accent-red-fg",
-    "text-accent-red-ink",
     "focus-visible:ring-accent-red/50",
   ),
-  "/admin/yoga": visual(
+  "/admin/yoga": v(
     Activity,
-    "bg-accent-cyan/16",
+    "bg-accent-cyan/18 text-accent-cyan-ink",
     "bg-accent-cyan text-accent-cyan-fg",
-    "text-accent-cyan-ink",
     "focus-visible:ring-accent-cyan/50",
   ),
-  "/admin/diet": visual(
+  "/admin/diet": v(
     Salad,
-    "bg-orange-500/14",
+    "bg-orange-500/16 text-orange-700 dark:text-orange-300",
     "bg-orange-500 text-white",
-    "text-orange-700 dark:text-orange-300",
     "focus-visible:ring-orange-500/50",
   ),
-  "/admin/reports": visual(
+  "/admin/reports": v(
     FileText,
-    "bg-purple-500/14",
+    "bg-purple-500/16 text-purple-700 dark:text-purple-300",
     "bg-purple-600 text-white",
-    "text-purple-700 dark:text-purple-300",
     "focus-visible:ring-purple-500/50",
   ),
-  "/reports": visual(
+  "/reports": v(
     FileText,
-    "bg-purple-500/14",
+    "bg-purple-500/16 text-purple-700 dark:text-purple-300",
     "bg-purple-600 text-white",
-    "text-purple-700 dark:text-purple-300",
     "focus-visible:ring-purple-500/50",
   ),
-  "/admin/analytics": visual(
+  "/admin/analytics": v(
     BarChart3,
-    "bg-accent-blue/12",
+    "bg-accent-blue/14 text-accent-blue-ink",
     "bg-accent-blue text-accent-blue-fg",
-    "text-accent-blue-ink",
     "focus-visible:ring-accent-blue/50",
   ),
-  "/admin/members": visual(
+  "/admin/members": v(
     Users,
-    "bg-pink-500/14",
+    "bg-pink-500/16 text-pink-700 dark:text-pink-300",
     "bg-pink-600 text-white",
-    "text-pink-700 dark:text-pink-300",
     "focus-visible:ring-pink-500/50",
   ),
-  "/admin/team": visual(
+  "/admin/team": v(
     Users,
-    "bg-teal-500/14",
-    "bg-teal-600 text-white",
-    "text-teal-700 dark:text-teal-300",
-    "focus-visible:ring-teal-500/50",
-  ),
-  "/progress": visual(
-    TrendingUp,
-    "bg-violet-500/14",
+    "bg-violet-500/16 text-violet-700 dark:text-violet-300",
     "bg-violet-600 text-white",
-    "text-violet-700 dark:text-violet-300",
     "focus-visible:ring-violet-500/50",
   ),
-  "/notifications": visual(
+  "/progress": v(
+    TrendingUp,
+    "bg-violet-500/16 text-violet-700 dark:text-violet-300",
+    "bg-violet-600 text-white",
+    "focus-visible:ring-violet-500/50",
+  ),
+  "/notifications": v(
     Bell,
-    "bg-pink-500/14",
+    "bg-pink-500/16 text-pink-700 dark:text-pink-300",
     "bg-pink-600 text-white",
-    "text-pink-700 dark:text-pink-300",
     "focus-visible:ring-pink-500/50",
   ),
-  "/profile": visual(
+  "/profile": v(
     User,
-    "bg-accent-blue/12",
+    "bg-accent-blue/14 text-accent-blue-ink",
     "bg-accent-blue text-accent-blue-fg",
-    "text-accent-blue-ink",
     "focus-visible:ring-accent-blue/50",
   ),
 };
@@ -247,58 +196,242 @@ function visualFor(href: string): NavVisual {
   return NAV_VISUALS[href] ?? DEFAULT_VISUAL;
 }
 
-/** The tinted tile an icon sits in. Reads as depth at 32px where a bare stroke does not. */
-function NavIcon({ href, active }: { href: string; active: boolean }) {
-  const v = visualFor(href);
+/** The icon tile. Reads as depth at 36px where a bare stroke icon does not. */
+function NavTile({
+  href,
+  active,
+  size = "md",
+}: {
+  href: string;
+  active: boolean;
+  size?: "md" | "sm";
+}) {
+  const { Icon, tile, tileActive } = visualFor(href);
   return (
     <span
       aria-hidden
-      className={`flex size-8 shrink-0 items-center justify-center rounded-lg transition-all duration-(--duration-fast) ${
-        active ? `${v.active} shadow-sm` : v.idle
-      }`}
+      className={`flex shrink-0 items-center justify-center rounded-xl transition-all duration-(--duration-fast) ${
+        size === "md" ? "size-9" : "size-8"
+      } ${active ? `${tileActive} shadow-sm` : tile}`}
     >
-      <v.Icon className="size-4" />
+      <Icon className={size === "md" ? "size-4.5" : "size-4"} />
     </span>
   );
 }
 
-/** One row, shared by the sidebar and the mobile drawer so they cannot drift apart. */
-function NavRow({
-  item,
-  active,
-  onNavigate,
-}: {
-  item: NavItem;
-  active: boolean;
-  onNavigate?: () => void;
-}) {
-  const v = visualFor(item.href);
+/** A destination in the top bar: tile above label, as in the reference composition. */
+function TopNavItem({ item, active }: { item: NavItem; active: boolean }) {
+  const { ring } = visualFor(item.href);
   return (
     <Link
       href={item.href}
-      onClick={onNavigate}
       aria-current={active ? "page" : undefined}
-      className={`flex min-h-11 items-center gap-3 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-all duration-(--duration-fast) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background ${v.ring} ${
+      className={`flex w-19 shrink-0 flex-col items-center gap-1 rounded-2xl px-1 py-1.5 transition-all duration-(--duration-fast) focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${ring} ${
         active
-          ? `${v.row} shadow-2xs`
-          : "text-foreground/70 hover:bg-muted/70 hover:text-foreground"
+          ? "bg-surface-glass-strong shadow-sm"
+          : "hover:bg-surface-glass motion-reduce:hover:bg-surface-glass"
       }`}
     >
-      <NavIcon href={item.href} active={active} />
-      <span className="truncate">{item.label}</span>
+      <NavTile href={item.href} active={active} />
+      <span
+        className={`w-full truncate text-center text-[11px] leading-tight ${
+          active ? "font-bold text-foreground" : "font-semibold text-foreground/75"
+        }`}
+      >
+        {item.label}
+      </span>
     </Link>
   );
 }
 
 /**
- * Destinations that appear somewhere OTHER than the primary sidebar list.
+ * The overflow menu for destinations that do not fit.
  *
- * Notifications lives in the header bell; Profile lives in the secondary group at the
- * bottom. They are filtered here rather than removed from `nav-items.ts`, because that
- * file is the shared source of truth for what a role can reach — including for the mobile
- * drawer, which still lists everything.
+ * A real menu rather than a hover-reveal: it is keyboard reachable, closes on Escape and
+ * on outside click, and reports its state with `aria-expanded`. Hover-only disclosure
+ * would make these destinations unreachable by keyboard and on touch.
  */
+function MoreMenu({
+  items,
+  currentPath,
+  className,
+}: {
+  items: NavItem[];
+  currentPath?: string;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const anyActive = items.some((item) => isActive(item, currentPath));
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onClick = (e: MouseEvent) => {
+      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onClick);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onClick);
+    };
+  }, [open]);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div ref={wrap} className={`relative ${className ?? ""}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className={`flex w-19 shrink-0 flex-col items-center gap-1 rounded-2xl px-1 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue/50 ${
+          anyActive || open ? "bg-surface-glass-strong shadow-sm" : "hover:bg-surface-glass"
+        }`}
+      >
+        <span
+          aria-hidden
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-foreground/8 text-foreground/70"
+        >
+          <MoreHorizontal className="size-4.5" />
+        </span>
+        <span className="text-[11px] font-semibold leading-tight text-foreground/75">
+          More
+        </span>
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-border-glass bg-popover p-2 shadow-xl"
+        >
+          {items.map((item) => {
+            const active = isActive(item, currentPath);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-11 items-center gap-3 rounded-xl px-2 py-1.5 text-sm font-semibold transition-colors ${
+                  active
+                    ? "bg-muted text-foreground"
+                    : "text-foreground/75 hover:bg-muted/70 hover:text-foreground"
+                }`}
+              >
+                <NavTile href={item.href} active={active} size="sm" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The account menu: Profile, Theme and Sign out, kept visibly separate.
+ *
+ * Profile is a LINK and Sign out is a form SUBMIT, and they are deliberately not adjacent
+ * look-alikes — the account control once sat inside the sign-out form, so tapping it
+ * logged the user out. `app-nav.test.tsx` asserts the profile link has no ancestor form.
+ */
+function AccountMenu({ currentPath }: { currentPath?: string }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onClick = (e: MouseEvent) => {
+      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onClick);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onClick);
+    };
+  }, [open]);
+
+  return (
+    <div ref={wrap} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="Account menu"
+        className="flex min-h-11 items-center gap-2 rounded-2xl px-1.5 py-1 transition-colors hover:bg-surface-glass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue/50"
+      >
+        <span
+          aria-hidden
+          className="flex size-9 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white"
+        >
+          <User className="size-4" />
+        </span>
+        <ChevronDown className="size-4 text-foreground/60" aria-hidden />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-border-glass bg-popover p-2 shadow-xl"
+        >
+          <Link
+            href="/profile"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            aria-current={isActive({ href: "/profile" }, currentPath) ? "page" : undefined}
+            className="flex min-h-11 items-center gap-3 rounded-xl px-2 py-1.5 text-sm font-semibold text-foreground/80 transition-colors hover:bg-muted/70 hover:text-foreground"
+          >
+            <NavTile href="/profile" active={false} size="sm" />
+            Profile
+          </Link>
+
+          <div className="flex items-center justify-between rounded-xl px-2 py-1.5">
+            <span className="text-sm font-semibold text-foreground/80">Theme</span>
+            <ThemeToggle />
+          </div>
+
+          <div className="my-1 h-px bg-border-glass" />
+
+          {/* Sign out: the ONLY control that ends the session, in its own form. */}
+          <form action={signOutAction} className="w-full">
+            <button
+              type="submit"
+              role="menuitem"
+              className="flex min-h-11 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent-red/10 hover:text-accent-red-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
+            >
+              <span
+                aria-hidden
+                className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-accent-red/12 text-accent-red-ink"
+              >
+                <LogOut className="size-4" />
+              </span>
+              Sign out
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Destinations that live in the account menu or the bell rather than the bar. */
 const RELOCATED = new Set(["/notifications", "/profile"]);
+
+/** How many fit inline before "More" takes over, per tier. See the bar's comment. */
+const INLINE_AT_SMALL = 3;
+const INLINE_AT_MEDIUM = 5;
 
 export function AppNav({ role, currentPath }: AppNavProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -308,10 +441,9 @@ export function AppNav({ role, currentPath }: AppNavProps) {
   const effectivePath = currentPath || pathname;
   const [prevPath, setPrevPath] = useState(effectivePath);
 
-  const primary = items.filter((item) => !RELOCATED.has(item.href));
+  const destinations = items.filter((item) => !RELOCATED.has(item.href));
   const home = role === "CUSTOMER" || role === "USER" ? "/today" : "/admin";
 
-  // Auto-close the drawer on navigation.
   if (effectivePath !== prevPath) {
     setPrevPath(effectivePath);
     setDrawerOpen(false);
@@ -327,26 +459,31 @@ export function AppNav({ role, currentPath }: AppNavProps) {
     }
   }, [drawerOpen]);
 
+  const inline = destinations.slice(0, INLINE_AT_MEDIUM);
+  const overflow = destinations.slice(INLINE_AT_MEDIUM);
+
   return (
     <>
-      {/* ── DESKTOP HEADER ───────────────────────────────────────────────
-          Spans the full width with the brand occupying the sidebar's column, so the
-          logo and the first nav item cannot collide — the two own separate cells
-          rather than being stacked in the same one. */}
+      {/* ── DESKTOP TOP BAR ──────────────────────────────────────────────
+          The only desktop navigation. There is no sidebar and no element offsets the
+          page from the left any more. */}
       <header
         aria-label="Application header"
-        className="fixed inset-x-0 top-0 z-50 hidden h-(--shell-header) border-b border-border-glass bg-linear-to-r from-accent-cyan/25 via-accent-blue/15 to-accent-green/15 backdrop-blur-glass sm:flex"
+        className="fixed inset-x-0 top-0 z-50 hidden h-(--shell-header) border-b border-border-glass bg-linear-to-r from-accent-cyan/30 via-accent-blue/18 to-accent-green/18 backdrop-blur-glass sm:flex"
       >
-        <div className="flex h-full w-(--shell-sidebar) shrink-0 items-center gap-2.5 border-r border-border-glass px-5">
-          <Link href={home} className="flex items-center gap-2.5">
+        <div className="mx-auto flex h-full w-full max-w-[1800px] items-center gap-3 px-4 lg:px-6">
+          {/* Brand */}
+          <Link href={home} className="flex shrink-0 items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element -- static brand mark */}
             <img
               src={branding.icons.mark}
               alt=""
               aria-hidden
-              className="size-9 shrink-0 mix-blend-multiply dark:mix-blend-screen"
+              className="size-10 shrink-0 mix-blend-multiply dark:mix-blend-screen"
             />
-            <span className="leading-tight">
+            {/* Wordmark appears only from `lg`. Between 768 and 1023 the ~120px it costs
+                is the difference between the bar fitting and overflowing. */}
+            <span className="hidden leading-tight lg:block">
               <span className="block text-lg font-extrabold tracking-tight text-foreground">
                 {branding.name}
               </span>
@@ -355,100 +492,82 @@ export function AppNav({ role, currentPath }: AppNavProps) {
               </span>
             </span>
           </Link>
-        </div>
 
-        {/*
-          No search field. The reference design shows one, but this application has no
-          global search — no index, no endpoint, no page. Rendering the input would be a
-          control that looks functional and does nothing, which is the failure mode this
-          codebase already has a guard test for. It belongs here the day search exists.
-        */}
-        <div className="flex flex-1 items-center justify-end gap-2 px-5">
-          <Button asChild variant="ghost" size="icon" className="size-10 rounded-xl">
-            <Link href={home} aria-label="Home">
-              <Home className="size-5 text-accent-green-ink" />
-            </Link>
-          </Button>
+          <span aria-hidden className="mx-1 h-9 w-px shrink-0 bg-border-glass" />
 
-          <Button asChild variant="ghost" size="icon" className="size-10 rounded-xl">
-            <Link href="/notifications" aria-label="Notifications">
-              <Bell className="size-5 text-pink-600 dark:text-pink-300" />
-            </Link>
-          </Button>
-
-          <ThemeToggle />
-
-          <span aria-hidden className="mx-1 h-7 w-px bg-border-glass" />
-
-          {/* Profile. A LINK, never a form — see the mobile header for why. */}
-          <Link
-            href="/profile"
-            aria-label="Profile"
-            className="flex min-h-11 items-center gap-2.5 rounded-xl px-2 py-1.5 transition-colors hover:bg-surface-glass-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-blue/50"
+          {/* Destinations. `justify-center` keeps the bar balanced when a role has few. */}
+          <nav
+            aria-label="Primary"
+            className="flex min-w-0 flex-1 items-center justify-center gap-0.5"
           >
-            <span
-              aria-hidden
-              className="flex size-9 items-center justify-center rounded-full bg-accent-blue text-sm font-bold text-accent-blue-fg"
+            {/*
+              Three tiers, sized by arithmetic rather than by hope. Each destination is
+              76px; brand and account controls are the fixed cost either side.
+
+                640–1023  3 inline + More  ≈ 510px used  (fits 640)
+                1024–1279 5 inline + More  ≈ 782px used  (fits 1024)
+                ≥1280     all nine inline  ≈ 1010px used (fits 1280)
+
+              Nothing scrolls horizontally at any width, which is the one property a
+              fixed header has to have — a bar that overflows cannot be scrolled back to.
+            */}
+            <span className="flex items-center gap-0.5 lg:hidden">
+              {destinations.slice(0, INLINE_AT_SMALL).map((item) => (
+                <TopNavItem
+                  key={item.href}
+                  item={item}
+                  active={isActive(item, effectivePath)}
+                />
+              ))}
+              <MoreMenu
+                items={destinations.slice(INLINE_AT_SMALL)}
+                currentPath={effectivePath}
+              />
+            </span>
+
+            <span className="hidden items-center gap-0.5 lg:flex xl:hidden">
+              {inline.map((item) => (
+                <TopNavItem
+                  key={item.href}
+                  item={item}
+                  active={isActive(item, effectivePath)}
+                />
+              ))}
+              <MoreMenu items={overflow} currentPath={effectivePath} />
+            </span>
+
+            <span className="hidden items-center gap-0.5 xl:flex">
+              {destinations.map((item) => (
+                <TopNavItem
+                  key={item.href}
+                  item={item}
+                  active={isActive(item, effectivePath)}
+                />
+              ))}
+            </span>
+          </nav>
+
+          <span aria-hidden className="mx-1 hidden h-9 w-px shrink-0 bg-border-glass lg:block" />
+
+          {/* Account controls.
+              No search field: this application has no global search — no index, no
+              endpoint, no page — and a styled input that does nothing is the dead-control
+              failure `tests/no-orphaned-actions.test.ts` exists to catch. */}
+          <div className="flex shrink-0 items-center gap-1">
+            <Link
+              href="/notifications"
+              aria-label="Notifications"
+              className="relative flex size-10 items-center justify-center rounded-xl transition-colors hover:bg-surface-glass focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/50"
             >
-              <User className="size-4" />
-            </span>
-            <span className="hidden text-sm font-semibold text-foreground lg:block">
-              Profile
-            </span>
-          </Link>
+              <Bell className="size-5 text-pink-600 dark:text-pink-300" aria-hidden />
+            </Link>
+            <AccountMenu currentPath={effectivePath} />
+          </div>
         </div>
       </header>
 
-      {/* ── DESKTOP SIDEBAR ──────────────────────────────────────────────
-          Sits BELOW the header (`top-(--shell-header)`) rather than beside it, so the
-          two never overlap and the header's brand cell lines up with this column. */}
-      <aside
-        aria-label="Desktop Navigation Sidebar"
-        className="fixed bottom-0 left-0 top-(--shell-header) z-40 hidden w-(--shell-sidebar) flex-col border-r border-border-glass bg-surface-glass-strong backdrop-blur-glass sm:flex"
-      >
-        {/* `overflow-hidden` is a GUARD, not a scroll mechanism — the list is sized to
-            fit, and anything that overflows should be caught in review. */}
-        <nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden p-3">
-          {primary.map((item) => (
-            <NavRow
-              key={item.href}
-              item={item}
-              active={isActive(item, effectivePath)}
-            />
-          ))}
-        </nav>
-
-        {/* Secondary, anchored to the bottom. */}
-        <div className="shrink-0 border-t border-border-glass p-3">
-          <div className="flex items-center justify-between rounded-xl px-2.5 py-1.5">
-            <span className="text-sm font-semibold text-foreground/70">Theme</span>
-            <ThemeToggle />
-          </div>
-
-          <NavRow
-            item={{ href: "/profile", label: "Profile", labelKey: "nav.profile" }}
-            active={isActive({ href: "/profile" }, effectivePath)}
-          />
-
-          <form action={signOutAction} className="w-full">
-            <button
-              type="submit"
-              className="flex min-h-11 w-full items-center gap-3 rounded-xl px-2.5 py-1.5 text-sm font-semibold text-foreground/70 transition-colors hover:bg-accent-red/10 hover:text-accent-red-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
-            >
-              <span
-                aria-hidden
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent-red/12 text-accent-red-ink"
-              >
-                <LogOut className="size-4" />
-              </span>
-              Sign out
-            </button>
-          </form>
-        </div>
-      </aside>
-
       {/* ── MOBILE HEADER ────────────────────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-0 z-40 flex h-(--shell-header-mobile) items-center justify-between border-b border-border-glass bg-linear-to-r from-accent-cyan/25 to-accent-blue/15 px-4 backdrop-blur-glass sm:hidden">
+      <header className="fixed inset-x-0 top-0 z-40 flex h-(--shell-header-mobile) items-center justify-between border-b border-border-glass bg-linear-to-r from-accent-cyan/30 to-accent-blue/18 px-4 backdrop-blur-glass sm:hidden">
         <div className="flex items-center gap-2">
           <Button
             type="button"
@@ -481,11 +600,7 @@ export function AppNav({ role, currentPath }: AppNavProps) {
             </Link>
           </Button>
           <ThemeToggle />
-          {/*
-            Profile is a LINK to /profile and is deliberately NOT inside the sign-out
-            form. It was once rendered inside it, so tapping the account icon logged the
-            user out — `app-nav.test.tsx` now asserts this link has no ancestor form.
-          */}
+          {/* A LINK to /profile, deliberately NOT inside the sign-out form. */}
           <Button asChild variant="ghost" size="icon" className="size-9">
             <Link href="/profile" aria-label="Profile Screen">
               <User className="size-4 text-accent-blue-ink" aria-hidden />
@@ -495,8 +610,8 @@ export function AppNav({ role, currentPath }: AppNavProps) {
       </header>
 
       {/* ── MOBILE DRAWER ────────────────────────────────────────────────
-          Lists EVERY destination for the role, including the ones the desktop sidebar
-          relocates, because a phone has no header bell row to put them in. */}
+          Lists every destination for the role, including the relocated ones — a phone
+          has no header bar to hold them. */}
       {drawerOpen && (
         <div
           className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm sm:hidden"
@@ -540,14 +655,26 @@ export function AppNav({ role, currentPath }: AppNavProps) {
         </div>
 
         <nav className="flex-1 space-y-0.5 overflow-y-auto py-4">
-          {items.map((item) => (
-            <NavRow
-              key={item.href}
-              item={item}
-              active={isActive(item, effectivePath)}
-              onNavigate={() => setDrawerOpen(false)}
-            />
-          ))}
+          {items.map((item) => {
+            const active = isActive(item, effectivePath);
+            const { ring } = visualFor(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setDrawerOpen(false)}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-11 items-center gap-3 rounded-xl px-2.5 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 ${ring} ${
+                  active
+                    ? "bg-muted text-foreground"
+                    : "text-foreground/75 hover:bg-muted/70 hover:text-foreground"
+                }`}
+              >
+                <NavTile href={item.href} active={active} size="sm" />
+                <span className="truncate">{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="space-y-2 border-t border-border-glass pt-3">
@@ -579,7 +706,7 @@ export function AppNav({ role, currentPath }: AppNavProps) {
  *
  * Always mounted, `fixed`, and padded for the home indicator via
  * `env(safe-area-inset-bottom)`. `app-nav.test.tsx` asserts it renders on every key
- * route, because the failure it guards against is it disappearing on one page.
+ * route, because the failure it guards against is it vanishing on one page.
  */
 export function MobileTabBar({ role, currentPath }: AppNavProps) {
   const isMember = role === "CUSTOMER" || role === "USER";
@@ -632,7 +759,7 @@ export function MobileTabBar({ role, currentPath }: AppNavProps) {
                   active ? "text-foreground" : "text-muted-foreground"
                 }`}
               >
-                <NavIcon href={item.href} active={active} />
+                <NavTile href={item.href} active={active} size="sm" />
                 <span>{item.label}</span>
               </Link>
             </li>

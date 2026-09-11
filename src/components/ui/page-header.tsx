@@ -5,6 +5,13 @@ interface PageHeaderProps {
   description?: ReactNode;
   children?: ReactNode;
   className?: string;
+  /**
+   * A small uppercase label above the title — "Administration", "Library".
+   *
+   * It names the AREA, so the title itself can stay a single plain word. Without it
+   * "Members" and "Team" read as unrelated pages; with it both are visibly administration.
+   */
+  eyebrow?: string;
 }
 
 /**
@@ -20,11 +27,22 @@ interface PageHeaderProps {
  * and too weak for a sentence that explains what a page is for — several of these carry
  * the permission rules an operator actually needs to read.
  */
-export function PageHeader({ title, description, children, className = "" }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  children,
+  className = "",
+  eyebrow,
+}: PageHeaderProps) {
   return (
     <div className={`flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between ${className}`}>
       <div className="min-w-0">
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+        {eyebrow ? (
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-foreground/55">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
           {title}
         </h1>
         {description && (

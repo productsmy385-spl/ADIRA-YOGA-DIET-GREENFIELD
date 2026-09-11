@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { TrendingUp } from "lucide-react";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { PageShell } from "@/components/ui/page-shell";
 import { requireTenantSession } from "@/server/auth/guards";
 import { listStatusesInRange, organizationToday } from "@/server/repositories/activities";
 import { listCheckInsInRange } from "@/server/repositories/checkins";
@@ -76,10 +77,10 @@ export default async function ProgressPage() {
   );
 
   return (
-    <div className="theme-bg-wrapper theme-blue-calm app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-blue-calm app-shell">
       <AppNav role={session.role} currentPath="/progress" />
 
-      <main className="mx-auto max-w-3xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-analytics" width="narrow">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Progress</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Counted from what you actually completed.
@@ -206,7 +207,7 @@ export default async function ProgressPage() {
             </div>
           )}
         </section>
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/progress" />
     </div>

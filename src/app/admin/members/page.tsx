@@ -1,10 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Download, FileUp, Info, KeyRound, UserPlus, Users } from "lucide-react";
+import {
+  ArrowRight,
+  CircleCheck,
+  Clock,
+  Download,
+  FileUp,
+  Info,
+  KeyRound,
+  UserCheck,
+  UserPlus,
+  Users,
+} from "lucide-react";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { PageShell, StatRow, StatTile } from "@/components/ui/page-shell";
 import { requireRole } from "@/server/auth/guards";
 import { listMembers } from "@/server/repositories/members";
 
@@ -59,12 +71,26 @@ export default async function MembersPage() {
   const session = await requireRole("ADMIN");
   const members = await listMembers(session.organizationId, { kind: "MEMBERS" });
 
+  /*
+   * Counts derived from the rows already fetched — no extra query, and deliberately no
+   * new repository call. `listMembers` selects identity, role, status and an assignment
+   * COUNT; summing what is already here adds no data this page was not already allowed
+   * to show. A "practising this week" tile would need activity data and would quietly
+   * turn an administration screen into a health-record summary.
+   */
+  const activeCount = members.filter((m) => m.status === "ACTIVE").length;
+  const pendingCount = members.filter(
+    (m) => m.status === "INVITED" || m.status === "PENDING",
+  ).length;
+  const assignedCount = members.filter((m) => m.assignmentCount > 0).length;
+
   return (
-    <div className="theme-bg-wrapper theme-blue-calm app-shell app-canvas">
+    <div className="theme-bg-wrapper app-shell">
       <AppNav role={session.role} currentPath="/admin/members" />
 
-      <main className="mx-auto max-w-6xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-members" width="wide">
         <PageHeader
+          eyebrow="Administration"
           title="Members"
           description={`Everyone in ${session.organizationName}. Administration only — open a member to see their practice, which needs an assignment.`}
         >
@@ -95,6 +121,39 @@ export default async function MembersPage() {
             </Button>
           ) : null}
         </PageHeader>
+
+        {members.length > 0 ? (
+          <StatRow>
+            <StatTile
+              tone="green"
+              label="Total members"
+              value={members.length}
+              hint="In this organisation"
+              icon={<Users />}
+            />
+            <StatTile
+              tone="blue"
+              label="Active"
+              value={activeCount}
+              hint="Signed in and practising"
+              icon={<CircleCheck />}
+            />
+            <StatTile
+              tone="orange"
+              label="Pending"
+              value={pendingCount}
+              hint="Invited, not yet active"
+              icon={<Clock />}
+            />
+            <StatTile
+              tone="violet"
+              label="Assigned"
+              value={assignedCount}
+              hint="Have a consultant"
+              icon={<UserCheck />}
+            />
+          </StatRow>
+        ) : null}
 
         {members.length === 0 ? (
           <div className="mt-8 rounded-2xl border border-dashed border-accent-cyan/40 bg-surface-glass p-10 text-center backdrop-blur-glass">
@@ -190,7 +249,7 @@ export default async function MembersPage() {
             different permissions.
           </p>
         </div>
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/admin/members" />
     </div>

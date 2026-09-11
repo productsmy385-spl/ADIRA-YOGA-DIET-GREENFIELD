@@ -4,6 +4,7 @@ import { CalendarPlus, ClipboardList, Salad } from "lucide-react";
 
 import { CaseloadList } from "@/components/caseload/caseload-list";
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { PageShell } from "@/components/ui/page-shell";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/server/auth/guards";
 import { actorFromSession } from "@/server/authorization/member-access";
@@ -53,10 +54,10 @@ export default async function TrainerPage() {
   const diet = publishedProgrammes.filter((p) => p.kind === "DIET").length;
 
   return (
-    <div className="theme-bg-wrapper theme-green-nature app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-green-nature app-shell">
       <AppNav role={session.role} currentPath="/trainer" />
 
-      <main className="mx-auto max-w-3xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-caseload" width="narrow">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           My customers
         </h1>
@@ -118,7 +119,7 @@ export default async function TrainerPage() {
           entries={caseload}
           emptyMessage="No customers are assigned to you yet. An administrator assigns them."
         />
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/trainer" />
     </div>

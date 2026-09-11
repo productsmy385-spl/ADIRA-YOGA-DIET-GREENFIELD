@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FileText } from "lucide-react";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { PageShell } from "@/components/ui/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { requireRole } from "@/server/auth/guards";
 import { listOrganizationReports } from "@/server/repositories/reports";
@@ -24,10 +25,10 @@ export default async function AdminReportsPage() {
   const reports = await listOrganizationReports(session.organizationId);
 
   return (
-    <div className="theme-bg-wrapper theme-fresh-green app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-fresh-green app-shell">
       <AppNav role={session.role} currentPath="/admin/reports" />
 
-      <main className="mx-auto max-w-3xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-reports" width="narrow">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Reports</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Organisation-wide summaries for {session.organizationName}.
@@ -63,7 +64,7 @@ export default async function AdminReportsPage() {
           A member&rsquo;s own report is member data and appears on their page, which needs
           an assignment.
         </p>
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/admin/reports" />
     </div>

@@ -6,6 +6,7 @@ import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { PageShell } from "@/components/ui/page-shell";
 import { requireRole } from "@/server/auth/guards";
 import { listProgrammes } from "@/server/repositories/programmes";
 
@@ -35,10 +36,10 @@ export default async function ProgrammesPage() {
   ];
 
   return (
-    <div className="theme-bg-wrapper theme-green-nature app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-green-nature app-shell">
       <AppNav role={session.role} currentPath="/admin/programmes" />
 
-      <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-programmes" width="default">
         <PageHeader 
           title="Programmes" 
           description="Reusable plans built once and assigned many times. Editing one never changes a plan somebody is already following."
@@ -146,7 +147,7 @@ export default async function ProgrammesPage() {
             );
           })
         )}
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/admin/programmes" />
     </div>

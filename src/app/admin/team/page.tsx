@@ -6,6 +6,7 @@ import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { PageShell } from "@/components/ui/page-shell";
 import { OrganizationAccessKeyCard } from "@/components/ui/organization-access-key-card";
 import { requireRole } from "@/server/auth/guards";
 import { listMembers } from "@/server/repositories/members";
@@ -81,10 +82,10 @@ export default async function TeamPage() {
   const invited = team.filter((t) => t.status === "INVITED").length;
 
   return (
-    <div className="theme-bg-wrapper theme-fresh-green app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-fresh-green app-shell">
       <AppNav role={session.role} currentPath="/admin/team" />
 
-      <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-team" width="default">
         <PageHeader
           title="Team"
           description={`Everyone who delivers care at ${session.organizationName} — ${trainers} trainer${trainers === 1 ? "" : "s"} and ${staff} staff.`}
@@ -192,7 +193,7 @@ export default async function TeamPage() {
           member&rsquo;s practice only where an assignment exists — being on the team grants
           no reach on its own.
         </p>
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/admin/team" />
     </div>

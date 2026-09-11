@@ -6,6 +6,7 @@ import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { PageShell } from "@/components/ui/page-shell";
 import { requireRole } from "@/server/auth/guards";
 import { listYogaExercises } from "@/server/repositories/library";
 
@@ -30,10 +31,10 @@ export default async function YogaLibraryPage() {
   const exercises = await listYogaExercises(session.organizationId, true);
 
   return (
-    <div className="theme-bg-wrapper theme-blue-calm app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-blue-calm app-shell">
       <AppNav role={session.role} currentPath="/admin/yoga" />
 
-      <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-yoga" width="default">
         <PageHeader 
           title="Yoga library" 
           description={`Exercises available to ${session.organizationName} when building a programme.`}
@@ -127,7 +128,7 @@ export default async function YogaLibraryPage() {
             ))}
           </ul>
         )}
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/admin/yoga" />
     </div>

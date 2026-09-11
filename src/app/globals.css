@@ -180,7 +180,6 @@
    * repeated as `sm:pl-[260px]` across seventeen pages, so changing it meant
    * seventeen edits and one of them always got missed.
    */
-  --shell-sidebar: 260px;
   --shell-header: 76px;
   --shell-header-mobile: 56px;
 
@@ -813,8 +812,9 @@
    * changing it meant seventeen edits and the one that got missed showed up as
    * a single page with its content tucked under the navigation.
    *
-   * The offsets come from `--shell-sidebar` and `--shell-header`, so the whole
-   * console can be re-proportioned from two declarations.
+   * The offset now comes from `--shell-header` alone: navigation moved into the
+   * top bar, so `--shell-sidebar` was deleted rather than left behind as a token
+   * nothing reads.
    */
   .app-shell {
     position: relative;
@@ -822,15 +822,14 @@
     max-width: 100vw;
     overflow-x: hidden;
     background-color: var(--background);
-    /* Mobile: no sidebar, a short top bar, and room for the bottom tab bar. */
+    /* Clears the fixed header. THERE IS NO LEFT OFFSET — navigation lives in the
+     * top bar, so no page is indented for a sidebar any more. */
     padding-top: var(--shell-header-mobile);
-    padding-left: 0;
   }
 
   @media (min-width: 640px) {
     .app-shell {
       padding-top: var(--shell-header);
-      padding-left: var(--shell-sidebar);
     }
   }
 
@@ -843,6 +842,102 @@
       radial-gradient(60rem 40rem at 12% -10%, color-mix(in oklch, var(--accent-cyan) 16%, transparent), transparent 70%),
       radial-gradient(50rem 36rem at 92% 0%, color-mix(in oklch, var(--accent-blue) 11%, transparent), transparent 72%),
       radial-gradient(70rem 50rem at 50% 108%, color-mix(in oklch, var(--accent-green) 8%, transparent), transparent 75%);
+    background-attachment: fixed;
+  }
+
+  /* =========================================================================
+   * PER-SECTION ENVIRONMENTS
+   * =========================================================================
+   * Each area of the console carries its own wash, so an operator knows where
+   * they are before reading the heading — the same job the navigation hue
+   * does, continued onto the page.
+   *
+   * Every one is built from THREE low-opacity radial gradients rather than a
+   * flat tint, which is what makes them read as atmosphere instead of as a
+   * coloured box. Opacity stays in the 6–18% range on purpose: these sit
+   * behind tables and body text for hours, and a saturated ground is what
+   * makes long reading tiring. Text never sits directly on the strong part of
+   * a gradient — content lives on a `--surface` panel above it.
+   *
+   * `background-attachment: fixed` keeps the wash still while content scrolls,
+   * so the decoration never races the text. It is a paint-time property, not
+   * a scroll listener: nothing runs in JavaScript.
+   */
+  .env-members {
+    background-image:
+      radial-gradient(58rem 38rem at 8% -8%, color-mix(in oklch, var(--accent-cyan) 18%, transparent), transparent 70%),
+      radial-gradient(46rem 34rem at 96% 4%, color-mix(in oklch, var(--accent-green) 12%, transparent), transparent 72%),
+      radial-gradient(66rem 46rem at 62% 106%, color-mix(in oklch, var(--accent-blue) 10%, transparent), transparent 74%);
+    background-attachment: fixed;
+  }
+  .env-caseload {
+    background-image:
+      radial-gradient(58rem 38rem at 10% -8%, color-mix(in oklch, var(--accent-green) 16%, transparent), transparent 70%),
+      radial-gradient(46rem 34rem at 94% 2%, color-mix(in oklch, var(--accent-cyan) 13%, transparent), transparent 72%),
+      radial-gradient(66rem 46rem at 55% 106%, color-mix(in oklch, var(--jade) 12%, transparent), transparent 74%);
+    background-attachment: fixed;
+  }
+  .env-requests {
+    background-image:
+      radial-gradient(58rem 38rem at 8% -8%, oklch(0.78 0.14 62 / 18%), transparent 70%),
+      radial-gradient(46rem 34rem at 95% 3%, color-mix(in oklch, var(--accent-red) 9%, transparent), transparent 72%),
+      radial-gradient(66rem 46rem at 58% 106%, color-mix(in oklch, var(--accent-blue) 9%, transparent), transparent 74%);
+    background-attachment: fixed;
+  }
+  .env-programmes {
+    background-image:
+      radial-gradient(58rem 38rem at 9% -8%, color-mix(in oklch, var(--accent-red) 12%, transparent), transparent 70%),
+      radial-gradient(46rem 34rem at 95% 3%, oklch(0.78 0.14 20 / 14%), transparent 72%),
+      radial-gradient(66rem 46rem at 56% 106%, color-mix(in oklch, var(--accent-cyan) 9%, transparent), transparent 74%);
+    background-attachment: fixed;
+  }
+  .env-yoga {
+    background-image:
+      radial-gradient(58rem 38rem at 8% -8%, color-mix(in oklch, var(--emerald) 18%, transparent), transparent 70%),
+      radial-gradient(46rem 34rem at 95% 3%, color-mix(in oklch, var(--accent-cyan) 15%, transparent), transparent 72%),
+      radial-gradient(66rem 46rem at 58% 106%, oklch(0.76 0.10 300 / 12%), transparent 74%);
+    background-attachment: fixed;
+  }
+  .env-diet {
+    background-image:
+      radial-gradient(58rem 38rem at 8% -8%, oklch(0.80 0.15 62 / 18%), transparent 70%),
+      radial-gradient(46rem 34rem at 95% 3%, oklch(0.86 0.14 92 / 16%), transparent 72%),
+      radial-gradient(66rem 46rem at 58% 106%, oklch(0.76 0.13 30 / 11%), transparent 74%);
+    background-attachment: fixed;
+  }
+  .env-reports {
+    background-image:
+      radial-gradient(58rem 38rem at 8% -8%, oklch(0.72 0.15 300 / 16%), transparent 70%),
+      radial-gradient(46rem 34rem at 95% 3%, color-mix(in oklch, var(--accent-blue) 13%, transparent), transparent 72%),
+      radial-gradient(66rem 46rem at 58% 106%, oklch(0.74 0.12 270 / 11%), transparent 74%);
+    background-attachment: fixed;
+  }
+  .env-analytics {
+    background-image:
+      radial-gradient(58rem 38rem at 8% -8%, color-mix(in oklch, var(--accent-blue) 17%, transparent), transparent 70%),
+      radial-gradient(46rem 34rem at 95% 3%, color-mix(in oklch, var(--accent-cyan) 14%, transparent), transparent 72%),
+      radial-gradient(66rem 46rem at 58% 106%, oklch(0.70 0.14 285 / 11%), transparent 74%);
+    background-attachment: fixed;
+  }
+  .env-team {
+    background-image:
+      radial-gradient(58rem 38rem at 8% -8%, oklch(0.70 0.14 285 / 16%), transparent 70%),
+      radial-gradient(46rem 34rem at 95% 3%, color-mix(in oklch, var(--accent-blue) 13%, transparent), transparent 72%),
+      radial-gradient(66rem 46rem at 58% 106%, color-mix(in oklch, var(--accent-cyan) 10%, transparent), transparent 74%);
+    background-attachment: fixed;
+  }
+  .env-notifications {
+    background-image:
+      radial-gradient(58rem 38rem at 8% -8%, oklch(0.74 0.16 350 / 16%), transparent 70%),
+      radial-gradient(46rem 34rem at 95% 3%, color-mix(in oklch, var(--accent-red) 10%, transparent), transparent 72%),
+      radial-gradient(66rem 46rem at 58% 106%, oklch(0.72 0.13 300 / 11%), transparent 74%);
+    background-attachment: fixed;
+  }
+  .env-profile {
+    background-image:
+      radial-gradient(58rem 38rem at 8% -8%, color-mix(in oklch, var(--accent-blue) 16%, transparent), transparent 70%),
+      radial-gradient(46rem 34rem at 95% 3%, oklch(0.74 0.11 295 / 15%), transparent 72%),
+      radial-gradient(66rem 46rem at 58% 106%, color-mix(in oklch, var(--accent-cyan) 10%, transparent), transparent 74%);
     background-attachment: fixed;
   }
 

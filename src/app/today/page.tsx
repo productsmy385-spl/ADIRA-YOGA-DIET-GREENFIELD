@@ -15,6 +15,7 @@ import { completionPercent, tally } from "@/server/services/metrics";
 
 import { ActivityCard } from "./activity-card";
 import { CheckInForm } from "./check-in-form";
+import { PageShell } from "@/components/ui/page-shell";
 
 export const metadata: Metadata = { title: "Today" };
 export const dynamic = "force-dynamic";
@@ -71,10 +72,10 @@ export default async function TodayPage() {
   return (
     // bg-canvas is the layered background from globals.css. It carries no 3D and no
     // animation — /today must stay the fastest surface in the product (ADR-014).
-    <div className="theme-bg-wrapper theme-pink-harmony app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-pink-harmony app-shell">
       <AppNav role={session.role} currentPath="/today" />
 
-      <main className="relative z-10 mx-auto max-w-2xl px-6 pt-8 pb-28 sm:pb-24">
+      <PageShell env="env-yoga" width="narrow">
         <h1 className="type-heading text-foreground">{greeting(session.fullName)}</h1>
 
         <p className="mt-1 text-sm text-muted-foreground">
@@ -179,7 +180,7 @@ export default async function TodayPage() {
           </p>
           <CheckInForm existing={checkIn} />
         </section>
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/today" />
     </div>

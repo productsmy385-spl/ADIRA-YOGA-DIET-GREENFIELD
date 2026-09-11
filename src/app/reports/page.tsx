@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { FileText } from "lucide-react";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { PageShell } from "@/components/ui/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { ReportSummary } from "@/components/reports/report-summary";
 import { requireTenantSession } from "@/server/auth/guards";
@@ -26,10 +27,10 @@ export default async function ReportsPage() {
   const reports = await listReportsForMember(session.organizationId, session.userId);
 
   return (
-    <div className="theme-bg-wrapper theme-blue-calm app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-blue-calm app-shell">
       <AppNav role={session.role} currentPath="/reports" />
 
-      <main className="mx-auto max-w-2xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-reports" width="narrow">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">Reports</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Summaries of periods that have closed.
@@ -77,7 +78,7 @@ export default async function ReportsPage() {
             ))}
           </ul>
         )}
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/reports" />
     </div>

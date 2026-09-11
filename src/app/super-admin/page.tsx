@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { requirePlatformSession } from "@/server/auth/guards";
 import { listTenantSummaries, platformHealth } from "@/server/repositories/analytics";
 import { countRecentDenials } from "@/server/repositories/platform-audit";
+import { PageShell } from "@/components/ui/page-shell";
 
 export const metadata: Metadata = { title: "Platform" };
 export const dynamic = "force-dynamic";
@@ -71,10 +72,10 @@ export default async function OwnerPage() {
     health.oldestQueuedMinutes !== null && health.oldestQueuedMinutes > 30;
 
   return (
-    <div className="theme-bg-wrapper theme-green-nature app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-green-nature app-shell">
       <PlatformNav currentPath="/super-admin" />
 
-      <main className="mx-auto max-w-4xl px-6 py-10 pb-24">
+      <PageShell env="env-team" width="default">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             Platform
@@ -213,7 +214,7 @@ export default async function OwnerPage() {
           (decisions/ADR-001). Support access to an individual record is a separate,
           audited operation.
         </p>
-      </main>
+      </PageShell>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Bell, BellOff } from "lucide-react";
 
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { PageShell } from "@/components/ui/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireTenantSession } from "@/server/auth/guards";
@@ -41,10 +42,10 @@ export default async function NotificationsPage() {
   const unread = notifications.filter((n) => n.readAt === null).length;
 
   return (
-    <div className="theme-bg-wrapper theme-purple-serenity app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-purple-serenity app-shell">
       <AppNav role={session.role} currentPath="/notifications" />
 
-      <main className="mx-auto max-w-2xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-notifications" width="narrow">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -145,7 +146,7 @@ export default async function NotificationsPage() {
             })}
           </ul>
         )}
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/notifications" />
     </div>

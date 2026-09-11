@@ -4,6 +4,7 @@ import { KeyRound, LogOut, ShieldCheck } from "lucide-react";
 
 import { GlassPanel } from "@/components/glass/glass";
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { PageShell } from "@/components/ui/page-shell";
 import { PasskeyEnrolButton } from "@/components/passkey-sign-in";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
@@ -107,10 +108,10 @@ export default async function ProfilePage() {
   const isStaff = session.role === "ADMIN";
 
   return (
-    <div className="theme-bg-wrapper theme-purple-serenity app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-purple-serenity app-shell">
       <AppNav role={session.role} currentPath="/profile" />
 
-      <main className="mx-auto max-w-2xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-profile" width="narrow">
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
           {session.fullName}
         </h1>
@@ -260,7 +261,7 @@ export default async function ProfilePage() {
             </Button>
           </div>
         </Section>
-      </main>
+      </PageShell>
 
       <MobileTabBar role={session.role} currentPath="/profile" />
     </div>

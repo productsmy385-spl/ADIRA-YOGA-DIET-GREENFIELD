@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AppNav } from "@/components/nav/app-nav";
 import { requireRole } from "@/server/auth/guards";
 import { consultantLoads, organizationSummary } from "@/server/repositories/analytics";
+import { PageShell } from "@/components/ui/page-shell";
 
 export const metadata: Metadata = { title: "Analytics" };
 export const dynamic = "force-dynamic";
@@ -47,10 +48,10 @@ export default async function AnalyticsPage() {
   ]);
 
   return (
-    <div className="theme-bg-wrapper theme-fresh-green app-shell app-canvas">
+    <div className="theme-bg-wrapper theme-fresh-green app-shell">
       <AppNav role={session.role} currentPath="/admin/analytics" />
 
-      <main className="mx-auto max-w-3xl px-6 py-10 pb-28 sm:pb-10">
+      <PageShell env="env-analytics" width="narrow">
         <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
           ← Caseload
         </Link>
@@ -140,7 +141,7 @@ export default async function AnalyticsPage() {
             that nothing was done.
           </p>
         </section>
-      </main>
+      </PageShell>
     </div>
   );
 }
