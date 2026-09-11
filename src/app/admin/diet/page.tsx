@@ -29,7 +29,7 @@ export default async function DietLibraryPage() {
   const meals = await listMeals(session.organizationId, true);
 
   return (
-    <div className="theme-bg-wrapper theme-orange-energy min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
+    <div className="theme-bg-wrapper theme-orange-energy app-shell app-canvas">
       <AppNav role={session.role} currentPath="/admin/diet" />
 
       <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">

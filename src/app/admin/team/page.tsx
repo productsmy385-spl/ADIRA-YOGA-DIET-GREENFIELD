@@ -81,7 +81,7 @@ export default async function TeamPage() {
   const invited = team.filter((t) => t.status === "INVITED").length;
 
   return (
-    <div className="theme-bg-wrapper theme-fresh-green min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
+    <div className="theme-bg-wrapper theme-fresh-green app-shell app-canvas">
       <AppNav role={session.role} currentPath="/admin/team" />
 
       <main className="mx-auto max-w-4xl px-6 py-10 pb-28 sm:pb-10">

@@ -76,7 +76,7 @@ export default async function ProgressPage() {
   );
 
   return (
-    <div className="theme-bg-wrapper theme-blue-calm min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
+    <div className="theme-bg-wrapper theme-blue-calm app-shell app-canvas">
       <AppNav role={session.role} currentPath="/progress" />
 
       <main className="mx-auto max-w-3xl px-6 py-10 pb-28 sm:pb-10">

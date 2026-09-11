@@ -41,7 +41,7 @@ export default async function NotificationsPage() {
   const unread = notifications.filter((n) => n.readAt === null).length;
 
   return (
-    <div className="theme-bg-wrapper theme-purple-serenity min-h-dvh bg-background sm:pl-[260px] pt-14 sm:pt-0">
+    <div className="theme-bg-wrapper theme-purple-serenity app-shell app-canvas">
       <AppNav role={session.role} currentPath="/notifications" />
 
       <main className="mx-auto max-w-2xl px-6 py-10 pb-28 sm:pb-10">

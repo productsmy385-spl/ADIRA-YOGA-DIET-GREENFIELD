@@ -36,6 +36,32 @@ const buttonVariants = cva(
         /** Translucent secondary, for a gradient button's companion. */
         glass:
           "border border-border-glass bg-surface-glass text-foreground shadow-xs backdrop-blur-glass hover:-translate-y-px hover:bg-surface-glass-strong hover:shadow-sm",
+
+        /*
+         * ── The console's colour hierarchy ──────────────────────────────────
+         *
+         * Three variants, three meanings, and the meanings are the reason they
+         * exist. An administrator scanning a row of buttons should be able to
+         * tell "this creates something", "this shows me something" and "this
+         * destroys something" without reading the labels.
+         *
+         * `success` is the ONE primary action on a view. Two green buttons side
+         * by side is the same as none, because the eye no longer knows which is
+         * the main thing to do.
+         *
+         * `danger` is reserved for irreversible destruction. Archiving is not
+         * destruction here — ADR-009 snapshots programme content at assignment,
+         * so archiving cannot corrupt a live plan — and painting it red would
+         * spend the alarm on something harmless, leaving nothing louder for the
+         * thing that is not.
+         */
+        success:
+          "bg-accent-green text-accent-green-fg shadow-sm hover:-translate-y-px hover:shadow-md hover:brightness-110",
+        info: "bg-accent-blue text-accent-blue-fg shadow-sm hover:-translate-y-px hover:shadow-md hover:brightness-110",
+        brand:
+          "bg-accent-cyan text-accent-cyan-fg shadow-sm hover:-translate-y-px hover:shadow-md hover:brightness-110",
+        danger:
+          "bg-accent-red text-accent-red-fg shadow-sm hover:-translate-y-px hover:shadow-md hover:brightness-110 focus-visible:ring-accent-red/40",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
         outline:
