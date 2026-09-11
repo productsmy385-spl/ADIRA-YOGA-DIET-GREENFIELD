@@ -47,7 +47,7 @@ export function LandingHeader({ destination, ctaText }: LandingNavProps) {
             src={branding.icons.mark}
             alt=""
             aria-hidden
-            className="size-8 shrink-0 mix-blend-multiply dark:mix-blend-screen"
+            className="size-8 shrink-0"
           />
           <span className="text-xl font-bold tracking-tight text-foreground">
             {branding.name}
@@ -639,7 +639,7 @@ export function LandingFooter() {
       <div className="mx-auto max-w-7xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={branding.icons.mark} alt="" aria-hidden className="size-5 mix-blend-multiply dark:mix-blend-screen" />
+          <img src={branding.icons.mark} alt="" aria-hidden className="size-5" />
           <span className="font-semibold text-foreground">{branding.name}</span>
         </div>
 

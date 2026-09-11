@@ -479,7 +479,7 @@ export function AppNav({ role, currentPath }: AppNavProps) {
               src={branding.icons.mark}
               alt=""
               aria-hidden
-              className="size-10 shrink-0 mix-blend-multiply dark:mix-blend-screen"
+              className="size-10 shrink-0"
             />
             {/* Wordmark appears only from `lg`. Between 768 and 1023 the ~120px it costs
                 is the difference between the bar fitting and overflowing. */}
@@ -585,7 +585,7 @@ export function AppNav({ role, currentPath }: AppNavProps) {
               src={branding.icons.mark}
               alt=""
               aria-hidden
-              className="size-6 shrink-0 mix-blend-multiply dark:mix-blend-screen"
+              className="size-6 shrink-0"
             />
             <span className="text-sm font-extrabold tracking-tight text-foreground">
               {branding.name}
@@ -636,7 +636,7 @@ export function AppNav({ role, currentPath }: AppNavProps) {
               src={branding.icons.mark}
               alt=""
               aria-hidden
-              className="size-7 shrink-0 mix-blend-multiply dark:mix-blend-screen"
+              className="size-7 shrink-0"
             />
             <span className="text-base font-extrabold tracking-tight text-foreground">
               {branding.name}

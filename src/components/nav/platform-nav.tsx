@@ -33,7 +33,7 @@ export function PlatformNav({ currentPath }: { currentPath?: string }) {
         <div className="flex h-14 items-center px-6 border-b border-border/40">
           <Link href="/super-admin" className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={branding.icons.mark} alt="" aria-hidden className="size-7 mix-blend-multiply dark:mix-blend-screen" />
+            <img src={branding.icons.mark} alt="" aria-hidden className="size-7" />
             <span className="font-semibold tracking-tight text-foreground">
               {branding.name}
               <span className="ml-1 text-xs font-normal text-muted-foreground">platform</span>
@@ -75,7 +75,7 @@ export function PlatformNav({ currentPath }: { currentPath?: string }) {
       <header className="sm:hidden fixed top-0 inset-x-0 z-30 flex h-14 items-center justify-between border-b border-border/40 bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <Link href="/super-admin" className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={branding.icons.mark} alt="" aria-hidden className="size-6 mix-blend-multiply dark:mix-blend-screen" />
+          <img src={branding.icons.mark} alt="" aria-hidden className="size-6" />
           <span className="font-semibold tracking-tight text-foreground">
             {branding.name}
             <span className="ml-1 text-xs font-normal text-muted-foreground">platform</span>

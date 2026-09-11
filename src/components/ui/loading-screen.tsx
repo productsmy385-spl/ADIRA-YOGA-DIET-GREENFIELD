@@ -22,7 +22,7 @@ export function LoadingScreen({ className }: { className?: string }) {
             src={branding.icons.mark}
             alt=""
             aria-hidden
-            className="size-16 relative z-10 animate-breathe motion-reduce:animate-none mix-blend-multiply dark:mix-blend-screen"
+            className="size-16 relative z-10 animate-breathe motion-reduce:animate-none"
           />
         </div>
 

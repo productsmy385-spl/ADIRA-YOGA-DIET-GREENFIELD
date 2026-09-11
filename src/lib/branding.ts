@@ -30,17 +30,29 @@ export const branding = {
   /**
    * Icon set.
    *
-   * PLACEHOLDER: redrawn from the mark in the supplied architecture posters, not from a
-   * source asset. Replace when the official logo file arrives — see docs/BRANDING.md.
+   * THE OFFICIAL LOGO, supplied 2026-09-11 — no longer the redrawn placeholder this
+   * comment used to apologise for.
    *
-   * SVG only for now. The raster set an install prompt wants — 192/512 PNG plus a
-   * maskable variant with safe-zone padding — is Phase 14's job, and generating it from
-   * a placeholder would mean regenerating it all again from the real logo.
+   * Derived from one 1217×1292 RGBA source, which is why the two agree exactly:
+   *
+   *   mark  the meditating figure and its aura ring, WITHOUT the wordmark, trimmed to
+   *         content and letterboxed into a 512² transparent square. Square because every
+   *         place it renders is square — a 40px header slot, a favicon, a PWA tile — and
+   *         a lockup scaled into those is an illegible smudge.
+   *   logo  the full lockup including "Adira / Wellness in Balance", for anywhere with
+   *         room for it.
+   *
+   * `src/app/icon.png` is the same 512² mark. Next's file convention emits the favicon
+   * link from it, so the tab icon and the header cannot drift apart.
+   *
+   * Kept as PNG rather than SVG: the source is a raster render with gradients, glow and
+   * soft shadow. Tracing it to SVG would either balloon the file or lose the glow, and at
+   * 59KB there is nothing to win.
    */
   icons: {
-    mark: "/branding/adira-mark.svg",
-    logo: "/branding/adira-logo.svg",
-    favicon: "/favicon.svg",
+    mark: "/brand/adira-mark.png",
+    logo: "/brand/adira-logo.png",
+    favicon: "/brand/adira-mark.png",
   },
 
   /**
