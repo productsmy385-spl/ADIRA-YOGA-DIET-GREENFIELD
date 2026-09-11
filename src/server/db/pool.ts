@@ -19,15 +19,32 @@ import { env } from "@/lib/env";
 
 const globalForPool = globalThis as unknown as { adiraPool?: Pool };
 
+/**
+ * Whether to negotiate TLS, decided from the TARGET rather than assumed.
+ *
+ * Railway's certificates do not chain to a public CA, so without DATABASE_CA_CERT the
+ * connection is encrypted but unverified — the same trade-off TempleOS documents.
+ * Supplying the cert upgrades it to full verification.
+ *
+ * What changed: this used to return an `ssl` object unconditionally. Even
+ * `{ rejectUnauthorized: false }` still REQUESTS a handshake, and a PostgreSQL with no
+ * TLS configured refuses it outright — "The server does not support SSL connections".
+ * That is every CI service container and most local installs, so a local database could
+ * not be connected to at all. Remote hosts are unaffected: they keep TLS exactly as before.
+ */
+function sslFor(target: string): { ca: string; rejectUnauthorized: true } | { rejectUnauthorized: false } | false {
+  if (env.DATABASE_CA_CERT) {
+    return { ca: env.DATABASE_CA_CERT, rejectUnauthorized: true };
+  }
+  if (/[?&]sslmode=disable/.test(target)) return false;
+  if (/@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(target)) return false;
+  return { rejectUnauthorized: false };
+}
+
 function createPool(): Pool {
   return new Pool({
     connectionString: env.DATABASE_URL,
-    // Railway's certificates do not chain to a public CA. Without DATABASE_CA_CERT the
-    // connection is still encrypted, just unverified — the same trade-off TempleOS
-    // documents. Supplying the cert upgrades it to full verification.
-    ssl: env.DATABASE_CA_CERT
-      ? { ca: env.DATABASE_CA_CERT, rejectUnauthorized: true }
-      : { rejectUnauthorized: false },
+    ssl: sslFor(env.DATABASE_URL),
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
