@@ -20,6 +20,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 
 import { PG_ENUM_EXPECTATIONS } from "./schema-expectations.mjs";
+import { sslFor } from "./lib/db-ssl.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -247,9 +248,7 @@ async function main() {
 
   const client = new pg.Client({
     connectionString,
-    ssl: process.env.DATABASE_CA_CERT
-      ? { ca: process.env.DATABASE_CA_CERT, rejectUnauthorized: true }
-      : { rejectUnauthorized: false },
+    ssl: sslFor(connectionString),
   });
 
   await client.connect();

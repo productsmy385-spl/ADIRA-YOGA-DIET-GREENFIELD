@@ -26,6 +26,7 @@
 
 import { readFileSync } from "node:fs";
 import { Client } from "pg";
+import { sslFor } from "./lib/db-ssl.mjs";
 
 /* ── configuration ─────────────────────────────────────────────────────── */
 
@@ -231,9 +232,7 @@ function compare(before, after) {
 
 const client = new Client({
   connectionString: DATABASE_URL,
-  ssl: process.env.DATABASE_CA_CERT
-    ? { ca: process.env.DATABASE_CA_CERT, rejectUnauthorized: true }
-    : { rejectUnauthorized: false },
+  ssl: sslFor(DATABASE_URL),
 });
 
 await client.connect();

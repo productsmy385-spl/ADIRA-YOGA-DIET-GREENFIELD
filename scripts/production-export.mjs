@@ -35,6 +35,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { Client } from "pg";
+import { sslFor } from "./lib/db-ssl.mjs";
 
 for (const file of [".env.local", ".env"]) {
   try {
@@ -87,9 +88,7 @@ function redact(rows) {
 
 const client = new Client({
   connectionString: DATABASE_URL,
-  ssl: process.env.DATABASE_CA_CERT
-    ? { ca: process.env.DATABASE_CA_CERT, rejectUnauthorized: true }
-    : { rejectUnauthorized: false },
+  ssl: sslFor(DATABASE_URL),
 });
 
 await client.connect();

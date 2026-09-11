@@ -35,6 +35,7 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 
 import { pendingMigrations, readMigrations, verifyChecksums } from "./migration-plan.mjs";
+import { sslFor } from "./lib/db-ssl.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const MIGRATIONS_DIR = join(ROOT, "migrations");
@@ -89,28 +90,6 @@ async function main() {
     return;
   }
 
-  /*
-   * SSL is decided from the TARGET, not assumed.
-   *
-   * This previously always passed an `ssl` object, falling back to
-   * `{ rejectUnauthorized: false }`. That still REQUESTS a TLS handshake — and a
-   * PostgreSQL with no TLS configured refuses it outright with "The server does not
-   * support SSL connections", which is exactly what CI's `postgres:17-alpine` service
-   * container does. Every CI run since 2026-09-03 failed on this one line, at the
-   * Migrate step, before lint or tests could report anything.
-   *
-   * `rejectUnauthorized: false` is kept for remote hosts because Railway's certificates
-   * do not chain to a public CA; supplying DATABASE_CA_CERT upgrades that to full
-   * verification. What is NOT kept is demanding TLS from a server that has none.
-   */
-  function sslFor(target) {
-    if (process.env.DATABASE_CA_CERT) {
-      return { ca: process.env.DATABASE_CA_CERT, rejectUnauthorized: true };
-    }
-    if (/[?&]sslmode=disable/.test(target)) return false;
-    if (/@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(target)) return false;
-    return { rejectUnauthorized: false };
-  }
 
   const client = new pg.Client({
     connectionString,
