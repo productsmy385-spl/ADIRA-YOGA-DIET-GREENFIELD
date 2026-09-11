@@ -140,7 +140,7 @@ export function HeroSection({ destination }: { destination: string; ctaText?: st
             <Button asChild size="lg" variant="glass" className="rounded-full px-8">
               <Link href="#yoga-journey">
                 <YogaIcon size={16} className="text-current" />
-                Explore Poses
+                Explore Wellness
               </Link>
             </Button>
           </div>
