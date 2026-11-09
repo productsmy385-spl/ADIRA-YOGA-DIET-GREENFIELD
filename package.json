@@ -24,11 +24,10 @@
     "seed:org": "node scripts/seed-organization.mjs"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.9.25",
     "@hookform/resolvers": "^5.9.1",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
-    "@simplewebauthn/browser": "^13.3.0",
-    "@simplewebauthn/server": "^13.3.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.33.0",
@@ -39,7 +38,6 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "^7.85.0",
-    "resend": "^6.22.0",
     "tailwind-merge": "^3.6.0",
     "three": "^0.185.1",
     "zod": "^4.4.3"

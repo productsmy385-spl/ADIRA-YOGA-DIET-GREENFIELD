@@ -39,6 +39,8 @@ interface Preview {
 }
 
 interface ImportOutcome {
+  /** Whether Clerk accepted the invitation emails (ADR-015). */
+  invitationsSent?: boolean;
   created: number;
   alreadyExisted: string[];
   skippedInvalid: number;
@@ -361,6 +363,14 @@ function Outcome({ outcome }: { outcome: ImportOutcome }) {
       <h3 className="type-heading text-foreground">
         {outcome.created} member{outcome.created === 1 ? "" : "s"} invited
       </h3>
+
+      {/* `=== false`, not falsy: an older response without the field says nothing. */}
+      {outcome.invitationsSent === false && outcome.created > 0 && (
+        <p className="text-sm text-destructive">
+          The accounts were created, but the invitation emails could not be sent. Members can
+          still activate by signing in with their address.
+        </p>
+      )}
 
       {outcome.alreadyExisted.length > 0 && (
         <div>

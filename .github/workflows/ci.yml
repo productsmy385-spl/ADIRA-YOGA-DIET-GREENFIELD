@@ -44,6 +44,10 @@ jobs:
       APP_URL: http://localhost:3000
       NEXT_PUBLIC_APP_NAME: Adira
       NEXT_PUBLIC_APP_URL: http://localhost:3000
+      # Clerk (ADR-015). Shape-valid dummies: the build validates them but never calls
+      # Clerk. The publishable key decodes to a reserved `.invalid` host.
+      CLERK_SECRET_KEY: sk_test_ci-not-a-real-key
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2kuY2xlcmsuaW52YWxpZCQ
 
     steps:
       - uses: actions/checkout@v4

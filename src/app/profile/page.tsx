@@ -1,19 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { KeyRound, LogOut, ShieldCheck } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 
 import { GlassPanel } from "@/components/glass/glass";
 import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
 import { PageShell } from "@/components/ui/page-shell";
-import { PasskeyEnrolButton } from "@/components/passkey-sign-in";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireTenantSession } from "@/server/auth/guards";
-import { listUserPasskeys } from "@/server/repositories/passkey-credentials";
 
 import { signOutAction } from "../sign-in/actions";
-import { revokePasskeyAction, signOutEverywhereAction } from "./actions";
+import { signOutEverywhereAction } from "./actions";
 
 export const metadata: Metadata = { title: "Profile" };
 export const dynamic = "force-dynamic";
@@ -25,21 +23,17 @@ export const dynamic = "force-dynamic";
  * WHY THIS ROUTE HAD TO EXIST
  * ══════════════════════════════════════════════════════════════════════════════
  *
- * `PasskeyEnrolButton` was written, tested and imported by nothing. The sign-in page
- * offers `PasskeySignInButton`, so the product could authenticate somebody with a passkey
- * they had no way to create — enrolment existed end to end, in the API routes and the
- * repository, and had no surface. This page is where that belongs.
- *
- * It also gathers the account controls that were scattered or missing: sign-out lived on
- * one page, and "sign out everywhere" existed in the repository (`revokeAllTenantSessions`)
- * with no caller at all.
+ * It gathers the account controls that were scattered or missing: sign-out lived on one
+ * page, and "sign out everywhere" existed in the repository (`revokeAllTenantSessions`)
+ * with no caller at all. (It first existed to host passkey enrolment; passkeys moved to
+ * Clerk with ADR-015.)
  *
  * ══════════════════════════════════════════════════════════════════════════════
  * ONE PAGE, EVERY ROLE, NO ROLE BRANCHING ON DATA
  * ══════════════════════════════════════════════════════════════════════════════
  *
  * `requireTenantSession` rather than `requireRole`: an admin has an account too, and their
- * passkeys and sessions are administered exactly like anybody else's. Nothing shown here
+ * sessions are administered exactly like anybody else's. Nothing shown here
  * is member health data — it is identity, credentials and preferences, all of which belong
  * to the person reading the page.
  *
@@ -102,9 +96,6 @@ function Section({
 export default async function ProfilePage() {
   const session = await requireTenantSession();
 
-  // Scoped by organisation AND user, both from the session. There is no id in this route.
-  const passkeys = await listUserPasskeys(session.organizationId, session.userId);
-
   const isStaff = session.role === "ADMIN";
 
   return (
@@ -165,62 +156,6 @@ export default async function ProfilePage() {
         </Section>
 
         <Section
-          title="Passkeys"
-          description="Sign in with your device instead of waiting for a code by email."
-        >
-          {passkeys.length === 0 ? (
-            <p className="text-sm/relaxed text-muted-foreground">
-              No passkeys yet. Adding one lets you sign in with your fingerprint, face or
-              device PIN.
-            </p>
-          ) : (
-            <ul className="divide-y divide-border">
-              {passkeys.map((passkey) => (
-                <li
-                  key={passkey.id}
-                  className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0"
-                >
-                  <div className="flex items-start gap-3">
-                    <KeyRound
-                      className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                      aria-hidden
-                    />
-                    <div>
-                      <p className="text-sm text-foreground">
-                        {passkey.label ?? passkey.deviceType ?? "Passkey"}
-                      </p>
-                      <p className="type-meta mt-0.5 text-muted-foreground">
-                        Added {passkey.createdAt.toISOString().slice(0, 10)}
-                        {passkey.lastUsedAt
-                          ? ` · last used ${passkey.lastUsedAt.toISOString().slice(0, 10)}`
-                          : " · not used yet"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <form action={revokePasskeyAction}>
-                    <input type="hidden" name="credentialId" value={passkey.id} />
-                    <Button type="submit" size="xs" variant="ghost">
-                      Remove
-                    </Button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {/*
-            Renders nothing where WebAuthn is unavailable — an older browser or an
-            embedded webview, both of which real customers use. A button that cannot work
-            produces an error the person cannot act on, and email codes remain available
-            to them regardless.
-          */}
-          <div className="mt-4 border-t border-border pt-4">
-            <PasskeyEnrolButton />
-          </div>
-        </Section>
-
-        <Section
           title="Security"
           description="Signing out everywhere ends every session on every device, including this one."
         >
@@ -242,7 +177,7 @@ export default async function ProfilePage() {
 
           <p className="type-meta mt-4 text-muted-foreground">
             Use &ldquo;everywhere&rdquo; if you have signed in on a device you no longer
-            have. Your passkeys are not removed — remove those above.
+            have. It also ends your sign-in on every other device.
           </p>
         </Section>
 

@@ -103,6 +103,12 @@ Run typecheck, lint, and test before calling work done.
 
 Last verified 2026-08-23.
 
+**2026-11-09: production moved to a new Railway project, `powerful-creation`** (account
+g32597028@gmail.com), one `production` environment, fresh database with migrations
+`001`–`012` applied. The pre-deploy `npm run migrate` did NOT run on its first deploy —
+verify the service's pre-deploy command in the dashboard. The table below describes the
+previous project and is kept for history.
+
 Railway PostgreSQL is **provisioned and live**. Two environments now exist:
 
 | Environment | App | Database | Migrations |
@@ -123,11 +129,11 @@ model (ADR-013), access requests, and the platform sign-in.
 
 Three operational limits that are easy to forget, because none fails loudly:
 
-- **Email delivery reaches exactly one address.** Resend is on its sandbox, which accepts
-  sends only to the account's own signup address. Every other recipient gets a 403 that
-  surfaces as `otp.issue FAILURE DELIVERY_FAILED` in `audit_logs` while the sign-in form
-  still says "if that address has an account…". **No second person can sign in until a
-  domain is verified.**
+- **Authentication is Clerk (ADR-015, 2026-11-09).** Resend, the emailed OTP and
+  in-house passkeys are gone. Clerk proves the address; `/auth/continue` turns that into
+  Adira's own session. Invitation emails come from Clerk, so a failure shows as
+  `invitation.send FAILURE` in `audit_logs`. The Clerk instance must be in **Restricted**
+  sign-up mode — that setting lives in the Clerk dashboard, not in git.
 - **`.env.local` points `DATABASE_URL` at production.** `docs/RAILWAY.md` forbids it.
   `SQL_TEST_DATABASE_URL` correctly points at the separate `adira_test` database on the
   same server — verify that before running `npm test`, because the helpers in

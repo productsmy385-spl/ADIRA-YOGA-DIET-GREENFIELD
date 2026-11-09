@@ -19,7 +19,7 @@ changed since.
 | [004](ADR-004-tenant-scope-from-session.md) | Tenant scope comes from the session, and the database enforces it too | Accepted |
 | [005](ADR-005-raw-sql-no-orm.md) | Hand-written parameterised SQL, no ORM | Accepted |
 | [006](ADR-006-forward-only-migrations-on-deploy.md) | Forward-only migrations, applied automatically before each deploy | Accepted |
-| [007](ADR-007-otp-by-email-behind-adapter.md) | OTP is delivered by email via Resend, behind a delivery adapter | Accepted |
+| [007](ADR-007-otp-by-email-behind-adapter.md) | OTP is delivered by email via Resend, behind a delivery adapter | Superseded by 015 |
 | [008](ADR-008-bmad-as-execution-method.md) | BMAD is the planning and execution method | Accepted |
 | [009](ADR-009-programme-snapshot-on-assignment.md) | Assigning a programme snapshots it; the template is never referenced live | Accepted |
 | [010](ADR-010-locale-in-cookie-not-url.md) | The locale lives in a cookie, not in the URL | Accepted |
@@ -27,6 +27,7 @@ changed since.
 | [012](ADR-012-organization-resolved-after-verification.md) | The organization is resolved after the credential verifies, never before | Accepted |
 | [013](ADR-013-merged-admin-administrative-vs-data-reach.md) | Merged ADMIN: administrative reach is organization-wide, member data stays assignment-scoped | Accepted |
 | [014](ADR-014-3d-stack-and-csp-consequences.md) | react-three-fiber for 3D, and what it costs the CSP | Accepted |
+| [015](ADR-015-clerk-identity-adira-sessions.md) | Clerk proves identity; Adira keeps its own sessions and authorization | Accepted |
 
 ## Inherited context
 

@@ -40,12 +40,19 @@ export const serverSchema = z
     /** Absolute origin, used for WebAuthn relying-party checks and absolute links. */
     APP_URL: z.url(),
 
-    // ---- Phase 2+ integrations. Optional until the phase that implements them. ----
-
-    /** Resend API key for OTP delivery. Phase 2. */
-    RESEND_API_KEY: z.string().startsWith("re_").optional(),
-    /** From-address for transactional mail. Phase 2. */
-    OTP_FROM_EMAIL: z.email().optional(),
+    /**
+     * Clerk — proves identity and sends invitations (ADR-015). Required, and checked here
+     * rather than left to Clerk's own runtime error: authentication must fail closed at
+     * boot, never degrade into "nobody can sign in" discovered by a customer.
+     */
+    CLERK_SECRET_KEY: z.string().startsWith("sk_", "must be a Clerk secret key (sk_…)"),
+    /**
+     * Not secret — it is also inlined into the browser bundle — but validated on the server
+     * because the proxy derives the CSP's Clerk origin from it.
+     */
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z
+      .string()
+      .startsWith("pk_", "must be a Clerk publishable key (pk_…)"),
 
     /**
      * ImageKit credentials. Phase 12.

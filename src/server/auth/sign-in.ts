@@ -1,178 +1,72 @@
-import { issueOtp, verifyOtp } from "./otp";
+import type { ClerkIdentity } from "./clerk";
 import { issuePlatformSession, issueTenantSession } from "./session";
-import { generateOtpCode, hashOtpCode } from "./tokens";
 
 import { recordAudit } from "@/server/repositories/audit-logs";
 import {
   findOwnerAccountByEmail,
+  linkOwnerAccountToClerk,
   setOwnerAccountStatus,
 } from "@/server/repositories/owner-accounts";
 import {
   findAccountsForEmailAcrossTenants,
-  normaliseEmail,
+  linkUserToClerk,
   setUserStatus,
   touchLastSeen,
 } from "@/server/repositories/users";
-import type { OtpPrincipal } from "@/server/repositories/otp-challenges";
 
 /**
- * The sign-in flow.
+ * Turning a verified Clerk identity into an Adira session (ADR-015).
  *
- * This module owns the two rules that the layers below it cannot enforce, because both
- * are properties of the *response* rather than of any single operation:
+ * Clerk has already proved control of the address by the time anything here runs — that
+ * proof is what the emailed OTP used to provide. What stays here is everything Clerk must
+ * not decide:
  *
- *   1. ENUMERATION. An unknown address and a known one produce the identical result.
- *      Nothing a caller can observe — status, body, or error — distinguishes them.
+ *   INVITE-ONLY. A Clerk user with no INVITED or ACTIVE account gets NO_ACCOUNT and no
+ *   database write. Clerk accounts are not Adira accounts.
  *
- *   2. ORDERING (ADR-012). Which organizations an address belongs to is revealed only
- *      after a code has been verified. Before that, the answer is always the same.
+ *   LINK-ONCE. The first sign-in binds each account row to the Clerk user who proved its
+ *   address (FlowDine OS, RASOIOS-ADR-006). A row bound to a different Clerk user is an
+ *   identity conflict: excluded and audited, never silently re-bound.
  *
- * WHY OTP IS THE WAY IN AT ALL
+ *   ORDERING (ADR-012). Which organizations an address belongs to is disclosed only after
+ *   verification — which is now always true here, since there is no pre-verification step.
  *
- * docs/AUTHENTICATION.md is explicit that OTP is not a general-purpose login path and
- * that passkeys are primary. Passkeys are not built yet, so today OTP is the only way to
- * establish a first session — it is the documented "recovery when no passkey is
- * available" case, which is every account until enrolment exists. When passkey
- * authentication lands, this path stays, but stops being the default.
+ *   TWO DOMAINS (ADR-001). The tenant and platform functions are separate, read separate
+ *   tables and issue separate cookies. One Clerk user may hold both, but nothing here ever
+ *   turns one into the other.
  */
 
-/**
- * The result of asking for a code.
- *
- * Deliberately carries no information about the address. There is no `accountExists`
- * field and no variant meaning "unknown address", because a field that exists is a field
- * that eventually gets rendered.
- */
-export type RequestCodeResult =
-  | { ok: true }
-  | { ok: false; reason: "RATE_LIMITED"; retryAfterSeconds: number }
-  | { ok: false; reason: "INVALID_EMAIL" };
-
-export interface RequestCodeInput {
-  email: string;
+export interface RequestMeta {
   ip?: string | null;
   userAgent?: string | null;
 }
 
-/** Cheap shape check. Rejecting obvious junk before touching the database is not a leak. */
-function looksLikeEmail(value: string): boolean {
-  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value);
+type CandidateAccount = Awaited<ReturnType<typeof findAccountsForEmailAcrossTenants>>[number];
+
+export interface AccountSelection<T> {
+  /** May be entered now: ACTIVE or INVITED, and not bound to another Clerk user. */
+  enterable: T[];
+  /** Bound to a different Clerk user. Excluded, and worth an audit entry. */
+  conflicts: T[];
 }
 
 /**
- * Pick the account a challenge is issued against when an address has several.
+ * Pure: which of an address's accounts this Clerk user may enter.
  *
- * Deterministic — oldest first — because `verifySignInCode` must re-derive the *same*
- * principal to find the challenge it created. Anything order-dependent on the database's
- * whim (no ORDER BY, or ordering by a mutable column) would make verification fail
- * intermittently for exactly the multi-tenant users this path exists to serve.
- *
- * The choice is not meaningful to the person signing in. The code proves control of the
- * address; which row carries the challenge is bookkeeping, and the organization is chosen
- * afterwards.
+ * DISABLED, SUSPENDED, LOCKED and PENDING are simply not enterable. A conflict is checked
+ * first so it is reported even on an account that would otherwise be blocked.
  */
-function primaryAccount<T extends { createdAt: Date; id: string }>(accounts: T[]): T {
-  return [...accounts].sort(
-    (a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id),
-  )[0];
+export function selectEnterableAccounts<
+  T extends { status: string; clerkUserId: string | null },
+>(accounts: readonly T[], clerkUserId: string): AccountSelection<T> {
+  const conflicts = accounts.filter((a) => a.clerkUserId !== null && a.clerkUserId !== clerkUserId);
+  const enterable = accounts.filter(
+    (a) =>
+      !conflicts.includes(a) && (a.status === "ACTIVE" || a.status === "INVITED"),
+  );
+  return { enterable, conflicts };
 }
 
-/**
- * Send a sign-in code, or convincingly appear to.
- *
- * The unknown-address branch still generates and hashes a code, so the two paths do
- * comparable CPU work rather than one returning conspicuously early.
- *
- * KNOWN LIMITATION, stated rather than hidden: the known-address branch also sends an
- * email, and that is slower than not sending one. A determined attacker with a stopwatch
- * can still distinguish the two. Closing that properly means moving delivery onto the job
- * queue (ADR-003) so both branches return before any mail is attempted — which is the
- * right fix and belongs with Phase 11, when the queue is drained. ADR-012 records this as
- * part of the contract.
- */
-export async function requestSignInCode(
-  input: RequestCodeInput,
-): Promise<RequestCodeResult> {
-  const email = normaliseEmail(input.email);
-
-  if (!looksLikeEmail(email)) return { ok: false, reason: "INVALID_EMAIL" };
-
-  const accounts = await findAccountsForEmailAcrossTenants(email);
-
-  // Accounts that can never sign in are treated as absent. DISABLED is permanent, so
-  // issuing a code would send mail to someone who cannot use it — and telling them
-  // anything else would confirm the account exists.
-  const usable = accounts.filter((account) => account.status !== "DISABLED");
-
-  if (usable.length === 0) {
-    // Do the work anyway, and throw the result away. This is not security theatre: it
-    // keeps the two branches within the same order of magnitude of cost, and it means a
-    // future edit that makes the real branch slower does not silently open a gap.
-    const decoy = generateOtpCode();
-    hashOtpCode(decoy, "00000000-0000-0000-0000-000000000000");
-
-    await recordAudit({
-      organizationId: null,
-      actorDomain: "TENANT",
-      actorId: null,
-      // The address is recorded because a support conversation needs it, and because a
-      // burst of these is the enumeration signal worth alerting on. It is not a secret —
-      // the person submitting it already knows it.
-      actorLabel: email,
-      action: "auth.request_code",
-      outcome: "FAILURE",
-      metadata: { reason: "NO_ACCOUNT" },
-      ip: input.ip,
-      userAgent: input.userAgent,
-    });
-
-    // The SAME result the success path returns.
-    return { ok: true };
-  }
-
-  const account = primaryAccount(usable);
-
-  const principal: OtpPrincipal = {
-    kind: "TENANT",
-    userId: account.id,
-    organizationId: account.organizationId,
-  };
-
-  const result = await issueOtp({
-    principal,
-    // An account that has never signed in is being activated; anything else is recovery.
-    // The distinction is what the email says, and saying "activate your account" to a
-    // returning customer is a small but real confusion.
-    purpose: account.status === "INVITED" ? "ACCOUNT_ACTIVATION" : "ACCOUNT_RECOVERY",
-    destination: email,
-    ip: input.ip,
-    userAgent: input.userAgent,
-  });
-
-  if (!result.ok) {
-    if (result.reason === "RATE_LIMITED") {
-      return {
-        ok: false,
-        reason: "RATE_LIMITED",
-        retryAfterSeconds: result.retryAfterSeconds,
-      };
-    }
-
-    // Delivery failed. The caller is told the same thing as on success, because
-    // "delivery failed for this address" is still a statement about the address. The
-    // failure is in the audit log and the server log, where someone can act on it.
-    return { ok: true };
-  }
-
-  return { ok: true };
-}
-
-/**
- * One organization the verified address may enter.
- *
- * Returned only after verification. Carries the minimum needed to choose: a name to
- * recognise and an id to act on.
- */
 export interface AvailableMembership {
   userId: string;
   organizationId: string;
@@ -182,359 +76,254 @@ export interface AvailableMembership {
   status: string;
 }
 
-export type VerifyCodeResult =
-  | { ok: true; kind: "SIGNED_IN"; organizationId: string }
-  | { ok: true; kind: "CHOOSE_ORGANIZATION"; memberships: AvailableMembership[] }
-  | { ok: false; reason: "INCORRECT" | "EXPIRED" | "EXHAUSTED" | "NOT_ALLOWED" }
-  | { ok: false; reason: "RATE_LIMITED"; retryAfterSeconds: number };
+export type TenantSignInResult =
+  | { kind: "SIGNED_IN"; role: CandidateAccount["role"] }
+  | { kind: "CHOOSE_ORGANIZATION"; memberships: AvailableMembership[] }
+  /** No enterable account. Covers "not invited" and "suspended" alike, by design. */
+  | { kind: "NO_ACCOUNT" };
 
-export interface VerifyCodeInput {
-  email: string;
-  code: string;
-  ip?: string | null;
-  userAgent?: string | null;
-}
+async function loadSelection(identity: ClerkIdentity, request: RequestMeta) {
+  if (!identity.verifiedEmail) return null;
 
-/**
- * Verify a submitted code and, when there is only one, sign the person in.
- *
- * When the address belongs to several organizations the caller is handed the list and no
- * session is issued yet — `completeSignIn` finishes the job. This is the ADR-012 split:
- * the list is disclosed only on the far side of a verified credential.
- */
-export async function verifySignInCode(
-  input: VerifyCodeInput,
-): Promise<VerifyCodeResult> {
-  const email = normaliseEmail(input.email);
+  const accounts = await findAccountsForEmailAcrossTenants(identity.verifiedEmail);
+  const selection = selectEnterableAccounts(accounts, identity.clerkUserId);
 
-  const accounts = await findAccountsForEmailAcrossTenants(email);
-  const usable = accounts.filter((account) => account.status !== "DISABLED");
-
-  if (usable.length === 0) {
-    // No account, so no challenge can exist. Answer as though the code were simply wrong
-    // — which, from the submitter's point of view, is indistinguishable and true.
-    return { ok: false, reason: "INCORRECT" };
-  }
-
-  const account = primaryAccount(usable);
-
-  const result = await verifyOtp({
-    principal: {
-      kind: "TENANT",
-      userId: account.id,
-      organizationId: account.organizationId,
-    },
-    purpose: account.status === "INVITED" ? "ACCOUNT_ACTIVATION" : "ACCOUNT_RECOVERY",
-    code: input.code,
-    ip: input.ip,
-    userAgent: input.userAgent,
-  });
-
-  if (!result.ok) {
-    switch (result.reason) {
-      case "RATE_LIMITED":
-        return {
-          ok: false,
-          reason: "RATE_LIMITED",
-          retryAfterSeconds: result.retryAfterSeconds,
-        };
-      case "EXHAUSTED":
-        return { ok: false, reason: "EXHAUSTED" };
-      case "NO_CHALLENGE":
-        // No live challenge: never requested, already used, or timed out. "Expired" is
-        // the accurate and least confusing word for all three.
-        return { ok: false, reason: "EXPIRED" };
-      default:
-        return { ok: false, reason: "INCORRECT" };
-    }
-  }
-
-  // The credential has verified. From here, account state may be reported.
-  const enterable = usable.filter(
-    (candidate) => candidate.status === "ACTIVE" || candidate.status === "INVITED",
-  );
-
-  if (enterable.length === 0) {
-    // SUSPENDED, LOCKED, or PENDING. Now safe to say so, because the caller has proved
-    // control of the address.
-    return { ok: false, reason: "NOT_ALLOWED" };
-  }
-
-  if (enterable.length === 1) {
-    const only = enterable[0];
-    await establishSession(only.id, only.organizationId, email, input, only.status);
-    return { ok: true, kind: "SIGNED_IN", organizationId: only.organizationId };
-  }
-
-  return {
-    ok: true,
-    kind: "CHOOSE_ORGANIZATION",
-    memberships: enterable.map((membership) => ({
-      userId: membership.id,
-      organizationId: membership.organizationId,
-      organizationName: membership.organizationName,
-      organizationSlug: membership.organizationSlug,
-      role: membership.role,
-      status: membership.status,
-    })),
-  };
-}
-
-/**
- * Issue the session and record it.
- *
- * Extracted because both the single-membership path above and `completeSignIn` below
- * must do exactly the same thing — and a second, subtly different copy of "sign this
- * person in" is precisely where an authorization bug hides.
- */
-async function establishSession(
-  userId: string,
-  organizationId: string,
-  email: string,
-  request: { ip?: string | null; userAgent?: string | null },
-  currentStatus?: string,
-): Promise<void> {
-  /*
-   * Promote INVITED to ACTIVE before issuing the session.
-   *
-   * This is load-bearing, not tidiness. `TENANT_SESSION_SELECT` filters on
-   * `u.status = 'ACTIVE'` — that is what makes suspension take effect by construction —
-   * so a session issued to an INVITED user is written successfully and then never
-   * resolves. The person sees the sign-in succeed, lands on a page that believes they
-   * are signed out, and no error is logged anywhere, because nothing failed.
-   *
-   * Verifying an activation code IS the activation. There is no separate step, and the
-   * status must move here, before the cookie is set.
-   */
-  if (currentStatus === "INVITED") {
-    await setUserStatus(userId, organizationId, "ACTIVE");
-
+  for (const conflict of selection.conflicts) {
     await recordAudit({
-      organizationId,
+      organizationId: conflict.organizationId,
       actorDomain: "TENANT",
-      actorId: userId,
-      actorLabel: email,
-      action: "account.activated",
+      actorId: null,
+      actorLabel: identity.verifiedEmail,
+      action: "auth.sign_in",
       resourceType: "user",
-      resourceId: userId,
-      outcome: "SUCCESS",
-      metadata: { via: "otp" },
+      resourceId: conflict.id,
+      outcome: "DENIED",
+      metadata: { reason: "IDENTITY_CONFLICT" },
       ip: request.ip,
       userAgent: request.userAgent,
     });
   }
 
-  await issueTenantSession(userId, organizationId, {
-    ip: request.ip,
-    userAgent: request.userAgent,
-  });
-
-  await touchLastSeen(userId, organizationId);
-
-  await recordAudit({
-    organizationId,
-    actorDomain: "TENANT",
-    actorId: userId,
-    actorLabel: email,
-    action: "auth.sign_in",
-    resourceType: "session",
-    outcome: "SUCCESS",
-    metadata: { method: "otp" },
-    ip: request.ip,
-    userAgent: request.userAgent,
-  });
-}
-
-export interface CompleteSignInInput {
-  email: string;
-  organizationId: string;
-  ip?: string | null;
-  userAgent?: string | null;
+  return selection;
 }
 
 /**
- * Finish a sign-in where the person had to choose an organization.
+ * Sign the Clerk-verified person into Adira, or tell the caller what is needed next.
+ */
+export async function signInWithClerk(
+  identity: ClerkIdentity,
+  request: RequestMeta = {},
+): Promise<TenantSignInResult> {
+  const selection = await loadSelection(identity, request);
+
+  if (!selection || selection.enterable.length === 0) {
+    await recordAudit({
+      organizationId: null,
+      actorDomain: "TENANT",
+      actorId: null,
+      actorLabel: identity.verifiedEmail ?? `clerk:${identity.clerkUserId}`,
+      action: "auth.sign_in",
+      outcome: "DENIED",
+      metadata: { reason: identity.verifiedEmail ? "NO_ACCOUNT" : "EMAIL_NOT_VERIFIED" },
+      ip: request.ip,
+      userAgent: request.userAgent,
+    });
+    return { kind: "NO_ACCOUNT" };
+  }
+
+  if (selection.enterable.length === 1) {
+    const only = selection.enterable[0];
+    const ok = await establishSession(only, identity, request);
+    return ok ? { kind: "SIGNED_IN", role: only.role } : { kind: "NO_ACCOUNT" };
+  }
+
+  return {
+    kind: "CHOOSE_ORGANIZATION",
+    memberships: selection.enterable.map(toMembership),
+  };
+}
+
+/**
+ * The organizations this identity may choose between — for the chooser page.
  *
- * THE DANGEROUS FUNCTION IN THIS FILE. It issues a session, and the only thing standing
- * between it and "mint a session for any organization id" is that the caller must have
- * verified a code moments earlier.
+ * Re-derived from the live Clerk identity on every call; nothing about the list is carried
+ * through the browser.
+ */
+export async function listEnterableMemberships(
+  identity: ClerkIdentity,
+): Promise<AvailableMembership[]> {
+  const selection = await loadSelection(identity, {});
+  return selection ? selection.enterable.map(toMembership) : [];
+}
+
+/**
+ * Finish a sign-in where the person chose an organization.
  *
- * That is enforced here rather than trusted: the chosen organization must be one this
- * address actually belongs to, re-read from the database rather than taken from the
- * request. A client that posts a different organization id — the obvious attack against a
- * two-step sign-in — gets NOT_ALLOWED, because its id is not in the list this query
- * returns.
- *
- * What it does NOT re-check is that a code was verified. A caller that reaches this
- * function without going through `verifySignInCode` is a bug in the route, not something
- * this function can detect; the route handler is where the two steps are tied together.
+ * The posted organization id is only a CHOICE. It is honoured only if it is one of the
+ * accounts the live, verified Clerk identity may enter — re-read from the database here —
+ * so posting another tenant's id yields NOT_ALLOWED.
  */
 export async function completeSignIn(
-  input: CompleteSignInInput,
-): Promise<{ ok: true } | { ok: false; reason: "NOT_ALLOWED" }> {
-  const email = normaliseEmail(input.email);
-
-  const accounts = await findAccountsForEmailAcrossTenants(email);
-
-  const membership = accounts.find(
-    (candidate) =>
-      candidate.organizationId === input.organizationId &&
-      (candidate.status === "ACTIVE" || candidate.status === "INVITED"),
-  );
+  identity: ClerkIdentity,
+  organizationId: string,
+  request: RequestMeta = {},
+): Promise<{ ok: true; role: CandidateAccount["role"] } | { ok: false; reason: "NOT_ALLOWED" }> {
+  const selection = await loadSelection(identity, request);
+  const membership = selection?.enterable.find((a) => a.organizationId === organizationId);
 
   if (!membership) {
     await recordAudit({
       organizationId: null,
       actorDomain: "TENANT",
       actorId: null,
-      actorLabel: email,
+      actorLabel: identity.verifiedEmail ?? `clerk:${identity.clerkUserId}`,
       action: "auth.sign_in",
       outcome: "DENIED",
       metadata: { reason: "ORGANIZATION_NOT_A_MEMBERSHIP" },
-      ip: input.ip,
-      userAgent: input.userAgent,
+      ip: request.ip,
+      userAgent: request.userAgent,
     });
     return { ok: false, reason: "NOT_ALLOWED" };
   }
 
-  await establishSession(
-    membership.id,
-    membership.organizationId,
-    email,
-    input,
-    membership.status,
-  );
-  return { ok: true };
+  const ok = await establishSession(membership, identity, request);
+  return ok ? { ok: true, role: membership.role } : { ok: false, reason: "NOT_ALLOWED" };
+}
+
+function toMembership(account: CandidateAccount): AvailableMembership {
+  return {
+    userId: account.id,
+    organizationId: account.organizationId,
+    organizationName: account.organizationName,
+    organizationSlug: account.organizationSlug,
+    role: account.role,
+    status: account.status,
+  };
+}
+
+/**
+ * Link, activate, issue. One copy, used by both paths above — a second, subtly different
+ * "sign this person in" is where an authorization bug hides.
+ */
+async function establishSession(
+  account: CandidateAccount,
+  identity: ClerkIdentity,
+  request: RequestMeta,
+): Promise<boolean> {
+  const email = identity.verifiedEmail ?? account.email;
+
+  // Link-once. False means another Clerk user bound it between our read and this write.
+  const linked = await linkUserToClerk(account.id, account.organizationId, identity.clerkUserId);
+  if (!linked) return false;
+
+  /*
+   * INVITED → ACTIVE before issuing the session. Load-bearing: TENANT_SESSION_SELECT
+   * filters on `u.status = 'ACTIVE'`, so a session issued to an INVITED user is written
+   * and then never resolves — the person "signs in" and lands signed out, with nothing
+   * logged. Proving the address through Clerk IS the activation.
+   */
+  if (account.status === "INVITED") {
+    await setUserStatus(account.id, account.organizationId, "ACTIVE");
+    await recordAudit({
+      organizationId: account.organizationId,
+      actorDomain: "TENANT",
+      actorId: account.id,
+      actorLabel: email,
+      action: "account.activated",
+      resourceType: "user",
+      resourceId: account.id,
+      outcome: "SUCCESS",
+      metadata: { via: "clerk" },
+      ip: request.ip,
+      userAgent: request.userAgent,
+    });
+  }
+
+  await issueTenantSession(account.id, account.organizationId, request);
+  await touchLastSeen(account.id, account.organizationId);
+
+  await recordAudit({
+    organizationId: account.organizationId,
+    actorDomain: "TENANT",
+    actorId: account.id,
+    actorLabel: email,
+    action: "auth.sign_in",
+    resourceType: "session",
+    outcome: "SUCCESS",
+    metadata: { method: "clerk" },
+    ip: request.ip,
+    userAgent: request.userAgent,
+  });
+
+  return true;
 }
 
 // ---------------------------------------------------------------------------
-// Platform domain
+// Platform domain — separate functions, separate table, separate cookie (ADR-001)
 // ---------------------------------------------------------------------------
 
+export type OwnerSignInResult = { ok: true } | { ok: false };
+
 /**
- * Platform-owner sign-in.
+ * Platform-owner sign-in from a verified Clerk identity.
  *
- * A separate pair of functions rather than a `domain` parameter on the ones above. The
- * tables, the cookie, the signing secret, and the consequences of a mistake are all
- * different, and ADR-001 exists to keep them that way — a shared implementation with a
- * branch is exactly the shape that lets a tenant slip into the platform domain.
- *
- * There is no organization choice here: platform accounts have no organization, by
- * construction.
+ * Returns a bare failure for every refusal — not a platform account, disabled, suspended,
+ * bound to another Clerk user. "This address is a platform owner" is the most valuable
+ * fact on the system to confirm, so the page shows one message for all of them; the
+ * reason goes only to the audit log.
  */
-export async function requestOwnerSignInCode(
-  input: RequestCodeInput,
-): Promise<RequestCodeResult> {
-  const email = normaliseEmail(input.email);
+export async function ownerSignInWithClerk(
+  identity: ClerkIdentity,
+  request: RequestMeta = {},
+): Promise<OwnerSignInResult> {
+  const account = identity.verifiedEmail
+    ? await findOwnerAccountByEmail(identity.verifiedEmail)
+    : null;
 
-  if (!looksLikeEmail(email)) return { ok: false, reason: "INVALID_EMAIL" };
+  const reason = !identity.verifiedEmail
+    ? "EMAIL_NOT_VERIFIED"
+    : !account
+      ? "NO_ACCOUNT"
+      : account.clerkUserId !== null && account.clerkUserId !== identity.clerkUserId
+        ? "IDENTITY_CONFLICT"
+        : account.status !== "ACTIVE" && account.status !== "INVITED"
+          ? "NOT_ALLOWED"
+          : null;
 
-  const account = await findOwnerAccountByEmail(email);
-
-  if (!account || account.status === "DISABLED") {
-    const decoy = generateOtpCode();
-    hashOtpCode(decoy, "00000000-0000-0000-0000-000000000000");
-
+  if (reason || !account || !(await linkOwnerAccountToClerk(account.id, identity.clerkUserId))) {
     await recordAudit({
       organizationId: null,
       actorDomain: "PLATFORM",
-      actorId: null,
-      actorLabel: email,
-      action: "auth.request_code",
-      outcome: "FAILURE",
-      metadata: { reason: "NO_ACCOUNT" },
-      ip: input.ip,
-      userAgent: input.userAgent,
+      actorId: account?.id ?? null,
+      actorLabel: identity.verifiedEmail ?? `clerk:${identity.clerkUserId}`,
+      action: "auth.sign_in",
+      outcome: "DENIED",
+      metadata: { reason: reason ?? "IDENTITY_CONFLICT" },
+      ip: request.ip,
+      userAgent: request.userAgent,
     });
-
-    return { ok: true };
+    return { ok: false };
   }
 
-  const result = await issueOtp({
-    principal: { kind: "PLATFORM", ownerAccountId: account.id },
-    purpose: account.status === "INVITED" ? "ACCOUNT_ACTIVATION" : "ACCOUNT_RECOVERY",
-    destination: email,
-    ip: input.ip,
-    userAgent: input.userAgent,
-  });
-
-  if (!result.ok && result.reason === "RATE_LIMITED") {
-    return {
-      ok: false,
-      reason: "RATE_LIMITED",
-      retryAfterSeconds: result.retryAfterSeconds,
-    };
-  }
-
-  return { ok: true };
-}
-
-export type VerifyOwnerCodeResult =
-  | { ok: true }
-  | { ok: false; reason: "INCORRECT" | "EXPIRED" | "EXHAUSTED" | "NOT_ALLOWED" }
-  | { ok: false; reason: "RATE_LIMITED"; retryAfterSeconds: number };
-
-export async function verifyOwnerSignInCode(
-  input: VerifyCodeInput,
-): Promise<VerifyOwnerCodeResult> {
-  const email = normaliseEmail(input.email);
-  const account = await findOwnerAccountByEmail(email);
-
-  if (!account || account.status === "DISABLED") {
-    return { ok: false, reason: "INCORRECT" };
-  }
-
-  const result = await verifyOtp({
-    principal: { kind: "PLATFORM", ownerAccountId: account.id },
-    purpose: account.status === "INVITED" ? "ACCOUNT_ACTIVATION" : "ACCOUNT_RECOVERY",
-    code: input.code,
-    ip: input.ip,
-    userAgent: input.userAgent,
-  });
-
-  if (!result.ok) {
-    switch (result.reason) {
-      case "RATE_LIMITED":
-        return {
-          ok: false,
-          reason: "RATE_LIMITED",
-          retryAfterSeconds: result.retryAfterSeconds,
-        };
-      case "EXHAUSTED":
-        return { ok: false, reason: "EXHAUSTED" };
-      case "NO_CHALLENGE":
-        return { ok: false, reason: "EXPIRED" };
-      default:
-        return { ok: false, reason: "INCORRECT" };
-    }
-  }
-
-  if (account.status !== "ACTIVE" && account.status !== "INVITED") {
-    return { ok: false, reason: "NOT_ALLOWED" };
-  }
-
-  // Same promotion as the tenant path, for the same reason: PLATFORM_SESSION_SELECT
-  // filters on `a.status = 'ACTIVE'`, so a session issued to an INVITED owner account
-  // would be written and then never resolve. This is also the step that closes the loop
-  // opened by scripts/seed-owner.mjs, which deliberately creates the first platform
-  // account as INVITED with no credential.
+  // Same promotion as the tenant path, for the same reason (PLATFORM_SESSION_SELECT
+  // filters on ACTIVE). This closes the loop opened by scripts/seed-owner.mjs.
   if (account.status === "INVITED") {
     await setOwnerAccountStatus(account.id, "ACTIVE");
   }
 
-  await issuePlatformSession(account.id, { ip: input.ip, userAgent: input.userAgent });
+  await issuePlatformSession(account.id, request);
 
   await recordAudit({
     organizationId: null,
     actorDomain: "PLATFORM",
     actorId: account.id,
-    actorLabel: email,
+    actorLabel: account.email,
     action: "auth.sign_in",
     resourceType: "owner_session",
     outcome: "SUCCESS",
-    metadata: { method: "otp" },
-    ip: input.ip,
-    userAgent: input.userAgent,
+    metadata: { method: "clerk" },
+    ip: request.ip,
+    userAgent: request.userAgent,
   });
 
   return { ok: true };

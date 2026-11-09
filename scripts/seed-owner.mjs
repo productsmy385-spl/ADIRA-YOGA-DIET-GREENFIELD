@@ -9,10 +9,9 @@
  * way in, and it is intended to be run by a human with database access, not by the
  * application.
  *
- * It creates an account row only. It does NOT create a credential: authentication is
- * Phase 2, and the account is left at status INVITED so that whoever claims it must go
- * through passkey enrolment rather than inheriting a password someone typed on a
- * command line.
+ * It creates an account row and emails a Clerk invitation (ADR-015). It does NOT create a
+ * credential: the account is left INVITED, and whoever claims it must prove control of
+ * the address through Clerk rather than inheriting a password typed on a command line.
  *
  * Idempotent — running it twice reports the existing account rather than failing or
  * creating a duplicate.
@@ -75,6 +74,48 @@ function validate({ email, name }) {
   }
 }
 
+/**
+ * Email a Clerk invitation (ADR-015), landing on /sign-up?for=platform so acceptance goes
+ * on to the PLATFORM check. Best-effort: the account row is what matters, and without the
+ * email the owner can still sign in at /super-admin/sign-in with this address.
+ *
+ * Plain REST rather than the SDK, so this script keeps depending only on `pg`. The secret
+ * key goes in the Authorization header and is never printed.
+ */
+async function sendInvitation(email) {
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  const appUrl = process.env.APP_URL;
+  if (!secretKey || !appUrl) {
+    console.log(
+      `\nNo invitation email sent: CLERK_SECRET_KEY and APP_URL must both be set.` +
+        `\nThe owner can still sign in at ${appUrl ?? "<APP_URL>"}/super-admin/sign-in.`,
+    );
+    return;
+  }
+
+  const response = await fetch("https://api.clerk.com/v1/invitations", {
+    method: "POST",
+    headers: { authorization: `Bearer ${secretKey}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      email_address: email,
+      redirect_url: new URL("/sign-up?for=platform", appUrl).toString(),
+      notify: true,
+      ignore_existing: true,
+    }),
+  });
+
+  if (response.ok) {
+    console.log(`\nInvitation email sent to ${email} via Clerk.`);
+  } else {
+    // Status only. Clerk's error body describes the request, but there is no need to
+    // print anything that could one day echo configuration back.
+    console.log(
+      `\nClerk refused the invitation (HTTP ${response.status}). The account exists; the` +
+        `\nowner can still sign in at ${appUrl}/super-admin/sign-in with this address.`,
+    );
+  }
+}
+
 async function main() {
   loadLocalEnv();
 
@@ -101,11 +142,13 @@ async function main() {
 
     if (existing.rowCount > 0) {
       const account = existing.rows[0];
-      console.log(`Platform owner already exists — nothing to do.`);
+      console.log(`Platform owner already exists — not creating another.`);
       console.log(`  id      ${account.id}`);
       console.log(`  name    ${account.full_name}`);
       console.log(`  status  ${account.status}`);
       console.log(`  created ${account.created_at.toISOString()}`);
+      // Still INVITED means they never accepted: re-running is how to resend the email.
+      if (account.status === "INVITED") await sendInvitation(args.email);
       return;
     }
 
@@ -145,10 +188,9 @@ async function main() {
     console.log(`  id      ${account.id}`);
     console.log(`  email   ${args.email}`);
     console.log(`  status  INVITED`);
-    console.log(
-      `\nNo credential was created. Passkey enrolment arrives in Phase 2; until then this` +
-        `\naccount cannot sign in, because there is nothing to sign in with yet.`,
-    );
+    console.log(`\nNo credential was created here. Clerk proves the address on first sign-in.`);
+
+    await sendInvitation(args.email);
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
     throw error;

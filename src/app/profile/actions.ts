@@ -1,12 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { revokeAllClerkSessionsForCurrentUser } from "@/server/auth/clerk";
 import { requireTenantSession } from "@/server/auth/guards";
 import { endTenantSession } from "@/server/auth/session";
 import { recordAudit } from "@/server/repositories/audit-logs";
-import { revokeUserPasskey } from "@/server/repositories/passkey-credentials";
 import { revokeAllTenantSessions } from "@/server/repositories/sessions";
 
 /**
@@ -17,14 +16,10 @@ import { revokeAllTenantSessions } from "@/server/repositories/sessions";
  * ══════════════════════════════════════════════════════════════════════════════
  *
  * Every action takes `userId` and `organizationId` from the session and nowhere else, so
- * there is no id a caller could substitute to revoke somebody else's passkey or end
- * somebody else's sessions. That is stronger than validating a submitted id, for the
- * reason `today/actions.ts` gives: a check can be forgotten when a new action is added; a
- * value that is never accepted cannot be.
- *
- * The one id that IS accepted — a passkey's database id — is scoped in the UPDATE itself.
- * `revokeUserPasskey` matches on `id AND organization_id AND user_id`, so a forged id
- * matches no row rather than touching another person's credential.
+ * there is no id a caller could substitute to end somebody else's sessions. That is
+ * stronger than validating a submitted id, for the reason `today/actions.ts` gives: a
+ * check can be forgotten when a new action is added; a value that is never accepted cannot
+ * be. Passkeys, if enabled, are managed by Clerk (ADR-015), not here.
  *
  * ══════════════════════════════════════════════════════════════════════════════
  * WHAT DELIBERATELY IS NOT HERE
@@ -39,34 +34,6 @@ import { revokeAllTenantSessions } from "@/server/repositories/sessions";
  * So the profile shows those fields as read-only and says who can change them. See
  * `docs/` — this is recorded as a gap rather than filled with something unsafe.
  */
-
-export async function revokePasskeyAction(formData: FormData): Promise<void> {
-  const session = await requireTenantSession();
-
-  const credentialId = String(formData.get("credentialId") ?? "");
-  if (!credentialId) return;
-
-  const revoked = await revokeUserPasskey(
-    session.organizationId,
-    session.userId,
-    credentialId,
-  );
-
-  // Nothing matched — a stale page, or an id that was never theirs. Audit the attempt
-  // either way: a failed revoke against a credential id is worth being able to see.
-  await recordAudit({
-    organizationId: session.organizationId,
-    actorDomain: "TENANT",
-    actorId: session.userId,
-    actorLabel: session.email,
-    action: "passkey.revoke",
-    resourceType: "passkey_credential",
-    resourceId: credentialId,
-    outcome: revoked ? "SUCCESS" : "FAILURE",
-  });
-
-  revalidatePath("/profile");
-}
 
 /**
  * End every session for this account, including the one making the request.
@@ -97,5 +64,23 @@ export async function signOutEverywhereAction(): Promise<void> {
   });
 
   await endTenantSession();
+
+  // Then every Clerk session (ADR-015), or a lost device could sign straight back in
+  // through /auth/continue. Audited when it fails — Adira's sessions are already gone,
+  // but the person believes every device is out, and someone should be able to see it.
+  const clerkRevoked = await revokeAllClerkSessionsForCurrentUser();
+  if (!clerkRevoked) {
+    await recordAudit({
+      organizationId: session.organizationId,
+      actorDomain: "TENANT",
+      actorId: session.userId,
+      actorLabel: session.email,
+      action: "session.revoke_all_identity",
+      resourceType: "user",
+      resourceId: session.userId,
+      outcome: "FAILURE",
+    });
+  }
+
   redirect("/sign-in");
 }

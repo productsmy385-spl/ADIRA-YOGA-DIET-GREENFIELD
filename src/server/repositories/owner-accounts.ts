@@ -21,6 +21,8 @@ export interface OwnerAccount {
   email: string;
   fullName: string;
   status: AccountStatusValue;
+  /** The Clerk user bound on first sign-in (ADR-015), or null if never signed in. */
+  clerkUserId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,11 +32,12 @@ interface OwnerAccountRow {
   email: string;
   full_name: string;
   status: AccountStatusValue;
+  clerk_user_id: string | null;
   created_at: Date;
   updated_at: Date;
 }
 
-const COLUMNS = `id, email, full_name, status, created_at, updated_at`;
+const COLUMNS = `id, email, full_name, status, clerk_user_id, created_at, updated_at`;
 
 function toOwnerAccount(row: OwnerAccountRow): OwnerAccount {
   return {
@@ -42,6 +45,7 @@ function toOwnerAccount(row: OwnerAccountRow): OwnerAccount {
     email: row.email,
     fullName: row.full_name,
     status: row.status,
+    clerkUserId: row.clerk_user_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -86,6 +90,17 @@ export async function setOwnerAccountStatus(
     [id, status],
   );
   return row ? toOwnerAccount(row) : null;
+}
+
+/** Link-once, exactly as `linkUserToClerk` in the tenant domain. */
+export async function linkOwnerAccountToClerk(id: string, clerkUserId: string): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `UPDATE owner_accounts SET clerk_user_id = $2
+      WHERE id = $1 AND (clerk_user_id IS NULL OR clerk_user_id = $2)
+      RETURNING id`,
+    [id, clerkUserId],
+  );
+  return row !== null;
 }
 
 /**

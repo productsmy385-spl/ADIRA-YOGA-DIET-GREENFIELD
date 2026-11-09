@@ -45,6 +45,15 @@ for (const file of [".env.local", ".env"]) {
   }
 }
 
+/*
+ * Clerk keys (ADR-015) are required by the env schema, but no test talks to Clerk — the
+ * Clerk boundary is `src/server/auth/clerk.ts`, and what is tested is the pure logic around
+ * it. So a developer whose .env.local predates Clerk can still run the suite. Obviously
+ * fake values, and `??=` so a real key that IS set is never overwritten.
+ */
+process.env.CLERK_SECRET_KEY ??= "sk_test_not-a-real-key-tests-never-call-clerk";
+process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ??= "pk_test_not-a-real-key";
+
 /**
  * Repoint the application at the ISOLATED database — and only ever at that.
  *

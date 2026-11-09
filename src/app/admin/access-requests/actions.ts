@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireRole } from "@/server/auth/guards";
+import { inviteAndAudit } from "@/server/auth/invitations";
 import { canManageOrganization } from "@/server/authorization/permissions";
 import { actorFromSession } from "@/server/authorization/member-access";
 import {
@@ -15,11 +16,8 @@ import { createNotification } from "@/server/repositories/notifications";
 /**
  * Reviewing access requests — an ADMINISTRATIVE capability, so organization-wide.
  *
- * KNOWN GAP, stated rather than hidden: the approval notification is IN_APP only. The
- * person it is for cannot sign in until they activate, so it waits for them rather than
- * reaching them. Email would reach them, and outbound transactional mail beyond the OTP
- * path does not exist yet — `delivery.ts` sends one message type. Until it does, an
- * approved applicant learns by being told out of band, or by trying to sign in.
+ * Approval sends a Clerk invitation email (ADR-015) as well as the in-app notification,
+ * which waits for them until they first sign in.
  *
  * No assignment is required to review a request, because a request is not member data:
  * nobody has become a member yet. This is the half of ADR-013 that genuinely widens, and
@@ -125,8 +123,25 @@ export async function approveRequestAction(
     }
   }
 
+  // The invitation email (ADR-015) — the gap the header described is closed by this: the
+  // approved applicant is now told by email, not only by an in-app notice they cannot see.
+  const invitation = result.createdUserId
+    ? await inviteAndAudit(result.request.email, {
+        organizationId: session.organizationId,
+        actorDomain: "TENANT",
+        actorId: session.userId,
+        actorLabel: session.email,
+        resourceId: result.createdUserId,
+      })
+    : { ok: true as const };
+
   revalidatePath("/admin/access-requests");
-  return { status: "DONE", message: "Approved. The account was created as invited." };
+  return {
+    status: "DONE",
+    message: invitation.ok
+      ? "Approved. An invitation email has been sent."
+      : "Approved, but the invitation email could not be sent. They can still sign in with their address.",
+  };
 }
 
 export async function rejectRequestAction(

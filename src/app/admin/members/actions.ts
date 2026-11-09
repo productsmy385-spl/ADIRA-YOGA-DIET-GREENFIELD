@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireRole } from "@/server/auth/guards";
+import { inviteAndAudit } from "@/server/auth/invitations";
 import { actorFromSession } from "@/server/authorization/member-access";
 import { canAssignRole, canManageOrganization } from "@/server/authorization/permissions";
 import { isUniqueViolation } from "@/server/db/unique-violation";
@@ -155,9 +156,21 @@ export async function addMemberAction(
 
     revalidatePath("/admin/members");
 
+    // The invitation email (ADR-015). After the row exists and outside any transaction:
+    // the row is what grants access, so a mail failure must not undo it.
+    const invitation = await inviteAndAudit(email, {
+      organizationId: session.organizationId,
+      actorDomain: "TENANT",
+      actorId: session.userId,
+      actorLabel: session.email,
+      resourceId: created.id,
+    });
+
     return {
       status: "DONE",
-      message: `${fullName} has been invited. They activate the account by signing in with ${email}.`,
+      message: invitation.ok
+        ? `${fullName} has been invited. An invitation email is on its way to ${email}.`
+        : `${fullName} was added, but the invitation email could not be sent. They can still activate by signing in with ${email}.`,
     };
   } catch (error) {
     /*

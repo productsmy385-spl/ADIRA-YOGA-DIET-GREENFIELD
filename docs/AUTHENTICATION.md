@@ -1,6 +1,14 @@
 # Authentication
 
-**Status: Phase 2 in progress.** The schema and the security primitives exist and are
+> **Superseded in part by [ADR-015](../decisions/ADR-015-clerk-identity-adira-sessions.md)
+> (2026-11-09).** Credentials are now Clerk's: the emailed OTP, Resend, and Adira's
+> in-house passkeys described below are removed. Sessions, session policy, the two
+> identity domains and the organization chooser described here are unchanged. Flow:
+> Clerk `<SignIn>` → `/auth/continue` (or `/super-admin/auth/continue`) → Adira session.
+> Onboarding is by Clerk invitation email. The rest of this document is historical where
+> it describes OTP or WebAuthn.
+
+**Status (historical): Phase 2 in progress.** The schema and the security primitives exist and are
 tested; the flows that use them do not. No part of the application is currently
 authenticated, and no route consumes any of this yet.
 

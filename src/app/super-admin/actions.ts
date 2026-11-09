@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requirePlatformSession } from "@/server/auth/guards";
+import { inviteAndAudit } from "@/server/auth/invitations";
 import { isUniqueViolation } from "@/server/db/unique-violation";
 import { recordAudit } from "@/server/repositories/audit-logs";
 import {
@@ -233,9 +234,20 @@ export async function createAdminAction(
     });
 
     revalidatePath("/super-admin");
+
+    const invitation = await inviteAndAudit(admin.email, {
+      organizationId: organization.id,
+      actorDomain: "PLATFORM",
+      actorId: session.ownerAccountId,
+      actorLabel: session.email,
+      resourceId: admin.id,
+    });
+
     return {
       status: "DONE",
-      message: `${admin.fullName} invited as an administrator of ${organization.name}. They activate by signing in.`,
+      message: invitation.ok
+        ? `${admin.fullName} invited as an administrator of ${organization.name}. An invitation email is on its way.`
+        : `${admin.fullName} was added as an administrator of ${organization.name}, but the invitation email could not be sent. They can still activate by signing in.`,
     };
   } catch (error) {
     if (isUniqueViolation(error, "users_email_unique_per_org")) {

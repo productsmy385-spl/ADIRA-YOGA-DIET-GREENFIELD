@@ -39,6 +39,7 @@ required.
 - Deliverability becomes an operational concern: SPF, DKIM, and a monitored bounce path,
   because a bounced OTP is an account lockout.
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-015](ADR-015-clerk-identity-adira-sessions.md) on
+2026-11-09 — Clerk now proves identity and sends invitations; Resend is removed.
 
 **Date:** 2026-08-21

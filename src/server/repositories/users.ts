@@ -113,10 +113,14 @@ export async function findUserByEmail(
  */
 export async function findAccountsForEmailAcrossTenants(
   email: string,
-): Promise<Array<TenantUser & { organizationName: string; organizationSlug: string }>> {
-  const rows = await query<UserRow & { organization_name: string; organization_slug: string }>(
+): Promise<
+  Array<TenantUser & { organizationName: string; organizationSlug: string; clerkUserId: string | null }>
+> {
+  const rows = await query<
+    UserRow & { organization_name: string; organization_slug: string; clerk_user_id: string | null }
+  >(
     `SELECT u.id, u.organization_id, u.email, u.phone, u.full_name, u.role, u.status,
-            u.locale, u.last_seen_at, u.created_at,
+            u.locale, u.last_seen_at, u.created_at, u.clerk_user_id,
             o.name AS organization_name,
             o.slug AS organization_slug
        FROM users u
@@ -131,7 +135,30 @@ export async function findAccountsForEmailAcrossTenants(
     ...toUser(row),
     organizationName: row.organization_name,
     organizationSlug: row.organization_slug,
+    clerkUserId: row.clerk_user_id,
   }));
+}
+
+/**
+ * SIGN-IN PATH — bind an account to the Clerk user who just proved its address.
+ *
+ * Link-once: the `clerk_user_id IS NULL` predicate means a row already bound to someone
+ * else is never re-bound, and the caller learns that from the `false` return rather than
+ * from a silent overwrite. Re-linking the SAME Clerk user is a no-op that returns true.
+ */
+export async function linkUserToClerk(
+  userId: string,
+  organizationId: string,
+  clerkUserId: string,
+): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `UPDATE users SET clerk_user_id = $3
+      WHERE id = $1 AND organization_id = $2
+        AND (clerk_user_id IS NULL OR clerk_user_id = $3)
+      RETURNING id`,
+    [userId, organizationId, clerkUserId],
+  );
+  return row !== null;
 }
 
 /**

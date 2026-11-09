@@ -14,6 +14,8 @@ function validEnv(overrides: Record<string, string | undefined> = {}) {
     OWNER_SESSION_SECRET: SECRET_B,
     CRON_SECRET: SECRET_C,
     APP_URL: "https://adira.example",
+    CLERK_SECRET_KEY: "sk_test_not-a-real-key",
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_not-a-real-key",
     ...overrides,
   };
 }
@@ -36,6 +38,8 @@ describe("parseServerEnv", () => {
     "OWNER_SESSION_SECRET",
     "CRON_SECRET",
     "APP_URL",
+    "CLERK_SECRET_KEY",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
   ])("rejects a missing %s and names it in the message", (key) => {
     expect(() => parseServerEnv(validEnv({ [key]: undefined }))).toThrowError(
       new RegExp(`\\b${key}\\b`),
@@ -98,16 +102,18 @@ describe("parseServerEnv", () => {
     ).toThrowError(/OWNER_SESSION_SECRET/);
   });
 
-  it("treats Phase 2+ integration keys as optional", () => {
+  it("treats ImageKit keys as optional", () => {
     expect(() => parseServerEnv(validEnv())).not.toThrow();
   });
 
-  it("still validates an optional key's shape once it is supplied", () => {
-    expect(() => parseServerEnv(validEnv({ RESEND_API_KEY: "wrong-prefix" }))).toThrowError(
-      /RESEND_API_KEY/,
-    );
-    expect(() => parseServerEnv(validEnv({ OTP_FROM_EMAIL: "not-an-email" }))).toThrowError(
-      /OTP_FROM_EMAIL/,
-    );
+  // ADR-015: swapping the two Clerk keys is an easy paste mistake, and it must fail at
+  // boot rather than surface as a sign-in page that silently never loads.
+  it("rejects Clerk keys with the wrong prefix", () => {
+    expect(() =>
+      parseServerEnv(validEnv({ CLERK_SECRET_KEY: "pk_test_swapped" })),
+    ).toThrowError(/CLERK_SECRET_KEY/);
+    expect(() =>
+      parseServerEnv(validEnv({ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "sk_test_swapped" })),
+    ).toThrowError(/NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY/);
   });
 });

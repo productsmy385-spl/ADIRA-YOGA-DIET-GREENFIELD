@@ -4,6 +4,7 @@ import { actorFromSession } from "@/server/authorization/member-access";
 import { canAssignRole, canManageOrganization } from "@/server/authorization/permissions";
 import { candidatesFrom, previewMemberImport } from "@/server/services/member-import";
 import { insertImportedMembers, MAX_IMPORT_ROWS } from "@/server/repositories/member-import";
+import { inviteAndAudit } from "@/server/auth/invitations";
 import { readTenantSession } from "@/server/auth/session";
 import { recordAudit } from "@/server/repositories/audit-logs";
 import { readCsvBody } from "./body";
@@ -113,7 +114,20 @@ export async function POST(request: Request) {
     },
   });
 
+  // Invitation emails for the rows actually created (ADR-015). A failure is audited and
+  // reported, never a reason to undo the import: the rows are what grant access.
+  const invitation = await inviteAndAudit(
+    result.created.map((row) => row.email),
+    {
+      organizationId: session.organizationId,
+      actorDomain: "TENANT",
+      actorId: session.userId,
+      actorLabel: session.email,
+    },
+  );
+
   return NextResponse.json({
+    invitationsSent: invitation.ok,
     created: result.created.length,
     alreadyExisted: result.alreadyExisted,
     skippedInvalid: summary.invalid,

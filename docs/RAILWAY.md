@@ -71,7 +71,23 @@ Set in the Railway dashboard per environment. `.env.example` is the annotated li
 the better reference; it carries a comment per key.
 
 Load-bearing for every request: `DATABASE_URL`, `SESSION_SECRET`, `OWNER_SESSION_SECRET`.
-Also required: `CRON_SECRET`, `APP_URL`, `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_URL`.
+Also required: `CRON_SECRET`, `APP_URL`, `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_URL`,
+`CLERK_SECRET_KEY`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (ADR-015).
+
+`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is inlined at **build** time — changing it needs a
+redeploy, not just a restart. `RESEND_API_KEY` and `OTP_FROM_EMAIL` are no longer read;
+delete them from any environment that still has them.
+
+### Clerk dashboard settings the code depends on
+
+Not in git, so recorded here:
+
+| Setting | Value | Why |
+|---|---|---|
+| Sign-up mode | **Restricted** | Only invited addresses can create a Clerk account |
+| Identifier | Email address, verification by email code | Adira links accounts by verified primary email |
+| Passkeys | Optional | Replaces Adira's removed in-house passkeys |
+| Allowed redirect / home URL | the environment's `APP_URL` | Invitation links land on `APP_URL/sign-up` |
 
 Reference the database service rather than pasting a literal:
 

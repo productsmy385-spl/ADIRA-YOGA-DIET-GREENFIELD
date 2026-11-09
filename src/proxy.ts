@@ -1,4 +1,7 @@
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
+
+import { clerkFrontendApiOrigin } from "@/lib/clerk-origin";
 
 /**
  * Content-Security-Policy (Phase 16).
@@ -21,7 +24,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * needing to be listed, which is what makes a nonce policy survive a framework upgrade.
  */
 
-export function proxy(request: NextRequest) {
+function withSecurityHeaders(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const isDev = process.env.NODE_ENV === "development";
 
@@ -46,20 +49,39 @@ export function proxy(request: NextRequest) {
    */
   const isImmersiveRoute = request.nextUrl.pathname.startsWith("/experience");
   const wasm = isImmersiveRoute ? " 'wasm-unsafe-eval'" : "";
-  const workerSrc = isImmersiveRoute ? "worker-src 'self' blob:;" : "worker-src 'self';";
+  // Clerk's script runs its session timers in a `blob:` worker — scoped the same way, to
+  // the pages that load Clerk at all (ADR-015).
+  const isClerkRoute = /^\/(sign-in|sign-up|super-admin\/sign-in)(\/|$)/.test(
+    request.nextUrl.pathname,
+  );
+  const workerSrc =
+    isImmersiveRoute || isClerkRoute ? "worker-src 'self' blob:;" : "worker-src 'self';";
 
   // ImageKit is the only external origin the product loads from. Uploads go direct to
   // its API, and delivered images come from the CDN host.
   const imagekit = "https://ik.imagekit.io https://upload.imagekit.io";
 
+  /*
+   * Clerk (ADR-015), on the sign-in pages only in practice — but the policy is per
+   * response, so the origins are listed for all. Each is the minimum Clerk documents:
+   *   frontend API    its script, and the XHRs that carry the sign-in itself
+   *   img.clerk.com   avatars and provider icons in the widget
+   *   challenges.cloudflare.com   the bot-protection challenge (script + frame)
+   * Its script still needs the nonce: 'strict-dynamic' ignores host allowlists in
+   * script-src, so the hosts there only matter to browsers too old to know it.
+   */
+  const clerkApi = clerkFrontendApiOrigin(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) ?? "";
+  const turnstile = "https://challenges.cloudflare.com";
+
   const csp = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${wasm}${isDev ? " 'unsafe-eval'" : ""};
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${wasm}${isDev ? " 'unsafe-eval'" : ""} ${clerkApi} ${turnstile};
     ${workerSrc}
     style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data: ${imagekit};
+    img-src 'self' blob: data: ${imagekit} https://img.clerk.com;
     font-src 'self' data:;
-    connect-src 'self' ${imagekit};
+    connect-src 'self' ${imagekit} ${clerkApi};
+    frame-src ${turnstile};
     object-src 'none';
     base-uri 'self';
     form-action 'self';
@@ -86,6 +108,14 @@ export function proxy(request: NextRequest) {
   response.headers.set("Content-Security-Policy", csp);
   return response;
 }
+
+/**
+ * Clerk's middleware wraps the CSP proxy. It establishes Clerk's request state so
+ * `auth()` works in the sign-in pages and /auth/continue; it does NOT guard routes.
+ * Authorization stays where it was — in the server components and actions, reading
+ * Adira's own session from PostgreSQL (see guards.ts on why not middleware).
+ */
+export const proxy = clerkMiddleware((_auth, request) => withSecurityHeaders(request));
 
 export const config = {
   /*

@@ -1,50 +1,67 @@
+import { SignIn } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { AuthShell } from "@/components/auth/auth-shell";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { branding } from "@/lib/branding";
 import { readPlatformSession } from "@/server/auth/session";
 
-import { OwnerSignInForm } from "./sign-in-form";
+import { switchAccountAction } from "../../sign-in/actions";
 
 export const metadata: Metadata = { title: "Platform sign in" };
 export const dynamic = "force-dynamic";
 
 /**
- * The platform operator's sign-in.
+ * The platform operator's sign-in (ADR-001, ADR-015).
  *
- * This route was referenced by `guards.ts` from the moment platform sessions existed and
- * was never built, which meant the seeded platform account had no way in at all — the one
- * account that administers every tenant could not sign in.
- *
- * A separate page from `/sign-in` is correct HERE and only here: this is a different
- * identity domain with its own table, cookie, and signing secret (ADR-001). A separate
- * page for ADMIN would be the parallel authentication system the brief forbids, because
- * admins and members are the same rows behind the same cookie.
+ * Same Clerk identity provider as /sign-in, different destination: /super-admin/auth/continue
+ * checks `owner_accounts` and issues the PLATFORM cookie with its own secret. A Clerk user
+ * who is a tenant member gains nothing here — no path reads `users` for platform access.
  */
-export default async function SuperAdminSignInPage() {
+export default async function SuperAdminSignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ denied?: string }>;
+}) {
   if (await readPlatformSession()) redirect("/super-admin");
 
+  const denied = (await searchParams).denied === "1";
+  const { userId } = await auth();
+
+  // Proved to Clerk already: try the platform check, unless it has just refused — that
+  // would loop between this page and the continue route.
+  if (userId && !denied) redirect("/super-admin/auth/continue");
+
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-6 py-12">
-      <main className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static mark */}
-          <img src={branding.icons.mark} alt="" aria-hidden className="size-10 mix-blend-multiply" />
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
-            {branding.name} platform
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to administer organisations.
-          </p>
-        </div>
-
-        <OwnerSignInForm />
-
+    <AuthShell
+      title={`${branding.name} platform`}
+      description="Sign in to administer organisations."
+      footer={
         <p className="mt-8 text-center text-xs/relaxed text-muted-foreground">
           Platform accounts are separate from organisation accounts and are created by a
           database operator, never through this application.
         </p>
-      </main>
-    </div>
+      }
+    >
+      {denied && userId ? (
+        <div className="space-y-4">
+          {/* One message for every refusal; the reason is in the audit log. */}
+          <Alert variant="destructive">
+            <AlertDescription>This account cannot use the platform console.</AlertDescription>
+          </Alert>
+          <form action={switchAccountAction}>
+            <input type="hidden" name="returnTo" value="platform" />
+            <Button type="submit" variant="outline" className="w-full">
+              Use a different account
+            </Button>
+          </form>
+        </div>
+      ) : (
+        <SignIn routing="hash" forceRedirectUrl="/super-admin/auth/continue" withSignUp={false} />
+      )}
+    </AuthShell>
   );
 }
