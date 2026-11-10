@@ -4,6 +4,8 @@ import Link from "next/link";
 import { AppNav } from "@/components/nav/app-nav";
 import { GlassPanel } from "@/components/glass/glass";
 import { requireRole } from "@/server/auth/guards";
+import { actorFromSession } from "@/server/authorization/member-access";
+import { canManageProgrammes } from "@/server/authorization/permissions";
 
 import { NewProgrammeForm } from "./new-programme-form";
 
@@ -26,7 +28,9 @@ export default async function NewProgrammePage({
 }: {
   searchParams: Promise<{ kind?: string }>;
 }) {
-  const session = await requireRole("ADMIN", "TRAINER");
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
+  // ADR-016: a dietitian can only start a diet plan; the action re-checks regardless.
+  const yogaAllowed = canManageProgrammes(actorFromSession(session), "yoga").allowed;
   const { kind } = await searchParams;
 
   return (
@@ -50,7 +54,10 @@ export default async function NewProgrammePage({
         </header>
 
         <GlassPanel className="mt-8 p-6">
-          <NewProgrammeForm defaultKind={kind === "DIET" ? "DIET" : "YOGA"} />
+          <NewProgrammeForm
+            defaultKind={kind === "DIET" || !yogaAllowed ? "DIET" : "YOGA"}
+            dietOnly={!yogaAllowed}
+          />
         </GlassPanel>
       </main>
     </div>

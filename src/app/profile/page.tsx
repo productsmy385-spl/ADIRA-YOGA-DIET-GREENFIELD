@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LogOut, ShieldCheck } from "lucide-react";
 
 import { GlassPanel } from "@/components/glass/glass";
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { PageShell } from "@/components/ui/page-shell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
@@ -198,7 +198,6 @@ export default async function ProfilePage() {
         </Section>
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/profile" />
     </div>
   );
 }

@@ -30,6 +30,7 @@ A superseded document is **kept**, not deleted. Mark its row `superseded by …`
 |---|---|---|---|---|
 | 2026-08-22 | Master Knowledge Base v2.0 — 39 sections, product intent | `docs/KNOWLEDGE-BASE.md` | current | The authority on WHAT. Body byte-identical to the supplied file; only a provenance header was prepended. Also mirrored to the global Knowledge Base. |
 | 2026-08-22 | BMAD Master Plan + 9-phase workspace | `/BMAD/` | current | The authority on HOW. Copied verbatim from `BMAD_Yoga_Therapy_Platform_Workspace`. See [../BMAD/STATUS.md](../BMAD/STATUS.md) for reconciliation against work already done. |
+| 2026-11-10 | Platform upgrade brief — website builder, templates, RBAC, yoga/team, navigation, metrics | `docs/PLATFORM-UPGRADE-BRIEF.md` | current | Supplied in chat. **Supersedes Master KB §24's colour direction** (user decision 2026-11-10). Adds DIETITIAN and TEAM_MANAGER roles (ADR due, amends ADR-013) and a tenant website builder at `/s/<slug>`. See [PLATFORM-UPGRADE-RECONCILIATION.md](PLATFORM-UPGRADE-RECONCILIATION.md). |
 | 2026-08-22 | Two architecture posters (images) | not stored | referenced only | Supplied at project start. The placeholder logo was redrawn from their corner mark, and two open questions come from them — billing and consultant↔customer messaging. See `docs/BRANDING.md` and `docs/ROADMAP.md`. **The image files themselves are not in the repository.** |
 
 ## Not source documents

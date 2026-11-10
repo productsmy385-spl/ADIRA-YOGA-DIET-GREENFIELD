@@ -28,6 +28,7 @@ changed since.
 | [013](ADR-013-merged-admin-administrative-vs-data-reach.md) | Merged ADMIN: administrative reach is organization-wide, member data stays assignment-scoped | Accepted |
 | [014](ADR-014-3d-stack-and-csp-consequences.md) | react-three-fiber for 3D, and what it costs the CSP | Accepted |
 | [015](ADR-015-clerk-identity-adira-sessions.md) | Clerk proves identity; Adira keeps its own sessions and authorization | Accepted |
+| [016](ADR-016-team-manager-dietitian-and-permission-matrix.md) | TEAM_MANAGER and DIETITIAN, and one permission matrix | Accepted |
 
 ## Inherited context
 

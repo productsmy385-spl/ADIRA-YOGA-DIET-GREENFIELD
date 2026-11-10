@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { actorFromSession } from "@/server/authorization/member-access";
-import { canAssignRole, canManageOrganization } from "@/server/authorization/permissions";
+import { canAssignRole, canManageMembers } from "@/server/authorization/permissions";
 import { candidatesFrom, previewMemberImport } from "@/server/services/member-import";
 import { insertImportedMembers, MAX_IMPORT_ROWS } from "@/server/repositories/member-import";
 import { inviteAndAudit } from "@/server/auth/invitations";
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   const actor = actorFromSession(session);
 
-  if (!canManageOrganization(actor).allowed) {
+  if (!canManageMembers(actor).allowed) {
     await recordAudit({
       organizationId: session.organizationId,
       actorDomain: "TENANT",

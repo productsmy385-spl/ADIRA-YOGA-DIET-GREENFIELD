@@ -28,7 +28,7 @@ import { recordAudit } from "@/server/repositories/audit-logs";
 export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
-  purpose: z.enum(["exercise", "meal", "progress_photo", "avatar"]),
+  purpose: z.enum(["exercise", "meal", "progress_photo", "avatar", "website"]),
   customerId: z.uuid().nullish(),
   mimeType: z.string().min(1),
   bytes: z.number().int().positive(),

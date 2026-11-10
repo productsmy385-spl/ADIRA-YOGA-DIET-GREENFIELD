@@ -1,5 +1,5 @@
 import { resolveMemberAccess, actorFromSession } from "@/server/authorization/member-access";
-import { canManageProgrammes } from "@/server/authorization/permissions";
+import { canManageProgrammes, canManageWebsite } from "@/server/authorization/permissions";
 import type { TenantSessionContext } from "@/server/repositories/sessions";
 import type { MediaPurpose } from "@/server/repositories/media";
 
@@ -42,8 +42,19 @@ export async function decideUpload(
   purpose: MediaPurpose,
   customerId: string | null,
 ): Promise<UploadDecision> {
+  /*
+   * Public website images (WEBSITE-BUILDER-PRD slice 3d): organisation marketing media,
+   * PUBLIC by design (not in PRIVATE_PURPOSES) and naming nobody. Gated exactly like
+   * the website itself, and any customer id is dropped for the same reason as below.
+   */
+  if (purpose === "website") {
+    const decision = canManageWebsite(actorFromSession(session));
+    if (!decision.allowed) return { allowed: false, reason: "NOT_PERMITTED" };
+    return { allowed: true, customerId: null };
+  }
+
   if (LIBRARY_PURPOSES.has(purpose)) {
-    const decision = canManageProgrammes(actorFromSession(session));
+    const decision = canManageProgrammes(actorFromSession(session), purpose === "exercise" ? "yoga" : "diet");
     if (!decision.allowed) return { allowed: false, reason: "NOT_PERMITTED" };
 
     // Library media belongs to the organization, not to a person. Silently dropping a

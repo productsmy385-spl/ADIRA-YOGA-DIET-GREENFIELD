@@ -160,7 +160,7 @@ describeIsolated("four-role acceptance", () => {
     await createAssignment(w.orgA, w.trainerA, w.customerAssigned);
 
     // ---- 6. The TRAINER authors the library and a programme --------------
-    expect(canManageProgrammes(trainer).allowed).toBe(true);
+    expect(canManageProgrammes(trainer, "yoga").allowed).toBe(true);
 
     const pose = await createYogaExercise(w.orgA, {
       name: "Tadasana",
@@ -204,7 +204,7 @@ describeIsolated("four-role acceptance", () => {
     expect(await publishProgramme(w.orgA, diet.id)).toEqual({ ok: true });
 
     // ---- 8. The TRAINER prescribes — role capability AND member reach ------
-    expect(canPrescribe(trainer).allowed).toBe(true);
+    expect(canPrescribe(trainer, "yoga").allowed).toBe(true);
     expect(
       (await resolveMemberAccess(trainer, w.customerAssigned)).decision.allowed,
     ).toBe(true);
@@ -343,8 +343,8 @@ describeIsolated("four-role acceptance", () => {
     const staff = actor(w.staffA, w.orgA, "STAFF");
     await createAssignment(w.orgA, w.staffA, w.customerAssigned);
 
-    expect(canManageProgrammes(staff).allowed).toBe(false);
-    expect(canPrescribe(staff).allowed).toBe(false);
+    expect(canManageProgrammes(staff, "yoga").allowed).toBe(false);
+    expect(canPrescribe(staff, "yoga").allowed).toBe(false);
     expect(canManageOrganization(staff).allowed).toBe(false);
 
     // But an assignment does give them the practice of the person they support.
@@ -398,8 +398,8 @@ describeIsolated("four-role acceptance", () => {
     const customer = actor(w.customerAssigned, w.orgA, "USER");
 
     expect(canManageOrganization(customer).allowed).toBe(false);
-    expect(canManageProgrammes(customer).allowed).toBe(false);
-    expect(canPrescribe(customer).allowed).toBe(false);
+    expect(canManageProgrammes(customer, "yoga").allowed).toBe(false);
+    expect(canPrescribe(customer, "yoga").allowed).toBe(false);
     expect(canAssignRole(customer, "USER").allowed).toBe(false);
 
     expect(

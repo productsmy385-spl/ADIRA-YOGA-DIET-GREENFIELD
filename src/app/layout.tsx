@@ -54,6 +54,15 @@ const themeScript = `
       : window.matchMedia('(prefers-color-scheme: dark)').matches;
     if (dark) document.documentElement.classList.add('dark');
   } catch (e) {}
+  try {
+    // Sidebar state before first paint (brief Phase 9): the stored choice, else expanded
+    // from 1024px and the icon rail below it. Without this the sidebar would render at
+    // one width and jump to the remembered one after hydration.
+    var sb = localStorage.getItem('adira-sidebar');
+    document.documentElement.dataset.sidebar =
+      sb === 'expanded' || sb === 'collapsed' ? sb
+        : (window.innerWidth >= 1024 ? 'expanded' : 'collapsed');
+  } catch (e) {}
 `;
 
 export default async function RootLayout({

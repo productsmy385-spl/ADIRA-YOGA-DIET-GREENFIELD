@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Archive, ArchiveRestore, ArrowRight, CalendarDays, Copy, Plus } from "lucide-react";
 
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageShell } from "@/components/ui/page-shell";
 import { requireRole } from "@/server/auth/guards";
+import { actorFromSession } from "@/server/authorization/member-access";
+import { canManageProgrammes } from "@/server/authorization/permissions";
 import { listProgrammes } from "@/server/repositories/programmes";
 
 import { archiveProgrammeAction, duplicateProgrammeAction } from "./actions";
@@ -26,14 +28,16 @@ export const dynamic = "force-dynamic";
  * what; the item count is a number about the template itself.
  */
 export default async function ProgrammesPage() {
-  const session = await requireRole("ADMIN", "TRAINER");
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
   // Archived templates stay listed and restorable, as in the libraries.
   const programmes = await listProgrammes(session.organizationId, undefined, true);
 
+  // ADR-016: only the domains this role authors — a dietitian sees diet plans only.
+  const actor = actorFromSession(session);
   const groups = [
     { kind: "YOGA" as const, label: "Yoga programmes" },
     { kind: "DIET" as const, label: "Diet plans" },
-  ];
+  ].filter((g) => canManageProgrammes(actor, g.kind === "YOGA" ? "yoga" : "diet").allowed);
 
   return (
     <div className="theme-bg-wrapper theme-green-nature app-shell">
@@ -149,7 +153,6 @@ export default async function ProgrammesPage() {
         )}
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/admin/programmes" />
     </div>
   );
 }

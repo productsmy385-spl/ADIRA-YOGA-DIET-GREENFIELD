@@ -6,7 +6,7 @@ import { z } from "zod";
 import { requireRole } from "@/server/auth/guards";
 import { inviteAndAudit } from "@/server/auth/invitations";
 import { actorFromSession } from "@/server/authorization/member-access";
-import { canAssignRole, canManageOrganization } from "@/server/authorization/permissions";
+import { canAssignRole, canManageMembers } from "@/server/authorization/permissions";
 import { isUniqueViolation } from "@/server/db/unique-violation";
 import { recordAudit } from "@/server/repositories/audit-logs";
 import { createUser } from "@/server/repositories/users";
@@ -50,7 +50,10 @@ import { createUser } from "@/server/repositories/users";
  * The rank check still runs below. This list decides what is offered; `canAssignRole`
  * decides what is permitted, and it is the one that matters.
  */
-const GRANTABLE_ROLES = ["USER", "STAFF", "TRAINER"] as const;
+// ADR-016 adds DIETITIAN and TEAM_MANAGER. Offering them here grants nothing:
+// `canAssignRole` below still requires strict outranking, so a TEAM_MANAGER posting
+// TEAM_MANAGER (or ADMIN) is refused.
+const GRANTABLE_ROLES = ["USER", "STAFF", "TRAINER", "DIETITIAN", "TEAM_MANAGER"] as const;
 
 const schema = z.object({
   email: z.string().trim().toLowerCase().pipe(z.email()),
@@ -76,10 +79,10 @@ export async function addMemberAction(
   _previous: AddMemberState,
   formData: FormData,
 ): Promise<AddMemberState> {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
   const actor = actorFromSession(session);
 
-  if (!canManageOrganization(actor).allowed) {
+  if (!canManageMembers(actor).allowed) {
     return { status: "ERROR", message: "You do not have permission to add members." };
   }
 

@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
  * `requireRole("ADMIN", "TRAINER")` is the entire authorization question and no assignment is involved.
  */
 export default async function NewMealPage() {
-  const session = await requireRole("ADMIN", "TRAINER");
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
 
   return (
     <div className="theme-bg-wrapper theme-orange-energy min-h-dvh bg-background">

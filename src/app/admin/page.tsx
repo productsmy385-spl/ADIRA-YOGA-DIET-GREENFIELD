@@ -2,10 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   CalendarPlus,
+  CircleCheck,
   ClipboardList,
+  Flower2,
   Inbox,
+  MailPlus,
   Salad,
   UserPlus,
+  Users,
 } from "lucide-react";
 
 import { AppNav } from "@/components/nav/app-nav";
@@ -17,6 +21,7 @@ import { listMembers } from "@/server/repositories/members";
 import { listProgrammes } from "@/server/repositories/programmes";
 import { actorFromSession } from "@/server/authorization/member-access";
 import type { AttentionSignal } from "@/server/services/metrics";
+import { MetricCard, MetricGrid } from "@/components/ui/metric";
 import { PageShell } from "@/components/ui/page-shell";
 
 export const metadata: Metadata = { title: "Caseload" };
@@ -87,34 +92,6 @@ function CustomerRow({ entry }: { entry: CaseloadEntry }) {
  * does something about, and a count with nowhere to go is the "passive dashboard" this
  * page used to be.
  */
-function Metric({
-  label,
-  value,
-  href,
-  tone,
-}: {
-  label: string;
-  value: number;
-  href: string;
-  tone?: "warn";
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-xl border border-border bg-card p-4 transition-colors hover:bg-secondary/40"
-    >
-      <p className="text-xs tracking-widest text-muted-foreground uppercase">{label}</p>
-      <p
-        className={`mt-1 text-2xl font-semibold tabular-nums ${
-          tone === "warn" && value > 0 ? "text-destructive" : "text-card-foreground"
-        }`}
-      >
-        {value}
-      </p>
-    </Link>
-  );
-}
-
 export default async function AdminPage() {
   const session = await requireRole("ADMIN");
   const actor = actorFromSession(session);
@@ -180,17 +157,57 @@ export default async function AdminPage() {
           <h2 id="admin-metrics" className="sr-only">
             Organisation administration
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Metric label="Members" value={members.length} href="/admin/members" />
-            <Metric label="Active" value={active} href="/admin/members" />
-            <Metric label="Invited" value={invited} href="/admin/members" />
-            <Metric
-              label="Access requests"
-              value={pendingRequests}
-              href="/admin/access-requests"
-              tone="warn"
+          <MetricGrid columns={3}>
+            <MetricCard
+              label="Total members"
+              value={members.length}
+              icon={<Users />}
+              tone="green"
+              description="In this organisation"
+              href="/admin/members"
             />
-          </div>
+            <MetricCard
+              label="Active members"
+              value={active}
+              icon={<CircleCheck />}
+              tone="blue"
+              description="Signed in at least once"
+              href="/admin/members"
+            />
+            <MetricCard
+              label="Invited"
+              value={invited}
+              icon={<MailPlus />}
+              tone="turquoise"
+              description="Not yet activated"
+              href="/admin/members"
+            />
+            <MetricCard
+              label="Pending requests"
+              value={pendingRequests}
+              icon={<Inbox />}
+              tone="orange"
+              description="Waiting for review"
+              href="/admin/access-requests"
+              attention={pendingRequests > 0}
+            />
+            <MetricCard
+              label="Yoga programmes"
+              value={yogaProgrammes}
+              icon={<Flower2 />}
+              tone="violet"
+              description="Published"
+              href="/admin/programmes"
+            />
+            <MetricCard
+              label="Diet plans"
+              value={dietProgrammes}
+              icon={<Salad />}
+              tone="pink"
+              description="Published"
+              href="/admin/programmes"
+            />
+          </MetricGrid>
 
           {/*
             An administrative fact, not a health one: how many members nobody is assigned

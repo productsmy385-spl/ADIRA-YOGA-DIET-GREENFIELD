@@ -75,7 +75,7 @@ export async function saveYogaExerciseAction(
   formData: FormData,
 ): Promise<LibraryState> {
   const session = await requireRole("ADMIN", "TRAINER");
-  if (!canManageProgrammes(actorFromSession(session)).allowed) {
+  if (!canManageProgrammes(actorFromSession(session), "yoga").allowed) {
     return { status: "ERROR", message: "You do not have permission to edit the library." };
   }
 
@@ -151,7 +151,7 @@ export async function saveYogaExerciseAction(
 
 export async function archiveYogaExerciseAction(formData: FormData): Promise<void> {
   const session = await requireRole("ADMIN", "TRAINER");
-  if (!canManageProgrammes(actorFromSession(session)).allowed) return;
+  if (!canManageProgrammes(actorFromSession(session), "yoga").allowed) return;
 
   const exerciseId = String(formData.get("exerciseId") ?? "");
   const archived = String(formData.get("archived") ?? "true") === "true";
@@ -183,8 +183,8 @@ export async function saveMealAction(
   _previous: LibraryState,
   formData: FormData,
 ): Promise<LibraryState> {
-  const session = await requireRole("ADMIN", "TRAINER");
-  if (!canManageProgrammes(actorFromSession(session)).allowed) {
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
+  if (!canManageProgrammes(actorFromSession(session), "diet").allowed) {
     return { status: "ERROR", message: "You do not have permission to edit the library." };
   }
 
@@ -262,8 +262,8 @@ export async function saveMealAction(
 }
 
 export async function archiveMealAction(formData: FormData): Promise<void> {
-  const session = await requireRole("ADMIN", "TRAINER");
-  if (!canManageProgrammes(actorFromSession(session)).allowed) return;
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
+  if (!canManageProgrammes(actorFromSession(session), "diet").allowed) return;
 
   const mealId = String(formData.get("mealId") ?? "");
   const archived = String(formData.get("archived") ?? "true") === "true";

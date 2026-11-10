@@ -22,7 +22,14 @@ const SELECT_CLASS =
   "h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs " +
   "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
-export function NewProgrammeForm({ defaultKind }: { defaultKind: "YOGA" | "DIET" }) {
+export function NewProgrammeForm({
+  defaultKind,
+  dietOnly = false,
+}: {
+  defaultKind: "YOGA" | "DIET";
+  /** A dietitian (ADR-016) is offered diet only; the server enforces it either way. */
+  dietOnly?: boolean;
+}) {
   const [state, action, pending] = useActionState(createProgrammeAction, INITIAL);
   const f = state.fieldErrors ?? {};
 
@@ -37,7 +44,7 @@ export function NewProgrammeForm({ defaultKind }: { defaultKind: "YOGA" | "DIET"
       <div className="space-y-2">
         <Label htmlFor="kind">Kind</Label>
         <select id="kind" name="kind" defaultValue={defaultKind} className={SELECT_CLASS}>
-          <option value="YOGA">Yoga programme</option>
+          {dietOnly ? null : <option value="YOGA">Yoga programme</option>}
           <option value="DIET">Diet plan</option>
         </select>
         <p className="text-sm text-muted-foreground">

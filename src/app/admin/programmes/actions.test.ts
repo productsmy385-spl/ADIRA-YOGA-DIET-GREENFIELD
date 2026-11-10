@@ -15,6 +15,8 @@ const duplicateProgramme = vi.fn();
 const setProgrammeArchived = vi.fn();
 const addProgrammeItem = vi.fn();
 const removeProgrammeItem = vi.fn();
+// ADR-016: actions read the stored programme to learn its domain (yoga | diet).
+const findProgramme = vi.fn();
 const recordAudit = vi.fn();
 const redirect = vi.fn(() => {
   // `redirect` throws in Next so the caller stops. Reproduced here, or every action under
@@ -30,6 +32,7 @@ vi.mock("@/server/repositories/programmes", () => ({
   setProgrammeArchived,
   addProgrammeItem,
   removeProgrammeItem,
+  findProgramme,
 }));
 vi.mock("@/server/repositories/audit-logs", () => ({ recordAudit }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -75,6 +78,7 @@ beforeEach(() => {
   setProgrammeArchived.mockReset().mockResolvedValue(true);
   addProgrammeItem.mockReset().mockResolvedValue({ id: "item-1" });
   removeProgrammeItem.mockReset().mockResolvedValue(true);
+  findProgramme.mockReset().mockResolvedValue({ id: PROGRAMME_ID, kind: "YOGA" });
   recordAudit.mockReset();
   redirect.mockClear();
 });

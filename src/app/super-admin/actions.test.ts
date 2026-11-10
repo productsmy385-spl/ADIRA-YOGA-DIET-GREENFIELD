@@ -30,6 +30,11 @@ vi.mock("@/server/repositories/organizations", () => ({
 vi.mock("@/server/repositories/users", () => ({ createUser, findUserById, setUserStatus }));
 vi.mock("@/server/repositories/audit-logs", () => ({ recordAudit }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+// ADR-015: provisioning sends a Clerk invitation; the email itself is not under test here.
+const inviteAndAudit = vi.fn();
+vi.mock("@/server/auth/invitations", () => ({ inviteAndAudit }));
+vi.mock("@/server/auth/clerk", () => ({ revokeCurrentClerkSession: vi.fn() }));
+vi.mock("@/server/auth/session", () => ({ endPlatformSession: vi.fn() }));
 
 const {
   createOrganizationAction,
@@ -59,6 +64,7 @@ function form(fields: Record<string, string>): FormData {
 
 beforeEach(() => {
   requirePlatformSession.mockReset().mockResolvedValue(PLATFORM);
+  inviteAndAudit.mockReset().mockResolvedValue({ ok: true });
   createOrganization
     .mockReset()
     .mockResolvedValue({ id: ORG, name: "Studio", slug: "studio", status: "ACTIVE" });
@@ -66,7 +72,7 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({ id: ORG, name: "Studio", slug: "studio", status: "ACTIVE" });
   setOrganizationStatus.mockReset();
-  createUser.mockReset().mockResolvedValue({ id: USER, fullName: "An Admin" });
+  createUser.mockReset().mockResolvedValue({ id: USER, fullName: "An Admin", email: "admin@studio.example" });
   findUserById.mockReset().mockResolvedValue({ id: USER, role: "ADMIN", status: "ACTIVE" });
   setUserStatus.mockReset();
   recordAudit.mockReset();
@@ -157,6 +163,11 @@ describe("provisioning an administrator", () => {
       // control of the address by signing in.
       status: "INVITED",
     });
+    // ADR-015: the new administrator is emailed a Clerk invitation, as a PLATFORM actor.
+    expect(inviteAndAudit).toHaveBeenCalledWith(
+      "admin@studio.example",
+      expect.objectContaining({ organizationId: ORG, actorDomain: "PLATFORM" }),
+    );
   });
 
   it("validates the organization rather than trusting the posted id", async () => {

@@ -64,6 +64,12 @@ projects that use this same method and similar filenames.
 
    `SUPER_ADMIN` gets **no** automatic member data. `USER` sees only their own.
 
+   ADR-016 (2026-11-10) adds `TEAM_MANAGER` (roster and team, no settings/website) and
+   `DIETITIAN` (diet only). Capabilities come from ONE matrix,
+   `src/server/authorization/permission-matrix.ts` — never name a role inline to decide a
+   capability. A dietitian's member reach is profile + diet only: pass the data `domain`
+   to `resolveMemberAccess` / `canAccessMemberData` wherever member data is read.
+
    Transitional: a pre-migration `ORG_OWNER` keeps organization-wide data reach via
    `storedRole`, until migration `007` seeds their assignments. Removed in deployment 3.
 

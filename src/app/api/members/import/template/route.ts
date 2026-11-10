@@ -1,5 +1,5 @@
 import { actorFromSession } from "@/server/authorization/member-access";
-import { canManageOrganization } from "@/server/authorization/permissions";
+import { canManageMembers } from "@/server/authorization/permissions";
 import { IMPORT_TEMPLATE_HEADERS } from "@/server/services/member-import";
 import { readTenantSession } from "@/server/auth/session";
 import { toCsv } from "@/server/services/csv";
@@ -20,7 +20,7 @@ export async function GET() {
   const session = await readTenantSession();
   if (!session) return new Response("Not authenticated.", { status: 401 });
 
-  if (!canManageOrganization(actorFromSession(session)).allowed) {
+  if (!canManageMembers(actorFromSession(session)).allowed) {
     return new Response("Not permitted.", { status: 403 });
   }
 

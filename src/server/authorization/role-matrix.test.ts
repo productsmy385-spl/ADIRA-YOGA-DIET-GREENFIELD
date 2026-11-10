@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   canAccessMemberData,
   canAssignRole,
+  canManageMembers,
   canManageOrganization,
   canManageProgrammes,
   canPrescribe,
@@ -57,45 +58,26 @@ const platform: Actor = {
   role: "SUPER_ADMIN",
 };
 
-/** The intended matrix, written once, in the terms the product uses. */
+/** The intended matrix, written once, in the terms the product uses (ADR-016). */
 const MATRIX: Record<
   TenantRole,
   {
     manageOrganization: boolean;
-    manageProgrammes: boolean;
-    prescribe: boolean;
+    manageMembers: boolean;
+    manageYoga: boolean;
+    manageDiet: boolean;
+    prescribeYoga: boolean;
+    prescribeDiet: boolean;
     caseload: boolean;
     home: string;
   }
 > = {
-  ADMIN: {
-    manageOrganization: true,
-    manageProgrammes: true,
-    prescribe: true,
-    caseload: true,
-    home: "/admin",
-  },
-  TRAINER: {
-    manageOrganization: false,
-    manageProgrammes: true,
-    prescribe: true,
-    caseload: true,
-    home: "/trainer",
-  },
-  STAFF: {
-    manageOrganization: false,
-    manageProgrammes: false,
-    prescribe: false,
-    caseload: true,
-    home: "/staff",
-  },
-  USER: {
-    manageOrganization: false,
-    manageProgrammes: false,
-    prescribe: false,
-    caseload: false,
-    home: "/dashboard",
-  },
+  ADMIN: { manageOrganization: true, manageMembers: true, manageYoga: true, manageDiet: true, prescribeYoga: true, prescribeDiet: true, caseload: true, home: "/admin" },
+  TEAM_MANAGER: { manageOrganization: false, manageMembers: true, manageYoga: false, manageDiet: false, prescribeYoga: false, prescribeDiet: false, caseload: true, home: "/admin/team" },
+  TRAINER: { manageOrganization: false, manageMembers: false, manageYoga: true, manageDiet: true, prescribeYoga: true, prescribeDiet: true, caseload: true, home: "/trainer" },
+  DIETITIAN: { manageOrganization: false, manageMembers: false, manageYoga: false, manageDiet: true, prescribeYoga: false, prescribeDiet: true, caseload: true, home: "/trainer" },
+  STAFF: { manageOrganization: false, manageMembers: false, manageYoga: false, manageDiet: false, prescribeYoga: false, prescribeDiet: false, caseload: true, home: "/staff" },
+  USER: { manageOrganization: false, manageMembers: false, manageYoga: false, manageDiet: false, prescribeYoga: false, prescribeDiet: false, caseload: false, home: "/dashboard" },
 };
 
 describe("the role matrix is complete", () => {
@@ -105,8 +87,10 @@ describe("the role matrix is complete", () => {
     expect(Object.keys(MATRIX).sort()).toEqual([...TENANT_ROLES].sort());
   });
 
-  it("orders ranks ADMIN > TRAINER > STAFF > USER", () => {
-    expect(rankOf("ADMIN")).toBeGreaterThan(rankOf("TRAINER"));
+  it("orders ranks ADMIN > TEAM_MANAGER > TRAINER = DIETITIAN > STAFF > USER", () => {
+    expect(rankOf("ADMIN")).toBeGreaterThan(rankOf("TEAM_MANAGER"));
+    expect(rankOf("TEAM_MANAGER")).toBeGreaterThan(rankOf("TRAINER"));
+    expect(rankOf("TRAINER")).toBe(rankOf("DIETITIAN"));
     expect(rankOf("TRAINER")).toBeGreaterThan(rankOf("STAFF"));
     expect(rankOf("STAFF")).toBeGreaterThan(rankOf("USER"));
   });
@@ -114,28 +98,27 @@ describe("the role matrix is complete", () => {
 
 describe("capabilities, every role", () => {
   for (const role of TENANT_ROLES) {
-    const expected = MATRIX[role];
-
-    it(`${role}: organization administration = ${expected.manageOrganization}`, () => {
-      expect(canManageOrganization(tenant(role)).allowed).toBe(
-        expected.manageOrganization,
-      );
+    const e = MATRIX[role];
+    const actor = tenant(role);
+    it(`${role}: organization administration = ${e.manageOrganization}`, () => {
+      expect(canManageOrganization(actor).allowed).toBe(e.manageOrganization);
     });
-
-    it(`${role}: programme authoring = ${expected.manageProgrammes}`, () => {
-      expect(canManageProgrammes(tenant(role)).allowed).toBe(expected.manageProgrammes);
+    it(`${role}: member roster = ${e.manageMembers}`, () => {
+      expect(canManageMembers(actor).allowed).toBe(e.manageMembers);
     });
-
-    it(`${role}: prescribing = ${expected.prescribe}`, () => {
-      expect(canPrescribe(tenant(role)).allowed).toBe(expected.prescribe);
+    it(`${role}: authoring yoga ${e.manageYoga} / diet ${e.manageDiet}`, () => {
+      expect(canManageProgrammes(actor, "yoga").allowed).toBe(e.manageYoga);
+      expect(canManageProgrammes(actor, "diet").allowed).toBe(e.manageDiet);
     });
-
-    it(`${role}: can hold a caseload = ${expected.caseload}`, () => {
-      expect(carriesCaseload(role)).toBe(expected.caseload);
+    it(`${role}: prescribing yoga ${e.prescribeYoga} / diet ${e.prescribeDiet}`, () => {
+      expect(canPrescribe(actor, "yoga").allowed).toBe(e.prescribeYoga);
+      expect(canPrescribe(actor, "diet").allowed).toBe(e.prescribeDiet);
     });
-
-    it(`${role}: lands on ${expected.home}`, () => {
-      expect(homePathForRole(role)).toBe(expected.home);
+    it(`${role}: can hold a caseload = ${e.caseload}`, () => {
+      expect(carriesCaseload(role)).toBe(e.caseload);
+    });
+    it(`${role}: lands on ${e.home}`, () => {
+      expect(homePathForRole(role)).toBe(e.home);
     });
   }
 });
@@ -145,8 +128,9 @@ describe("a platform actor is refused every tenant capability", () => {
   // fall through no rank check into a tenant permission.
   it("cannot manage an organization, author programmes, or prescribe", () => {
     expect(canManageOrganization(platform).allowed).toBe(false);
-    expect(canManageProgrammes(platform).allowed).toBe(false);
-    expect(canPrescribe(platform).allowed).toBe(false);
+    expect(canManageProgrammes(platform, "yoga").allowed).toBe(false);
+    expect(canPrescribe(platform, "diet").allowed).toBe(false);
+    expect(canManageMembers(platform).allowed).toBe(false);
   });
 
   it("cannot read member data even where an assignment exists", () => {

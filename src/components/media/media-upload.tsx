@@ -25,7 +25,7 @@ import { UPLOAD_ACCEPT, UPLOAD_LIMITS, validateUploadRequest } from "@/lib/media
  * server, twice.
  */
 
-export type UploadPurpose = "exercise" | "meal" | "progress_photo" | "avatar";
+export type UploadPurpose = "exercise" | "meal" | "progress_photo" | "avatar" | "website";
 
 export interface RecordedMedia {
   id: string;

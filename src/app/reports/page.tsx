@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { FileText } from "lucide-react";
 
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { PageShell } from "@/components/ui/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { ReportSummary } from "@/components/reports/report-summary";
@@ -80,7 +80,6 @@ export default async function ReportsPage() {
         )}
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/reports" />
     </div>
   );
 }

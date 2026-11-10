@@ -6,6 +6,7 @@ import {
   type Actor,
   type TenantRole,
 } from "./roles";
+import { roleHasPermission, type Permission } from "./permission-matrix";
 
 /**
  * The two rank rules that bound every act-on-another-account operation.
@@ -29,13 +30,24 @@ export type DenialReason =
   | "INSUFFICIENT_RANK"
   | "SELF_ACTION"
   | "UNGRANTABLE_ROLE"
-  | "NOT_ASSIGNED";
+  | "NOT_ASSIGNED"
+  /** ADR-016: the role may see this member, but not this kind of data (a dietitian and yoga). */
+  | "DOMAIN_RESTRICTED";
 
 export type Decision =
   | { readonly allowed: true }
   | { readonly allowed: false; readonly reason: DenialReason };
 
 const ALLOW: Decision = { allowed: true };
+
+/**
+ * The one place a tenant permission is checked against the matrix (ADR-016). Platform
+ * actors hold no tenant permissions at all (ADR-001).
+ */
+export function hasPermission(actor: Actor, permission: Permission): Decision {
+  if (!isTenantActor(actor)) return deny("CROSS_DOMAIN");
+  return roleHasPermission(actor.role, permission) ? ALLOW : deny("INSUFFICIENT_RANK");
+}
 const deny = (reason: DenialReason): Decision => ({ allowed: false, reason });
 
 /**
@@ -120,14 +132,40 @@ export function canAssignRole(actor: Actor, role: TenantRole | "SUPER_ADMIN"): D
  * separate, individually audited capability.
  */
 export function canManageOrganization(actor: Actor): Decision {
-  if (!isTenantActor(actor)) return deny("CROSS_DOMAIN");
   /*
-   * ADMIN alone, and NOT "rank >= ADMIN". The comparison is against the exact role
-   * because this is the permission that TRAINER and STAFF exist to be excluded from — a
-   * rank threshold here would silently admit any future role placed above 20.
+   * `settings.update`, which the matrix grants to ADMIN alone — a permission, not a rank
+   * threshold, so a future role placed above 20 is not admitted by accident (ADR-016).
    */
-  if (actor.role !== "ADMIN") return deny("INSUFFICIENT_RANK");
-  return ALLOW;
+  return hasPermission(actor, "settings.update");
+}
+
+/**
+ * May this actor administer the MEMBER ROSTER — add, import, export, change status,
+ * review access requests, take people into a caseload (`members.*`)?
+ *
+ * ADMIN and TEAM_MANAGER (ADR-016). The roster is administration, not health data: this
+ * grants no reach into anyone's practice, which stays `canAccessMemberData`.
+ */
+export function canManageMembers(actor: Actor): Decision {
+  return hasPermission(actor, "members.create");
+}
+
+/** May this actor see and manage the TEAM and its workload (`team.*`)? ADMIN, TEAM_MANAGER. */
+export function canManageTeam(actor: Actor): Decision {
+  return hasPermission(actor, "team.view");
+}
+
+/**
+ * May this actor edit, publish and unpublish the organization's PUBLIC WEBSITE
+ * (`website.view/edit/publish/manage_templates`, WEBSITE-BUILDER-PRD NFR-SEC-WEB-004)?
+ *
+ * ADMIN only, for now. A public website speaks for the whole organization, which is
+ * administration, not caseload work — so TRAINER and STAFF are excluded exactly as for
+ * `canManageOrganization`. Stage 4's permission matrix decides whether TEAM_MANAGER gets
+ * it; until then it is not granted by default. Reads no member data.
+ */
+export function canManageWebsite(actor: Actor): Decision {
+  return hasPermission(actor, "website.edit");
 }
 
 /**
@@ -147,12 +185,11 @@ export function canManageOrganization(actor: Actor): Decision {
  * person is `canPrescribe` plus `canAccessMemberData`, which are separate questions asked
  * at the point the member is known.
  */
-export function canManageProgrammes(actor: Actor): Decision {
-  if (!isTenantActor(actor)) return deny("CROSS_DOMAIN");
-  if (actor.role !== "ADMIN" && actor.role !== "TRAINER") {
-    return deny("INSUFFICIENT_RANK");
-  }
-  return ALLOW;
+export type PracticeDomain = "yoga" | "diet";
+
+export function canManageProgrammes(actor: Actor, domain: PracticeDomain): Decision {
+  // ADR-016: per domain, so a DIETITIAN authors diet and is refused yoga.
+  return hasPermission(actor, domain === "yoga" ? "yoga.create" : "diet.create");
 }
 
 /**
@@ -167,12 +204,8 @@ export function canManageProgrammes(actor: Actor): Decision {
  * STAFF may watch a caseload and may message the people on it, and may not decide what
  * they practise.
  */
-export function canPrescribe(actor: Actor): Decision {
-  if (!isTenantActor(actor)) return deny("CROSS_DOMAIN");
-  if (actor.role !== "ADMIN" && actor.role !== "TRAINER") {
-    return deny("INSUFFICIENT_RANK");
-  }
-  return ALLOW;
+export function canPrescribe(actor: Actor, domain: PracticeDomain): Decision {
+  return hasPermission(actor, domain === "yoga" ? "yoga.assign" : "diet.assign");
 }
 
 /** The member whose health or activity data is being reached for. */
@@ -201,10 +234,19 @@ export interface MemberRef {
  * list is indistinguishable from "no data" and hides exactly the probing that
  * `audit_logs_denied_idx` exists to make visible.
  */
+/**
+ * Which kind of member data is being reached for (ADR-016).
+ *   profile  name, contact, status — what any assigned practitioner needs to recognise them
+ *   diet     diet plans and diet activities
+ *   all      everything else: yoga, check-ins, progress, reports
+ */
+export type MemberDataDomain = "profile" | "diet" | "all";
+
 export function canAccessMemberData(
   actor: Actor,
   member: MemberRef,
   hasActiveAssignment: boolean,
+  domain: MemberDataDomain = "all",
 ): Decision {
   if (!isTenantActor(actor)) return deny("CROSS_DOMAIN");
   if (actor.organizationId !== member.organizationId) return deny("CROSS_ORGANIZATION");
@@ -238,5 +280,13 @@ export function canAccessMemberData(
    */
   if (isLegacyOrganizationOwner(actor)) return ALLOW;
 
-  return hasActiveAssignment ? ALLOW : deny("NOT_ASSIGNED");
+  if (!hasActiveAssignment) return deny("NOT_ASSIGNED");
+
+  /*
+   * ADR-016: an assignment admits a DIETITIAN to the member's profile and DIET data only.
+   * Checked after the assignment, so an unassigned dietitian still sees NOT_ASSIGNED.
+   */
+  if (actor.role === "DIETITIAN" && domain === "all") return deny("DOMAIN_RESTRICTED");
+
+  return ALLOW;
 }

@@ -43,7 +43,7 @@
 export const IDENTITY_DOMAINS = ["PLATFORM", "TENANT"] as const;
 export type IdentityDomain = (typeof IDENTITY_DOMAINS)[number];
 
-export const TENANT_ROLES = ["ADMIN", "TRAINER", "STAFF", "USER"] as const;
+export const TENANT_ROLES = ["ADMIN", "TEAM_MANAGER", "TRAINER", "DIETITIAN", "STAFF", "USER"] as const;
 export type TenantRole = (typeof TENANT_ROLES)[number];
 
 /**
@@ -59,7 +59,7 @@ export type TenantRole = (typeof TENANT_ROLES)[number];
  * Membership grants NOTHING on its own. It only means `canAccessMemberData` will go on to
  * consult the assignment; without one the answer is still NOT_ASSIGNED.
  */
-export const CASELOAD_ROLES = ["ADMIN", "TRAINER", "STAFF"] as const;
+export const CASELOAD_ROLES = ["ADMIN", "TEAM_MANAGER", "TRAINER", "DIETITIAN", "STAFF"] as const;
 
 export function carriesCaseload(role: TenantRole): boolean {
   return (CASELOAD_ROLES as readonly string[]).includes(role);
@@ -75,7 +75,11 @@ export function carriesCaseload(role: TenantRole): boolean {
  */
 const HOME_PATH: Record<TenantRole, string> = {
   ADMIN: "/admin",
+  // ADR-016: a team manager lands on the team they manage; a dietitian on the same
+  // assignment-scoped caseload view a trainer uses.
+  TEAM_MANAGER: "/admin/team",
   TRAINER: "/trainer",
+  DIETITIAN: "/trainer",
   STAFF: "/staff",
   USER: "/dashboard",
 };
@@ -149,6 +153,10 @@ const TENANT_RANK: Record<TenantRole, number> = {
    */
   STAFF: 12,
   TRAINER: 15,
+  // ADR-016. A peer of TRAINER: neither can act on or grant the other.
+  DIETITIAN: 15,
+  // Above every role it manages, below ADMIN — so it can never grant ADMIN or itself.
+  TEAM_MANAGER: 18,
   ADMIN: 20,
 };
 

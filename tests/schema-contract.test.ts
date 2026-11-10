@@ -48,6 +48,8 @@ const TENANT_TABLES = [
   "media_assets",
   "notification_preferences",
   "notifications",
+  "organization_website_versions",
+  "organization_websites",
   "programme_items",
   "programmes",
   "push_subscriptions",
@@ -55,6 +57,8 @@ const TENANT_TABLES = [
   "sessions",
   "users",
   "yoga_exercises",
+  "yoga_session_participants",
+  "yoga_sessions",
 ] as const;
 
 /**
@@ -95,12 +99,19 @@ const COMPOSITE_USER_FKS = [
   "notification_preferences_user_fk",
   "notifications_sender_fk",
   "notifications_recipient_fk",
+  "organization_websites_draft_by_fk",
+  "organization_websites_published_by_fk",
+  "organization_website_versions_published_by_fk",
   "otp_user_fk",
   "passkey_user_fk",
   "push_subscriptions_user_fk",
   "reports_customer_fk",
   "sessions_user_fk",
   "webauthn_user_fk",
+  "yoga_session_participants_marked_by_fk",
+  "yoga_session_participants_member_fk",
+  "yoga_sessions_created_by_fk",
+  "yoga_sessions_instructor_fk",
 ] as const;
 
 /* ── the suite ─────────────────────────────────────────────────────────── */

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { actorFromSession } from "@/server/authorization/member-access";
-import { canManageOrganization } from "@/server/authorization/permissions";
+import { canManageMembers } from "@/server/authorization/permissions";
 import { previewMemberImport } from "@/server/services/member-import";
 import { MAX_IMPORT_ROWS } from "@/server/repositories/member-import";
 import { readTenantSession } from "@/server/auth/session";
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
-  if (!canManageOrganization(actorFromSession(session)).allowed) {
+  if (!canManageMembers(actorFromSession(session)).allowed) {
     return NextResponse.json(
       { error: "You do not have permission to import members." },
       { status: 403 },

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { GlassCard, GlassPanel } from "@/components/glass/glass";
 import { AnimatedNumber } from "@/components/motion/animated-number";
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { requireTenantSession } from "@/server/auth/guards";
 import {
   listActivitiesForDate,
@@ -16,6 +16,9 @@ import { completionPercent, tally } from "@/server/services/metrics";
 import { ActivityCard } from "./activity-card";
 import { CheckInForm } from "./check-in-form";
 import { PageShell } from "@/components/ui/page-shell";
+import { formatInZone } from "@/lib/zoned-time";
+import { findOrganizationById } from "@/server/repositories/organizations";
+import { listMemberSessions } from "@/server/repositories/yoga-sessions";
 
 export const metadata: Metadata = { title: "Today" };
 export const dynamic = "force-dynamic";
@@ -45,8 +48,9 @@ export default async function TodayPage() {
   // The organisation's today, not the server's and not the browser's — two people
   // looking at the same organisation must see the same day boundary.
   const today = await organizationToday(session.organizationId);
+  const timeZone = (await findOrganizationById(session.organizationId))?.timezone ?? "Asia/Kolkata";
 
-  const [activities, assignments, weekStatuses, checkIn] = await Promise.all([
+  const [activities, assignments, weekStatuses, checkIn, classes] = await Promise.all([
     listActivitiesForDate(session.organizationId, session.userId, today),
     listAssignmentsForCustomer(session.organizationId, session.userId),
     listStatusesInRange(
@@ -58,6 +62,9 @@ export default async function TodayPage() {
       today,
     ),
     findCheckIn(session.organizationId, session.userId, today),
+    // The member's OWN classes (self-access) — instructor and time only, never the
+    // instructor's notes or who else is attending.
+    listMemberSessions(session.organizationId, session.userId, new Date(), 5),
   ]);
 
   const todayCounts = tally(activities.map((a) => a.status));
@@ -166,6 +173,24 @@ export default async function TodayPage() {
           )}
         </section>
 
+        {classes.length > 0 ? (
+          <section aria-labelledby="classes-heading" className="mt-10">
+            <h2 id="classes-heading" className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              Upcoming classes
+            </h2>
+            <ul className="mt-3 space-y-2">
+              {classes.map((c) => (
+                <li key={c.id} className="rounded-2xl border border-border-glass bg-surface px-4 py-3">
+                  <p className="font-semibold text-foreground">{c.title}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatInZone(c.startsAt, timeZone)} · {c.durationMinutes} min · with {c.instructorName}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         <section aria-labelledby="checkin-heading" className="mt-10">
           <h2
             id="checkin-heading"
@@ -182,7 +207,6 @@ export default async function TodayPage() {
         </section>
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/today" />
     </div>
   );
 }

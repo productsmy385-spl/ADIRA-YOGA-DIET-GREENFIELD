@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, CalendarCheck, TriangleAlert, Users } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  CalendarCheck,
+  Target,
+  TriangleAlert,
+  UserCog,
+  Users,
+} from "lucide-react";
+
+import { MetricCard, MetricGrid } from "@/components/ui/metric";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { requireTenantSession } from "@/server/auth/guards";
 import { listActivitiesForDate, organizationToday } from "@/server/repositories/activities";
 import { organizationSummary } from "@/server/repositories/analytics";
@@ -180,19 +190,38 @@ export default async function DashboardPage() {
               {session.organizationName}
             </h2>
 
-            <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Stat label="Customers" value={summary.totalCustomers} />
-              <Stat label="Active (14 days)" value={summary.activeCustomers} />
-              <Stat label="Consultants" value={summary.consultants} />
-              <Stat
-                label="Adherence (7 days)"
+            <MetricGrid className="mt-4">
+              <MetricCard
+                label="Members"
+                value={summary.totalCustomers}
+                icon={<Users />}
+                tone="green"
+              />
+              <MetricCard
+                label="Active members"
+                value={summary.activeCustomers}
+                icon={<Activity />}
+                tone="blue"
+                description="Last 14 days"
+              />
+              <MetricCard
+                label="Consultants"
+                value={summary.consultants}
+                icon={<UserCog />}
+                tone="turquoise"
+              />
+              <MetricCard
+                label="Adherence"
                 value={
                   summary.adherence7d === null
                     ? null
                     : `${Math.round(summary.adherence7d * 100)}%`
                 }
+                icon={<Target />}
+                tone="violet"
+                description="Last 7 days"
               />
-            </dl>
+            </MetricGrid>
           </section>
         ) : null}
 
@@ -250,7 +279,6 @@ export default async function DashboardPage() {
         ) : null}
       </main>
 
-      <MobileTabBar role={session.role} currentPath="/dashboard" />
     </div>
   );
 }
@@ -273,13 +301,3 @@ function Field({ label, value, mono }: { label: string; value: string; mono?: bo
  * total failure. `completionPercent` and `adherence7d` both return null for this case;
  * collapsing that to a number here would throw away the distinction they exist to keep.
  */
-function Stat({ label, value }: { label: string; value: number | string | null }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="mt-2 text-3xl font-semibold tabular-nums text-card-foreground">
-        {value === null ? <span className="text-muted-foreground">—</span> : value}
-      </dd>
-    </div>
-  );
-}

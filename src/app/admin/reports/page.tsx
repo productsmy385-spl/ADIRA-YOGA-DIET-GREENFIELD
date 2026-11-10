@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { FileText } from "lucide-react";
 
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { PageShell } from "@/components/ui/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { requireRole } from "@/server/auth/guards";
@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * `resolveMemberAccess`, and deliberately not listed here.
  */
 export default async function AdminReportsPage() {
-  const session = await requireRole("ADMIN", "TRAINER", "STAFF");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER", "TRAINER", "DIETITIAN", "STAFF");
   const reports = await listOrganizationReports(session.organizationId);
 
   return (
@@ -66,7 +66,6 @@ export default async function AdminReportsPage() {
         </p>
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/admin/reports" />
     </div>
   );
 }

@@ -44,7 +44,24 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      // Every route except the one below: never framed, by anyone.
+      { source: "/((?!admin/website/preview).*)", headers: securityHeaders },
+      /*
+       * THE ONE FRAMING EXCEPTION (WEBSITE-BUILDER-PRD FR-WEB-008). The website editor
+       * shows the admin's own draft inside same-origin iframes at real phone/tablet/
+       * desktop widths — the only way a template's responsive rules are what is shown.
+       * SAMEORIGIN, not removal: no other origin can frame it. The route is ADMIN-only
+       * and renders draft marketing copy, never member data. proxy.ts matches it with
+       * `frame-ancestors 'self'` for this path alone.
+       */
+      {
+        source: "/admin/website/preview",
+        headers: securityHeaders.map((h) =>
+          h.key === "X-Frame-Options" ? { key: h.key, value: "SAMEORIGIN" } : h,
+        ),
+      },
+    ];
   },
 
   /*

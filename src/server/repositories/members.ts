@@ -108,7 +108,9 @@ export async function listMembers(
   const kind = options.kind ?? "MEMBERS";
   if (kind === "MEMBERS") conditions.push(`u.role IN ('USER', 'CUSTOMER')`);
   if (kind === "STAFF") {
-    conditions.push(`u.role IN ('ADMIN', 'ORG_OWNER', 'TRAINER', 'STAFF')`);
+    conditions.push(
+      `u.role IN ('ADMIN', 'ORG_OWNER', 'TEAM_MANAGER', 'TRAINER', 'DIETITIAN', 'STAFF')`,
+    );
   }
   if (kind === "ADMINS") conditions.push(`u.role IN ('ADMIN', 'ORG_OWNER')`);
 
@@ -291,4 +293,22 @@ export async function endAssignment(
         AND ended_at IS NULL`,
     [organizationId, adminId, memberId],
   );
+}
+
+/**
+ * How many members each practitioner CARRIES (active assignments where they are the
+ * consultant). A count per person — never who — for the team page's workload.
+ *
+ * Distinct from `assignmentCount` on a member row, which counts how many practitioners a
+ * MEMBER is assigned to; the team page once showed that for staff, which is always 0.
+ */
+export async function caseloadCounts(organizationId: string): Promise<Map<string, number>> {
+  const rows = await query<{ consultant_id: string; count: number }>(
+    `SELECT consultant_id, count(*)::int AS count
+       FROM consultant_assignments
+      WHERE organization_id = $1 AND ended_at IS NULL
+      GROUP BY consultant_id`,
+    [organizationId],
+  );
+  return new Map(rows.map((r) => [r.consultant_id, r.count]));
 }

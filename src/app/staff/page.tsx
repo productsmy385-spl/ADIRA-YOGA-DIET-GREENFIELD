@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { CaseloadList } from "@/components/caseload/caseload-list";
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { PageShell } from "@/components/ui/page-shell";
 import { requireRole } from "@/server/auth/guards";
 import { actorFromSession } from "@/server/authorization/member-access";
@@ -65,7 +65,6 @@ export default async function StaffPage() {
         </p>
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/staff" />
     </div>
   );
 }

@@ -62,7 +62,9 @@ export async function organizationSummary(
          WHERE organization_id = $1 AND role IN ('USER', 'CUSTOMER')
            AND created_at > now() - interval '30 days')::int AS new_customers,
        (SELECT count(*) FROM users
-         WHERE organization_id = $1 AND role IN ('ADMIN', 'ORG_OWNER'))::int AS consultants,
+         WHERE organization_id = $1
+           AND role IN ('ADMIN', 'ORG_OWNER', 'TEAM_MANAGER', 'TRAINER', 'DIETITIAN', 'STAFF')
+       )::int AS consultants,
        (SELECT count(*) FROM daily_activities
          WHERE organization_id = $1 AND status = 'COMPLETED'
            AND scheduled_for > (SELECT d FROM today) - 7)::int AS completed,

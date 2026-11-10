@@ -8,6 +8,8 @@ import { GlassPanel } from "@/components/glass/glass";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/server/auth/guards";
+import { actorFromSession } from "@/server/authorization/member-access";
+import { canManageProgrammes } from "@/server/authorization/permissions";
 import { listMeals, listYogaExercises } from "@/server/repositories/library";
 import {
   findProgramme,
@@ -45,11 +47,14 @@ export default async function ProgrammeBuilderPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await requireRole("ADMIN", "TRAINER");
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
   const { id } = await params;
 
   const programme = await findProgramme(session.organizationId, id);
   if (!programme) notFound();
+  // ADR-016: a programme outside the actor's domain is not theirs to see (a dietitian and yoga).
+  const domain = programme.kind === "YOGA" ? "yoga" : "diet";
+  if (!canManageProgrammes(actorFromSession(session), domain).allowed) notFound();
 
   const isYoga = programme.kind === "YOGA";
 

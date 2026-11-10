@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
 const HEADERS = ["full_name", "email", "phone", "status", "assigned_admins", "joined"] as const;
 
 export async function GET() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
 
   const members = await listMembers(session.organizationId, { kind: "MEMBERS", limit: 500 });
 

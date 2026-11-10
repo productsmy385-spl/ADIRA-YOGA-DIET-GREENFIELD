@@ -50,6 +50,8 @@ export const TENANT_ROLE_VALUES = [
   "USER",
   "TRAINER",
   "STAFF",
+  "TEAM_MANAGER",
+  "DIETITIAN",
 ] as const;
 export type TenantRoleValue = (typeof TENANT_ROLE_VALUES)[number];
 

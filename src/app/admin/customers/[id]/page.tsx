@@ -27,7 +27,7 @@ import {
   actorFromSession,
   resolveMemberAccessAudited,
 } from "@/server/authorization/member-access";
-import { canManageOrganization } from "@/server/authorization/permissions";
+import { canManageMembers, canPrescribe } from "@/server/authorization/permissions";
 import { listCheckInsInRange } from "@/server/repositories/checkins";
 import { listReportsForMember } from "@/server/repositories/reports";
 import { findUserById } from "@/server/repositories/users";
@@ -73,8 +73,15 @@ export default async function CustomerPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await requireRole("ADMIN", "TRAINER", "STAFF");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER", "TRAINER", "DIETITIAN", "STAFF");
   const actor = actorFromSession(session);
+
+  /*
+   * ADR-016: a DIETITIAN is admitted to this member's profile and DIET data only. The
+   * gate below is asked for "diet", and the loads further down fetch nothing else —
+   * yoga activity, check-ins and reports are never read for a dietitian, not merely hidden.
+   */
+  const dietOnly = session.role === "DIETITIAN";
 
   // One gate for every member-sensitive read (ADR-013). It performs the assignment
   // lookup and writes the DENIED audit entry itself, so no call site can forget either.
@@ -82,6 +89,7 @@ export default async function CustomerPage({
     actor,
     id,
     "customer.view",
+    dietOnly ? "diet" : "all",
   );
 
   /*
@@ -111,7 +119,7 @@ export default async function CustomerPage({
    * adherence, no plans, no reports. The denial is already audited above.
    */
   if (!decision.allowed) {
-    const manageable = canManageOrganization(actor).allowed;
+    const manageable = canManageMembers(actor).allowed;
 
     return (
       <div className="min-h-dvh bg-background">
@@ -166,12 +174,12 @@ export default async function CustomerPage({
   const today = await organizationToday(session.organizationId);
   const weekAgo = subtractDays(today, 6);
 
-  const [assignments, todayActivities, weekStatuses, checkIns, programmes, reports] =
+  const [allAssignments, allTodayActivities, weekStatuses, checkIns, allProgrammes, reports] =
     await Promise.all([
       listAssignmentsForCustomer(session.organizationId, id),
       listActivitiesForDate(session.organizationId, id, today),
-      listStatusesInRange(session.organizationId, id, weekAgo, today),
-      listCheckInsInRange(session.organizationId, id, weekAgo, today),
+      listStatusesInRange(session.organizationId, id, weekAgo, today, dietOnly ? "DIET" : undefined),
+      dietOnly ? Promise.resolve([]) : listCheckInsInRange(session.organizationId, id, weekAgo, today),
       /*
        * Templates available to PRESCRIBE, which is narrower than "templates".
        *
@@ -185,8 +193,17 @@ export default async function CustomerPage({
       // Member-scoped reports, behind the same assignment gate as everything else on this
       // page. `listReportsForMember` requires the customer id in its WHERE clause, so
       // there is no variant of this call that returns anybody else's.
-      listReportsForMember(session.organizationId, id, 6),
+      dietOnly ? Promise.resolve([]) : listReportsForMember(session.organizationId, id, 6),
     ]);
+
+  const assignments = dietOnly ? allAssignments.filter((a) => a.kind === "DIET") : allAssignments;
+  const todayActivities = dietOnly
+    ? allTodayActivities.filter((a) => a.kind === "DIET")
+    : allTodayActivities;
+  // Prescribable programmes: only the domains this role may prescribe.
+  const programmes = allProgrammes.filter(
+    (p) => canPrescribe(actor, p.kind === "YOGA" ? "yoga" : "diet").allowed,
+  );
 
   const weekPercent = completionPercent(tally(weekStatuses));
   const livePlan = assignments.find((a) => a.status === "ACTIVE");
@@ -315,14 +332,14 @@ export default async function CustomerPage({
               {weekPercent === null ? "—" : `${weekPercent}%`}
             </p>
           </div>
-          <div className="rounded-lg border border-border bg-card p-4">
+          {dietOnly ? null : (<div className="rounded-lg border border-border bg-card p-4">
             <p className="text-xs tracking-widest text-muted-foreground uppercase">
               Check-ins · 7 days
             </p>
             <p className="mt-1 text-2xl font-semibold text-card-foreground">
               {checkIns.length}
             </p>
-          </div>
+          </div>)}
         </section>
 
         <section aria-labelledby="plan-heading" className="mt-10">
@@ -375,6 +392,7 @@ export default async function CustomerPage({
           )}
         </section>
 
+        {dietOnly ? null : (
         <section aria-labelledby="checkins-heading" className="mt-10">
           <h2
             id="checkins-heading"
@@ -407,7 +425,9 @@ export default async function CustomerPage({
             </p>
           )}
         </section>
+        )}
 
+        {dietOnly ? null : (
         <section aria-labelledby="reports-heading" className="mt-10">
           <h2
             id="reports-heading"
@@ -454,6 +474,7 @@ export default async function CustomerPage({
             </p>
           )}
         </section>
+        )}
 
         <section aria-labelledby="message-heading" className="mt-10">
           <h2

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Archive, ArchiveRestore, Salad } from "lucide-react";
 
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
  * be member data and would need an assignment.
  */
 export default async function DietLibraryPage() {
-  const session = await requireRole("ADMIN", "TRAINER");
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
   // Archived meals are listed, greyed and restorable — see the yoga library for why.
   const meals = await listMeals(session.organizationId, true);
 
@@ -117,7 +117,6 @@ export default async function DietLibraryPage() {
         )}
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/admin/diet" />
     </div>
   );
 }

@@ -301,3 +301,52 @@ export async function countUsersByRole(
   for (const row of rows) counts[row.role] = Number(row.count);
   return counts;
 }
+
+/* ── team profiles (migration 015) ─────────────────────────────────────── */
+
+export interface TeamProfile {
+  specialisation: string | null;
+  qualifications: string | null;
+  bio: string | null;
+}
+
+/** Profiles for the team directory, keyed by user id. Organisation-scoped. */
+export async function listTeamProfiles(organizationId: string): Promise<Map<string, TeamProfile>> {
+  const rows = await query<{ id: string } & { specialisation: string | null; qualifications: string | null; bio: string | null }>(
+    `SELECT id, specialisation, qualifications, bio FROM users
+      WHERE organization_id = $1
+        AND role IN ('ADMIN', 'ORG_OWNER', 'TEAM_MANAGER', 'TRAINER', 'DIETITIAN', 'STAFF')`,
+    [organizationId],
+  );
+  return new Map(rows.map((r) => [r.id, { specialisation: r.specialisation, qualifications: r.qualifications, bio: r.bio }]));
+}
+
+export async function updateTeamProfile(
+  organizationId: string,
+  userId: string,
+  profile: TeamProfile,
+): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `UPDATE users SET specialisation = $3, qualifications = $4, bio = $5
+      WHERE organization_id = $1 AND id = $2
+      RETURNING id`,
+    [organizationId, userId, profile.specialisation, profile.qualifications, profile.bio],
+  );
+  return row !== null;
+}
+
+/**
+ * Change a team member's role. The caller must already have proved, with `canActOn` and
+ * `canAssignRole`, that the actor strictly outranks both the person and the new role.
+ */
+export async function setUserRole(
+  organizationId: string,
+  userId: string,
+  role: string,
+): Promise<boolean> {
+  const row = await queryOne<{ id: string }>(
+    `UPDATE users SET role = $3::tenant_role WHERE organization_id = $1 AND id = $2 RETURNING id`,
+    [organizationId, userId, role],
+  );
+  return row !== null;
+}

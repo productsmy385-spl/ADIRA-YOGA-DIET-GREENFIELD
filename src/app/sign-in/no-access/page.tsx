@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { currentClerkIdentity } from "@/server/auth/clerk";
+import { findLiveSiteBySlug } from "@/server/repositories/websites";
 
 import { switchAccountAction } from "../actions";
 
@@ -18,16 +19,25 @@ export const dynamic = "force-dynamic";
  * is in the audit log, where an administrator can act on it. The way forward is the
  * existing access-request flow, which an organization's administrator reviews.
  */
-export default async function NoAccessPage() {
+export default async function NoAccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ org?: string }>;
+}) {
   const identity = await currentClerkIdentity();
   if (!identity) redirect("/sign-in");
+
+  // The studio the visitor came from — named only if it has a live public site.
+  const raw = (await searchParams).org ?? "";
+  const studio = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(raw) ? await findLiveSiteBySlug(raw) : null;
+  const where = studio ? studio.content.branding.businessName : "any organisation here";
 
   return (
     <AuthShell
       title="No access yet"
       description={
         identity.verifiedEmail
-          ? `${identity.verifiedEmail} isn't an active member of any organisation here.`
+          ? `${identity.verifiedEmail} isn't an active member of ${where}.`
           : "Your email address hasn't been verified."
       }
     >

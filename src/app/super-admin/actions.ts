@@ -3,8 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { redirect } from "next/navigation";
+
+import { revokeCurrentClerkSession } from "@/server/auth/clerk";
 import { requirePlatformSession } from "@/server/auth/guards";
 import { inviteAndAudit } from "@/server/auth/invitations";
+import { endPlatformSession } from "@/server/auth/session";
 import { isUniqueViolation } from "@/server/db/unique-violation";
 import { recordAudit } from "@/server/repositories/audit-logs";
 import {
@@ -301,4 +305,20 @@ export async function setAdminStatusAction(formData: FormData): Promise<void> {
   });
 
   revalidatePath("/super-admin");
+}
+
+/* ── sign out ──────────────────────────────────────────────────────────── */
+
+/**
+ * End the platform session, then the Clerk session (ADR-015).
+ *
+ * The platform console had no sign-out at all: `endPlatformSession` existed with no
+ * caller, so an operator on a shared machine could only wait for the session to expire.
+ * Platform session first, because it is what every platform guard reads; Clerk second, so
+ * the next person at the browser is not silently re-admitted by /super-admin/auth/continue.
+ */
+export async function signOutPlatformAction(): Promise<void> {
+  await endPlatformSession();
+  await revokeCurrentClerkSession();
+  redirect("/super-admin/sign-in");
 }

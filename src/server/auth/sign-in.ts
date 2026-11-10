@@ -113,8 +113,22 @@ async function loadSelection(identity: ClerkIdentity, request: RequestMeta) {
 export async function signInWithClerk(
   identity: ClerkIdentity,
   request: RequestMeta = {},
+  /**
+   * The studio the person came from (`/s/<slug>` → Sign In). A PREFERENCE only: it is
+   * matched against memberships derived from the verified identity, so a slug the person
+   * does not belong to simply matches nothing (FR-WEB-015, ADR-012).
+   */
+  preferredSlug?: string,
 ): Promise<TenantSignInResult> {
   const selection = await loadSelection(identity, request);
+
+  const preferred = preferredSlug
+    ? selection?.enterable.find((a) => a.organizationSlug === preferredSlug)
+    : undefined;
+  if (preferred) {
+    const ok = await establishSession(preferred, identity, request);
+    return ok ? { kind: "SIGNED_IN", role: preferred.role } : { kind: "NO_ACCOUNT" };
+  }
 
   if (!selection || selection.enterable.length === 0) {
     await recordAudit({

@@ -9,9 +9,12 @@ import {
   resolveMemberAccessAudited,
 } from "@/server/authorization/member-access";
 import {
-  canManageOrganization,
+  canManageMembers,
   canPrescribe,
+  type MemberDataDomain,
+  type PracticeDomain,
 } from "@/server/authorization/permissions";
+import { findProgramme } from "@/server/repositories/programmes";
 import {
   activateAssignment,
   createAssignmentFromProgramme,
@@ -81,34 +84,53 @@ export interface AssignState {
  * The default is the stricter of the two, so a new action that forgets to pass a
  * capability gets the prescribing gate rather than the open one.
  */
-async function requireMemberReach(
-  customerId: string,
-  action: string,
-  capability: (actor: ReturnType<typeof actorFromSession>) => { allowed: boolean } =
-    canPrescribe,
-) {
-  // Every caseload role, not just ADMIN. The role-level question is asked immediately
-  // below by `capability`; this guard only establishes an authenticated tenant identity
-  // that could hold a caseload at all.
-  const session = await requireRole("ADMIN", "TRAINER", "STAFF");
+type Reach =
+  /** Prescribing in a practice domain (ADR-016): role capability AND data reach for it. */
+  | { prescribe: PracticeDomain }
+  /** Messaging: assignment alone, at profile level — what STAFF and DIETITIAN need. */
+  | { message: true };
+
+const CASELOAD_ROLES = ["ADMIN", "TEAM_MANAGER", "TRAINER", "DIETITIAN", "STAFF"] as const;
+
+async function requireMemberReach(customerId: string, action: string, reach: Reach) {
+  // Every caseload role. The role-level question is asked immediately below; this guard
+  // only establishes an authenticated tenant identity that could hold a caseload at all.
+  const session = await requireRole(...CASELOAD_ROLES);
   const actor = actorFromSession(session);
 
-  if (!capability(actor).allowed) return null;
+  if ("prescribe" in reach && !canPrescribe(actor, reach.prescribe).allowed) return null;
 
-  const { decision } = await resolveMemberAccessAudited(actor, customerId, action);
+  // A dietitian prescribing diet needs diet reach; messaging needs only the profile.
+  const domain: MemberDataDomain =
+    "message" in reach ? "profile" : reach.prescribe === "diet" ? "diet" : "all";
+  const { decision } = await resolveMemberAccessAudited(actor, customerId, action, domain);
   if (!decision.allowed) return null;
 
   return session;
 }
 
+/** The domain of a programme, read from the stored row — never from the request. */
+async function programmeDomain(programmeId: string): Promise<PracticeDomain | null> {
+  const session = await requireRole(...CASELOAD_ROLES);
+  const programme = await findProgramme(session.organizationId, programmeId);
+  return programme ? (programme.kind === "YOGA" ? "yoga" : "diet") : null;
+}
+
+async function assignmentDomain(assignmentId: string): Promise<PracticeDomain | null> {
+  const session = await requireRole(...CASELOAD_ROLES);
+  const assignment = await findAssignment(session.organizationId, assignmentId);
+  return assignment ? (assignment.kind === "YOGA" ? "yoga" : "diet") : null;
+}
+
 /* ── caseload ──────────────────────────────────────────────────────────── */
 
 export async function takeIntoCaseloadAction(formData: FormData): Promise<void> {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
   const actor = actorFromSession(session);
 
   // Administrative only — see the header for why this must NOT require data reach.
-  if (!canManageOrganization(actor).allowed) return;
+  // `members.assign`: ADMIN and TEAM_MANAGER (ADR-016).
+  if (!canManageMembers(actor).allowed) return;
 
   const customerId = String(formData.get("customerId") ?? "");
   if (!customerId) return;
@@ -133,8 +155,8 @@ export async function takeIntoCaseloadAction(formData: FormData): Promise<void> 
 }
 
 export async function releaseFromCaseloadAction(formData: FormData): Promise<void> {
-  const session = await requireRole("ADMIN");
-  if (!canManageOrganization(actorFromSession(session)).allowed) return;
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
+  if (!canManageMembers(actorFromSession(session)).allowed) return;
 
   const customerId = String(formData.get("customerId") ?? "");
   if (!customerId) return;
@@ -182,7 +204,15 @@ export async function assignProgrammeAction(
 
   const { customerId, programmeId, startsOn, durationWeeks, activate } = parsed.data;
 
-  const session = await requireMemberReach(customerId, "assignment.create");
+  /*
+   * A programme not in this organisation has no domain. Rather than refusing (which would
+   * answer differently for another tenant's id), check reach with the actor's own
+   * prescribing domain and let the org-scoped snapshot report it unavailable, as before.
+   */
+  const stored = await programmeDomain(programmeId);
+  const lookupSession = await requireRole("ADMIN", "TEAM_MANAGER", "TRAINER", "DIETITIAN", "STAFF");
+  const fallback: PracticeDomain = canPrescribe(actorFromSession(lookupSession), "yoga").allowed ? "yoga" : "diet";
+  const session = await requireMemberReach(customerId, "assignment.create", { prescribe: stored ?? fallback });
   if (!session) {
     // Same message for "not permitted" and "not in your caseload". Distinguishing them
     // would confirm that a member exists whom this admin may not see.
@@ -259,7 +289,9 @@ export async function activateAssignmentAction(formData: FormData): Promise<void
   const customerId = String(formData.get("customerId") ?? "");
   const assignmentId = String(formData.get("assignmentId") ?? "");
 
-  const session = await requireMemberReach(customerId, "assignment.activate");
+  const domain = await assignmentDomain(assignmentId);
+  if (!domain) return;
+  const session = await requireMemberReach(customerId, "assignment.activate", { prescribe: domain });
   if (!session) return;
 
   // The assignment must belong to this member, not merely to this organisation —
@@ -291,7 +323,9 @@ export async function pauseAssignmentAction(formData: FormData): Promise<void> {
   const customerId = String(formData.get("customerId") ?? "");
   const assignmentId = String(formData.get("assignmentId") ?? "");
 
-  const session = await requireMemberReach(customerId, "assignment.pause");
+  const domain = await assignmentDomain(assignmentId);
+  if (!domain) return;
+  const session = await requireMemberReach(customerId, "assignment.pause", { prescribe: domain });
   if (!session) return;
 
   const assignment = await findAssignment(session.organizationId, assignmentId);
@@ -372,11 +406,7 @@ export async function sendMemberNotificationAction(
    * prescribing capability here would have silently excluded them from the one
    * communication channel their navigation offers.
    */
-  const session = await requireMemberReach(
-    customerId,
-    "notification.send",
-    () => ({ allowed: true }),
-  );
+  const session = await requireMemberReach(customerId, "notification.send", { message: true });
   if (!session) {
     return { status: "ERROR", message: "You cannot message this member." };
   }

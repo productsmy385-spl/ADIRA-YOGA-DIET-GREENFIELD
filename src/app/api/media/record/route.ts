@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
   fileId: z.string().min(1).max(200),
-  purpose: z.enum(["exercise", "meal", "progress_photo", "avatar"]),
+  purpose: z.enum(["exercise", "meal", "progress_photo", "avatar", "website"]),
   customerId: z.uuid().nullish(),
 });
 

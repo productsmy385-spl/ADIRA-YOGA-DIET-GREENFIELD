@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { UserPlus, Users } from "lucide-react";
+import { Activity, Salad, UserCog, UserPlus, Users } from "lucide-react";
 
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageShell } from "@/components/ui/page-shell";
 import { OrganizationAccessKeyCard } from "@/components/ui/organization-access-key-card";
 import { requireRole } from "@/server/auth/guards";
-import { listMembers } from "@/server/repositories/members";
+import { MetricCard, MetricGrid } from "@/components/ui/metric";
+import { actorFromSession } from "@/server/authorization/member-access";
+import { canActOn, canAssignRole } from "@/server/authorization/permissions";
+import { caseloadCounts, listMembers } from "@/server/repositories/members";
+import { listTeamProfiles } from "@/server/repositories/users";
+import { teamSessionWorkload } from "@/server/repositories/yoga-sessions";
+
+import { AssignMemberForm, TeamRowControls } from "./team-controls";
 import { getJoinCode } from "@/server/repositories/organizations";
 import { regenerateJoinCodeAction } from "../access-requests/actions";
 
@@ -58,38 +65,47 @@ const STATUS_LABEL: Record<string, string> = {
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Administrator",
   ORG_OWNER: "Administrator",
-  TRAINER: "Trainer",
+  TEAM_MANAGER: "Team manager",
+  TRAINER: "Yoga instructor",
+  DIETITIAN: "Dietitian",
   STAFF: "Staff",
 };
 
 const ROLE_BLURB: Record<string, string> = {
   ADMIN: "Administers the organisation. Reads a member's practice only when assigned.",
   ORG_OWNER: "Administers the organisation. Reads a member's practice only when assigned.",
+  TEAM_MANAGER: "Manages members and the team. No organisation settings or website.",
   TRAINER: "Builds programmes and prescribes them to the members assigned to them.",
+  DIETITIAN: "Builds and prescribes diet plans for assigned members. Sees diet data only.",
   STAFF: "Follows and messages the members assigned to them. Authors nothing.",
 };
 
-export default async function TeamPage() {
-  const session = await requireRole("ADMIN");
+const TEAM_ROLES = ["TEAM_MANAGER", "TRAINER", "DIETITIAN", "STAFF"] as const;
 
-  const [team, joinCode] = await Promise.all([
+export default async function TeamPage() {
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
+  const self = actorFromSession(session);
+
+  const [team, joinCode, profiles, workload, caseloads, roster] = await Promise.all([
     listMembers(session.organizationId, { kind: "STAFF" }),
     getJoinCode(session.organizationId),
+    listTeamProfiles(session.organizationId),
+    teamSessionWorkload(session.organizationId),
+    caseloadCounts(session.organizationId),
+    listMembers(session.organizationId, { kind: "MEMBERS" }),
   ]);
 
-  const trainers = team.filter((t) => t.role === "TRAINER").length;
-  const staff = team.filter((t) => t.role === "STAFF").length;
+  const count = (role: string) => team.filter((t) => t.role === role).length;
   const invited = team.filter((t) => t.status === "INVITED").length;
+  const practitioners = team.filter((t) => t.status === "ACTIVE");
+  const grantable = TEAM_ROLES.filter((r) => canAssignRole(self, r).allowed);
 
   return (
     <div className="theme-bg-wrapper theme-fresh-green app-shell">
       <AppNav role={session.role} currentPath="/admin/team" />
 
-      <PageShell env="env-team" width="default">
-        <PageHeader
-          title="Team"
-          description={`Everyone who delivers care at ${session.organizationName} — ${trainers} trainer${trainers === 1 ? "" : "s"} and ${staff} staff.`}
-        >
+      <PageShell env="env-team" width="wide">
+        <PageHeader title="Team" description={`Everyone who delivers care at ${session.organizationName}.`}>
           <Button asChild size="sm">
             <Link href="/admin/members/new">
               <UserPlus aria-hidden />
@@ -98,104 +114,133 @@ export default async function TeamPage() {
           </Button>
         </PageHeader>
 
-        {/* Organization Access Key Management Card */}
-        <OrganizationAccessKeyCard
-          joinCode={joinCode}
-          onRegenerateAction={regenerateJoinCodeAction}
-        />
+        <MetricGrid columns={4} label="Team at a glance" className="mt-6">
+          <MetricCard label="Yoga instructors" value={count("TRAINER")} icon={<Activity />} tone="turquoise" />
+          <MetricCard label="Dietitians" value={count("DIETITIAN")} icon={<Salad />} tone="orange" />
+          <MetricCard label="Team managers" value={count("TEAM_MANAGER")} icon={<UserCog />} tone="violet" />
+          <MetricCard label="Staff" value={count("STAFF")} icon={<Users />} tone="blue" />
+        </MetricGrid>
+
+        {/* The access key is an organisation setting — ADMIN only (ADR-016). */}
+        {session.role === "ADMIN" ? (
+          <OrganizationAccessKeyCard joinCode={joinCode} onRegenerateAction={regenerateJoinCodeAction} />
+        ) : null}
 
         {invited > 0 && (
-          <p
-            role="status"
-            className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground"
-          >
-            {invited} {invited === 1 ? "person has" : "people have"} not signed in yet. An
-            invited account cannot hold a session until they verify their address — nothing
-            is activated from here.
+          <p role="status" className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+            {invited} {invited === 1 ? "person has" : "people have"} not signed in yet. An invited account
+            cannot hold a session until they verify their address.
           </p>
         )}
+
+        {roster.length > 0 && practitioners.length > 0 ? (
+          <section aria-labelledby="assign" className="mt-8 rounded-2xl border border-border-glass bg-surface p-5">
+            <h2 id="assign" className="font-semibold text-foreground">
+              Assign a member to a practitioner
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              An assignment is what lets a practitioner see a member&rsquo;s practice. Nothing else grants it.
+            </p>
+            <div className="mt-4">
+              <AssignMemberForm
+                members={roster.map((m) => ({ id: m.id, name: m.fullName }))}
+                practitioners={practitioners.map((p) => ({
+                  id: p.id,
+                  name: `${p.fullName} — ${ROLE_LABEL[p.role] ?? p.role}`,
+                }))}
+              />
+            </div>
+          </section>
+        ) : null}
 
         {team.length === 0 ? (
           <div className="mt-8 rounded-xl border border-dashed border-border p-10 text-center">
             <Users className="mx-auto size-8 text-muted-foreground" aria-hidden />
             <p className="mt-4 text-sm/relaxed text-muted-foreground">
-              Nobody on the team yet. Add a trainer to build and prescribe programmes, or
-              staff to follow a caseload.
+              Nobody on the team yet. Add an instructor, dietitian or staff member.
             </p>
-            <Button asChild size="sm" className="mt-5">
-              <Link href="/admin/members/new">Add someone</Link>
-            </Button>
           </div>
         ) : (
-          <div className="mt-8 overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-3xl text-sm">
-              <caption className="sr-only">
-                Administrators, trainers and staff at {session.organizationName}, with role,
-                status, and how many members each carries
-              </caption>
-              <thead className="bg-muted/50">
-                <tr>
-                  <th scope="col" className="px-4 py-2.5 text-left font-medium">Name</th>
-                  <th scope="col" className="px-4 py-2.5 text-left font-medium">Email</th>
-                  <th scope="col" className="px-4 py-2.5 text-left font-medium">Role</th>
-                  <th scope="col" className="px-4 py-2.5 text-left font-medium">Status</th>
-                  <th scope="col" className="px-4 py-2.5 text-left font-medium">Caseload</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {team.map((person) => (
-                  <tr key={person.id} className="bg-card">
-                    <th
-                      scope="row"
-                      className="px-4 py-3 text-left font-medium text-card-foreground"
-                    >
-                      {person.fullName}
-                      {person.id === session.userId && (
-                        <span className="ml-2 text-xs font-normal text-muted-foreground">
-                          you
-                        </span>
-                      )}
-                    </th>
-                    <td className="px-4 py-3 text-muted-foreground">{person.email}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-card-foreground">
-                        {ROLE_LABEL[person.role] ?? person.role}
-                      </span>
-                      <span className="type-meta mt-0.5 block max-w-xs text-muted-foreground">
-                        {ROLE_BLURB[person.role] ?? ""}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {/* Word, not colour — status is never conveyed by colour alone. */}
-                      <Badge variant={person.status === "ACTIVE" ? "secondary" : "outline"}>
-                        {STATUS_LABEL[person.status] ?? person.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 tabular-nums text-muted-foreground">
-                      {/*
-                        A COUNT, never a list. Who is on somebody else's caseload is member
-                        data and belongs behind `resolveMemberAccess`; how many they carry
-                        is an administrative fact about workload.
-                      */}
-                      {person.assignmentCount === 0
-                        ? "nobody"
-                        : `${person.assignmentCount} member${person.assignmentCount === 1 ? "" : "s"}`}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="mt-8 grid gap-4 lg:grid-cols-2">
+            {team.map((person) => {
+              const profile = profiles.get(person.id) ?? { specialisation: null, qualifications: null, bio: null };
+              const load = workload.get(person.id);
+              const target = {
+                domain: "TENANT" as const,
+                userId: person.id,
+                organizationId: session.organizationId,
+                role: person.role,
+              };
+              const actOn = canActOn(self, target).allowed;
+              const options = grantable.includes(person.role as (typeof TEAM_ROLES)[number])
+                ? [...grantable]
+                : [person.role, ...grantable];
+              return (
+                <li key={person.id} className="flex flex-col rounded-2xl border border-border-glass bg-surface p-5 shadow-xs">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-foreground">
+                        {person.fullName}
+                        {person.id === session.userId ? (
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">you</span>
+                        ) : null}
+                      </p>
+                      <p className="truncate text-sm text-muted-foreground">{person.email}</p>
+                    </div>
+                    {/* Word, not colour — status is never conveyed by colour alone. */}
+                    <Badge variant={person.status === "ACTIVE" ? "secondary" : "outline"}>
+                      {STATUS_LABEL[person.status] ?? person.status}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-foreground">{ROLE_LABEL[person.role] ?? person.role}</p>
+                  <p className="text-xs text-muted-foreground">{ROLE_BLURB[person.role] ?? ""}</p>
+                  {profile.specialisation || profile.qualifications ? (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {[profile.specialisation, profile.qualifications].filter(Boolean).join(" · ")}
+                    </p>
+                  ) : null}
+                  {/* COUNTS, never lists: who is on a caseload is member data. */}
+                  <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-lg bg-muted/50 p-2">
+                      <dt className="text-[11px] text-muted-foreground">Members</dt>
+                      <dd className="font-semibold tabular-nums">{caseloads.get(person.id) ?? 0}</dd>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-2">
+                      <dt className="text-[11px] text-muted-foreground">Sessions next 7d</dt>
+                      <dd className="font-semibold tabular-nums">{load?.sessionsUpcoming ?? 0}</dd>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-2">
+                      <dt className="text-[11px] text-muted-foreground">Completed 30d</dt>
+                      <dd className="font-semibold tabular-nums">{load?.sessionsCompleted30d ?? 0}</dd>
+                    </div>
+                  </dl>
+                  {actOn ? (
+                    <div className="mt-4 border-t border-border pt-4">
+                      <TeamRowControls
+                        userId={person.id}
+                        name={person.fullName}
+                        role={person.role}
+                        status={person.status}
+                        grantableRoles={options}
+                        profile={{
+                          specialisation: profile.specialisation ?? "",
+                          qualifications: profile.qualifications ?? "",
+                          bio: profile.bio ?? "",
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
         )}
 
         <p className="mt-6 text-xs/relaxed text-muted-foreground">
-          Roles are set when the account is created. A trainer or staff member reads a
-          member&rsquo;s practice only where an assignment exists — being on the team grants
-          no reach on its own.
+          You can change the role or status only of people below your own role. Being on the team grants
+          no reach into a member&rsquo;s practice — only an assignment does.
         </p>
       </PageShell>
-
-      <MobileTabBar role={session.role} currentPath="/admin/team" />
     </div>
   );
 }

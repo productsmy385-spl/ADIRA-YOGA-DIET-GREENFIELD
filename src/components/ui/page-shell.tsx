@@ -71,7 +71,7 @@ export function PageShell({
           otherwise cover the last row of any table. */}
       <main
         className={cn(
-          "relative mx-auto w-full px-4 py-8 pb-28 sm:px-6 sm:pb-10",
+          "relative mx-auto w-full px-(--page-gutter) pt-(--section-gap) pb-28 md:px-(--page-gutter-md) md:pt-(--section-gap-lg) sm:pb-10 lg:px-(--page-gutter-lg)",
           WIDTH[width],
           className,
         )}
@@ -82,73 +82,4 @@ export function PageShell({
       </main>
     </div>
   );
-}
-
-/* ── statistics ────────────────────────────────────────────────────────── */
-
-export interface StatTileProps {
-  label: string;
-  value: ReactNode;
-  hint?: string;
-  icon: ReactNode;
-  /** `green` | `blue` | `orange` | `violet` — the meaning, not the decoration. */
-  tone: keyof typeof STAT_TONES;
-}
-
-const STAT_TONES = {
-  green: {
-    panel: "border-accent-green/25 bg-accent-green/8",
-    tile: "bg-accent-green text-accent-green-fg",
-    value: "text-accent-green-ink",
-  },
-  blue: {
-    panel: "border-accent-blue/25 bg-accent-blue/8",
-    tile: "bg-accent-blue text-accent-blue-fg",
-    value: "text-accent-blue-ink",
-  },
-  orange: {
-    panel: "border-orange-500/25 bg-orange-500/8",
-    tile: "bg-orange-500 text-white",
-    value: "text-orange-700 dark:text-orange-300",
-  },
-  violet: {
-    panel: "border-violet-500/25 bg-violet-500/8",
-    tile: "bg-violet-600 text-white",
-    value: "text-violet-700 dark:text-violet-300",
-  },
-} as const;
-
-/**
- * A single headline number.
- *
- * The LABEL is uppercase and the value is large, because these are read at a glance and
- * the number is the thing being glanced at. The tone is chosen for meaning — green for a
- * total in good standing, orange for something waiting on a human — so the colour says
- * the same thing as the words rather than decorating them.
- */
-export function StatTile({ label, value, hint, icon, tone }: StatTileProps) {
-  const t = STAT_TONES[tone];
-  return (
-    <div className={cn("relative overflow-hidden rounded-2xl border p-4", t.panel)}>
-      <span
-        aria-hidden
-        className={cn(
-          "flex size-11 items-center justify-center rounded-xl shadow-sm [&_svg]:size-5",
-          t.tile,
-        )}
-      >
-        {icon}
-      </span>
-      <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-foreground/60">
-        {label}
-      </p>
-      <p className={cn("mt-0.5 text-3xl font-extrabold tabular-nums", t.value)}>{value}</p>
-      {hint ? <p className="mt-0.5 text-xs text-foreground/60">{hint}</p> : null}
-    </div>
-  );
-}
-
-/** The row these sit in. Two columns on a phone, four from `sm` up. */
-export function StatRow({ children }: { children: ReactNode }) {
-  return <div className="mt-7 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">{children}</div>;
 }

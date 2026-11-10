@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { GlassPanel } from "@/components/glass/glass";
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { MemberImport } from "@/components/members/member-import";
 import { requireRole } from "@/server/auth/guards";
 
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ImportMembersPage() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
 
   return (
     <div className="min-h-dvh bg-background">
@@ -87,7 +87,6 @@ export default async function ImportMembersPage() {
       </GlassPanel>
       </main>
 
-      <MobileTabBar role={session.role} currentPath="/admin/members" />
     </div>
   );
 }

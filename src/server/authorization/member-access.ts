@@ -1,7 +1,7 @@
 import { hasActiveAssignment, isMemberOfOrganization } from "@/server/repositories/caseload";
 import { recordAudit } from "@/server/repositories/audit-logs";
 
-import { canAccessMemberData, type Decision } from "./permissions";
+import { canAccessMemberData, type Decision, type MemberDataDomain } from "./permissions";
 import { carriesCaseload, type TenantActor } from "./roles";
 import type { TenantSessionContext } from "@/server/repositories/sessions";
 
@@ -57,6 +57,8 @@ export interface MemberAccessResult {
 export async function resolveMemberAccess(
   actor: TenantActor,
   memberId: string,
+  /** ADR-016: which kind of data. A DIETITIAN is admitted to "profile" and "diet" only. */
+  domain: MemberDataDomain = "all",
 ): Promise<MemberAccessResult> {
   // Reading yourself needs no lookup and no assignment.
   if (actor.userId === memberId) {
@@ -95,7 +97,7 @@ export async function resolveMemberAccess(
   const member = { userId: memberId, organizationId: actor.organizationId };
 
   // A USER reaching another member, or a platform actor, is refused with no lookup.
-  const withoutAssignment = canAccessMemberData(actor, member, false);
+  const withoutAssignment = canAccessMemberData(actor, member, false, domain);
   if (withoutAssignment.allowed) {
     return { decision: withoutAssignment, memberExists: true };
   }
@@ -122,7 +124,7 @@ export async function resolveMemberAccess(
   const assigned = await hasActiveAssignment(actor.organizationId, actor.userId, memberId);
 
   return {
-    decision: canAccessMemberData(actor, member, assigned),
+    decision: canAccessMemberData(actor, member, assigned, domain),
     memberExists: true,
   };
 }
@@ -142,8 +144,9 @@ export async function resolveMemberAccessAudited(
   actor: TenantActor,
   memberId: string,
   action: string,
+  domain: MemberDataDomain = "all",
 ): Promise<MemberAccessResult> {
-  const result = await resolveMemberAccess(actor, memberId);
+  const result = await resolveMemberAccess(actor, memberId, domain);
 
   if (!result.decision.allowed) {
     await recordAudit({

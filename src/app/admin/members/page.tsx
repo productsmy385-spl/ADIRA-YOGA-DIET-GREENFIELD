@@ -13,10 +13,11 @@ import {
   Users,
 } from "lucide-react";
 
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { PageShell, StatRow, StatTile } from "@/components/ui/page-shell";
+import { MetricCard, MetricGrid } from "@/components/ui/metric";
+import { PageShell } from "@/components/ui/page-shell";
 import { requireRole } from "@/server/auth/guards";
 import { listMembers } from "@/server/repositories/members";
 
@@ -68,7 +69,7 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 export default async function MembersPage() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
   const members = await listMembers(session.organizationId, { kind: "MEMBERS" });
 
   /*
@@ -123,36 +124,36 @@ export default async function MembersPage() {
         </PageHeader>
 
         {members.length > 0 ? (
-          <StatRow>
-            <StatTile
+          <MetricGrid label="Members at a glance" className="mt-7">
+            <MetricCard
               tone="green"
               label="Total members"
               value={members.length}
-              hint="In this organisation"
+              description="In this organisation"
               icon={<Users />}
             />
-            <StatTile
+            <MetricCard
               tone="blue"
               label="Active"
               value={activeCount}
-              hint="Signed in and practising"
+              description="Signed in and practising"
               icon={<CircleCheck />}
             />
-            <StatTile
+            <MetricCard
               tone="orange"
               label="Pending"
               value={pendingCount}
-              hint="Invited, not yet active"
+              description="Invited, not yet active"
               icon={<Clock />}
             />
-            <StatTile
+            <MetricCard
               tone="violet"
               label="Assigned"
               value={assignedCount}
-              hint="Have a consultant"
+              description="Have a consultant"
               icon={<UserCheck />}
             />
-          </StatRow>
+          </MetricGrid>
         ) : null}
 
         {members.length === 0 ? (
@@ -251,7 +252,6 @@ export default async function MembersPage() {
         </div>
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/admin/members" />
     </div>
   );
 }

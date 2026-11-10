@@ -80,6 +80,12 @@ export async function listCaseload(actor: TenantActor): Promise<CaseloadEntry[]>
   const organizationId = actor.organizationId;
   const viewerId = actor.userId;
   const orgWide = isLegacyOrganizationOwner(actor);
+  /*
+   * ADR-016: a DIETITIAN's caseload is computed from DIET data only — plan, adherence and
+   * missed counts — and excludes the check-in wellbeing signal, which is not diet data.
+   * NULL means every domain, which is every other role.
+   */
+  const kind = actor.role === "DIETITIAN" ? "DIET" : null;
 
   const rows = await query<CaseloadRow>(
     `WITH tz AS (
@@ -123,6 +129,7 @@ export async function listCaseload(actor: TenantActor): Promise<CaseloadEntry[]>
               ((SELECT d FROM today) - a.starts_on) AS days_since_assigned
          FROM assignments a
         WHERE a.organization_id = $1
+          AND ($4::programme_kind IS NULL OR a.kind = $4::programme_kind)
         ORDER BY a.customer_id,
                  (a.status = 'ACTIVE') DESC,
                  a.created_at DESC
@@ -155,6 +162,7 @@ export async function listCaseload(actor: TenantActor): Promise<CaseloadEntry[]>
               MAX(da.scheduled_for) FILTER (WHERE da.status = 'COMPLETED') AS last_activity_on
          FROM daily_activities da
         WHERE da.organization_id = $1
+          AND ($4::programme_kind IS NULL OR da.kind = $4::programme_kind)
         GROUP BY da.customer_id
      ),
      wellbeing AS (
@@ -170,6 +178,7 @@ export async function listCaseload(actor: TenantActor): Promise<CaseloadEntry[]>
                           ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS breaks
              FROM daily_checkins c
             WHERE c.organization_id = $1
+              AND $4::programme_kind IS NULL
          ) s
         WHERE low AND breaks = 0
         GROUP BY customer_id
@@ -209,7 +218,7 @@ export async function listCaseload(actor: TenantActor): Promise<CaseloadEntry[]>
        LEFT JOIN wellbeing w ON w.customer_id = v.id
        LEFT JOIN silence s   ON s.customer_id = v.id
       ORDER BY v.full_name`,
-    [organizationId, orgWide, viewerId],
+    [organizationId, orgWide, viewerId, kind],
   );
 
   return rows.map((row) => {

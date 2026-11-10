@@ -32,7 +32,7 @@ function FieldError({ message, id }: { message?: string; id: string }) {
   );
 }
 
-export function AddMemberForm() {
+export function AddMemberForm({ canGrantTeamManager = false }: { canGrantTeamManager?: boolean }) {
   const [state, action, pending] = useActionState(addMemberAction, INITIAL);
 
   if (state.status === "DONE") {
@@ -140,13 +140,19 @@ export function AddMemberForm() {
           className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <option value="USER">Customer — follows a plan you assign</option>
-          <option value="TRAINER">Trainer — builds plans and works a caseload</option>
+          <option value="TRAINER">Yoga instructor — builds plans and works a caseload</option>
+          <option value="DIETITIAN">Dietitian — diet plans for an assigned caseload only</option>
           <option value="STAFF">Staff — follows a caseload, builds nothing</option>
+          {/* Only an ADMIN outranks TEAM_MANAGER, so only an ADMIN is offered it. */}
+          {canGrantTeamManager ? (
+            <option value="TEAM_MANAGER">Team manager — manages members and the team</option>
+          ) : null}
         </select>
         <FieldError id="role-error" message={f.role} />
         <p id="role-hint" className="text-sm text-muted-foreground">
-          A trainer can create programmes and prescribe them. Staff can see and message the
-          people assigned to them. Neither can administer the organisation or add accounts.
+          A yoga instructor creates and prescribes programmes; a dietitian does the same for
+          diet only. Staff see and message the people assigned to them. A team manager adds
+          members and manages the team, but cannot change organisation settings.
         </p>
       </div>
 

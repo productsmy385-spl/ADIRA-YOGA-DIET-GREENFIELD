@@ -8,14 +8,23 @@
  * reference semantic names (`bg-primary`, `text-muted-foreground`), never raw values.
  * A hardcoded hex or oklch() outside this file is a lint error — see eslint.config.mjs.
  *
- * The palette follows the brand direction: deep botanical green, sage/olive,
- * warm ivory, muted terracotta, subtle saffron, deep charcoal.
+ * Palette (since 2026-11-10, docs/PLATFORM-UPGRADE-BRIEF.md): green #2AA704, blue
+ * #15A8EB, red #EF0E23, turquoise #0CBDC8, with orange, yellow, lavender and pink in
+ * support. The semantic tokens (--primary, --destructive, --info, --chart-*) point at
+ * those; the botanical scale below remains for surfaces and existing illustrations.
  *
  * Values are OKLCH because it keeps perceived lightness stable across hues, which is
  * what makes the light and dark ramps below feel like the same palette rather than two.
  */
 
 @custom-variant dark (&:is(.dark *));
+
+/* Sidebar state (brief Phase 9). The attribute is set on <html> by the inline script in
+ * layout.tsx BEFORE first paint, from localStorage or the viewport width, so the page
+ * never renders at one width and jumps to another. With no attribute (script blocked),
+ * the sidebar is the narrow rail — the state that can never cover content. */
+@custom-variant sidebar-collapsed (html:not([data-sidebar="expanded"]) &);
+@custom-variant sidebar-expanded (html[data-sidebar="expanded"] &);
 
 :root {
   --radius: 0.625rem;
@@ -49,46 +58,50 @@
   --popover: oklch(1 0 0);
   --popover-foreground: var(--charcoal);
 
-  --primary: var(--brand-700);
+  /* Semantic roles point at the brief's palette (docs/PLATFORM-UPGRADE-BRIEF.md, adopted
+   * 2026-11-10). Fills that carry TEXT use the darkened "strong"/"ink" variants: raw
+   * #2AA704 with white text is 3.17:1 and raw #EF0E23 is 4.42:1, both below WCAG AA.
+   * The raw brand colours are for icons, fills and large display numbers. */
+  --primary: var(--accent-green-strong);
   --primary-foreground: oklch(0.985 0.008 92);
-  --secondary: oklch(0.948 0.014 120);
-  --secondary-foreground: var(--brand-800);
+  --secondary: oklch(0.955 0.03 145);
+  --secondary-foreground: oklch(0.36 0.1 141);
   --muted: oklch(0.955 0.011 105);
   --muted-foreground: oklch(0.512 0.019 105);
-  --accent: var(--saffron);
-  --accent-foreground: oklch(0.268 0.038 78);
-  --destructive: var(--terracotta);
+  --accent: oklch(0.95 0.035 202);
+  --accent-foreground: oklch(0.32 0.06 202);
+  --destructive: var(--accent-red-ink);
   --destructive-foreground: oklch(0.985 0.008 92);
 
   --border: oklch(0.902 0.012 110);
   --input: oklch(0.902 0.012 110);
-  --ring: var(--brand-600);
+  --ring: var(--accent-green);
 
   /* ---- Wellness status tokens ----
    * Named for meaning, not colour, so the activity engine can render a state without a
    * component deciding what "missed" looks like.
    */
-  --status-complete: var(--brand-600);
-  --status-pending: oklch(0.712 0.104 78);
-  --status-missed: var(--terracotta);
-  --status-rest: var(--sage);
+  --status-complete: var(--accent-green-ink);
+  --status-pending: var(--accent-orange);
+  --status-missed: var(--accent-red-ink);
+  --status-rest: var(--accent-cyan);
 
   /* ---- Data visualisation ramp ---- */
-  --chart-1: var(--brand-600);
-  --chart-2: var(--sage);
-  --chart-3: var(--saffron);
-  --chart-4: var(--terracotta);
-  --chart-5: var(--brand-300);
+  --chart-1: var(--accent-green);
+  --chart-2: var(--accent-blue);
+  --chart-3: var(--accent-cyan);
+  --chart-4: var(--accent-orange);
+  --chart-5: var(--accent-violet);
 
   /* ---- Sidebar ---- */
-  --sidebar: oklch(0.972 0.012 110);
+  --sidebar: oklch(0.975 0.012 150);
   --sidebar-foreground: var(--charcoal);
-  --sidebar-primary: var(--brand-700);
-  --sidebar-primary-foreground: oklch(0.985 0.008 92);
-  --sidebar-accent: oklch(0.937 0.02 120);
-  --sidebar-accent-foreground: var(--brand-800);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--secondary-foreground);
   --sidebar-border: oklch(0.898 0.014 110);
-  --sidebar-ring: var(--brand-600);
+  --sidebar-ring: var(--accent-green);
 
   /* =========================================================================
    * BOTANICAL WELLNESS GLASS
@@ -127,13 +140,13 @@
    * --danger is an alias of --destructive rather than a second value. Two
    * names for one colour is fine; two values that drift apart is not.
    */
-  --success: var(--brand-600);
+  --success: var(--accent-green-ink);
   --success-foreground: oklch(0.985 0.008 92);
   --warning: oklch(0.762 0.118 78);
   --warning-foreground: oklch(0.268 0.038 78);
   --danger: var(--destructive);
   --danger-foreground: var(--destructive-foreground);
-  --info: oklch(0.588 0.072 232);
+  --info: var(--accent-blue-ink);
   --info-foreground: oklch(0.985 0.008 92);
 
   /* =========================================================================
@@ -175,13 +188,49 @@
   --accent-red-ink: oklch(0.512 0.213 26.3);
   --accent-cyan-ink: oklch(0.512 0.098 202.3);
 
+  /* The brief's green, darkened just enough to carry white text at AA (5.15:1).
+   * This is `--primary`: buttons, links, the active nav item. */
+  --accent-green-strong: oklch(0.52 0.17 140.8);
+
+  /* ---- Supporting hues (brief: orange, yellow, lavender, pink) ----
+   * Fill for icon tiles and tints; `-ink` for text on white, each checked >= 5.5:1. */
+  --accent-orange: oklch(0.72 0.17 50);
+  --accent-orange-fg: oklch(0.2 0.05 50);
+  --accent-orange-ink: oklch(0.53 0.15 50);
+  --accent-yellow: oklch(0.86 0.15 90);
+  --accent-yellow-fg: oklch(0.25 0.05 90);
+  --accent-yellow-ink: oklch(0.52 0.11 85);
+  --accent-violet: oklch(0.68 0.14 295);
+  --accent-violet-fg: oklch(0.18 0.04 295);
+  --accent-violet-ink: oklch(0.5 0.16 295);
+  --accent-pink: oklch(0.72 0.16 350);
+  --accent-pink-fg: oklch(0.2 0.05 350);
+  --accent-pink-ink: oklch(0.52 0.17 350);
+
+  /* ---- Page rhythm (brief Phase 10) ----
+   * One spacing system: 16px gutter on phones, 24px on tablets, 32px on desktop.
+   * Consumed by PageShell, MetricGrid and SectionHeader, never by per-page values. */
+  --page-gutter: 1rem;
+  --page-gutter-md: 1.5rem;
+  --page-gutter-lg: 2rem;
+  --section-gap: 1.5rem;
+  --section-gap-lg: 2rem;
+
   /* ---- Application chrome ----
    * The admin console's own geometry, in one place. The sidebar width was
    * repeated as `sm:pl-[260px]` across seventeen pages, so changing it meant
    * seventeen edits and one of them always got missed.
    */
-  --shell-header: 76px;
+  --shell-header: 64px;
   --shell-header-mobile: 56px;
+
+  /* The sidebar's two widths. `--shell-sidebar` is the CURRENT one and is what both the
+   * sidebar and the page offset read, so they cannot disagree — the defect where the
+   * platform console's 260px sidebar sat on top of its own content. Zero below 640px,
+   * where navigation is the drawer and the bottom bar. */
+  --sidebar-width-expanded: 16rem;
+  --sidebar-width-rail: 4.75rem;
+  --shell-sidebar: 0px;
 
   /* ---- Elevation (UX spec §3) ----
    * Blur is capped deliberately. At most TWO blurred layers may overlap: a
@@ -213,40 +262,40 @@
   --popover: oklch(0.222 0.018 150);
   --popover-foreground: oklch(0.948 0.012 100);
 
-  --primary: var(--brand-400);
-  --primary-foreground: oklch(0.186 0.033 155);
-  --secondary: oklch(0.278 0.022 150);
+  --primary: var(--accent-green);
+  --primary-foreground: var(--accent-green-fg);
+  --secondary: oklch(0.278 0.03 150);
   --secondary-foreground: oklch(0.948 0.012 100);
   --muted: oklch(0.268 0.018 150);
   --muted-foreground: oklch(0.702 0.019 110);
-  --accent: oklch(0.742 0.118 78);
-  --accent-foreground: oklch(0.196 0.03 78);
-  --destructive: oklch(0.628 0.126 40);
+  --accent: oklch(0.3 0.04 202);
+  --accent-foreground: oklch(0.948 0.012 100);
+  --destructive: oklch(0.58 0.2 26.3);
   --destructive-foreground: oklch(0.985 0.008 92);
 
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
-  --ring: var(--brand-400);
+  --ring: var(--accent-green);
 
-  --status-complete: var(--brand-400);
-  --status-pending: oklch(0.762 0.106 78);
-  --status-missed: oklch(0.628 0.126 40);
-  --status-rest: oklch(0.622 0.042 130);
+  --status-complete: var(--accent-green);
+  --status-pending: var(--accent-orange);
+  --status-missed: var(--accent-red);
+  --status-rest: var(--accent-cyan);
 
-  --chart-1: var(--brand-400);
-  --chart-2: oklch(0.622 0.042 130);
-  --chart-3: oklch(0.742 0.118 78);
-  --chart-4: oklch(0.628 0.126 40);
-  --chart-5: var(--brand-200);
+  --chart-1: var(--accent-green);
+  --chart-2: var(--accent-blue);
+  --chart-3: var(--accent-cyan);
+  --chart-4: var(--accent-orange);
+  --chart-5: var(--accent-violet);
 
   --sidebar: oklch(0.222 0.018 150);
   --sidebar-foreground: oklch(0.948 0.012 100);
-  --sidebar-primary: var(--brand-400);
-  --sidebar-primary-foreground: oklch(0.186 0.033 155);
-  --sidebar-accent: oklch(0.278 0.022 150);
-  --sidebar-accent-foreground: oklch(0.948 0.012 100);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--secondary-foreground);
   --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: var(--brand-400);
+  --sidebar-ring: var(--accent-green);
 
   /* ---- Botanical Wellness Glass, dark ----
    * Dark glass is DARKER than its surroundings, not lighter. A white overlay
@@ -268,14 +317,14 @@
   --glass-highlight: oklch(1 0 0 / 10%);
   --glass-shadow: oklch(0 0 0 / 40%);
 
-  --success: var(--brand-400);
-  --success-foreground: oklch(0.186 0.033 155);
+  --success: var(--accent-green);
+  --success-foreground: var(--accent-green-fg);
   --warning: oklch(0.788 0.108 78);
   --warning-foreground: oklch(0.196 0.03 78);
   --danger: var(--destructive);
   --danger-foreground: var(--destructive-foreground);
-  --info: oklch(0.702 0.076 232);
-  --info-foreground: oklch(0.156 0.02 232);
+  --info: var(--accent-blue);
+  --info-foreground: var(--accent-blue-fg);
 
   /* Neo-brutalist accents, lifted for a dark ground.
    *
@@ -297,6 +346,17 @@
   --accent-blue-ink: oklch(0.812 0.108 236.8);
   --accent-red-ink: oklch(0.762 0.168 26.3);
   --accent-cyan-ink: oklch(0.832 0.092 202.3);
+
+  --accent-green-strong: var(--accent-green);
+  --accent-orange: oklch(0.76 0.15 50);
+  --accent-orange-ink: oklch(0.82 0.12 50);
+  --accent-yellow: oklch(0.86 0.14 90);
+  --accent-yellow-ink: oklch(0.88 0.12 90);
+  --accent-violet: oklch(0.74 0.12 295);
+  --accent-violet-fg: oklch(0.18 0.04 295);
+  --accent-violet-ink: oklch(0.82 0.1 295);
+  --accent-pink: oklch(0.76 0.14 350);
+  --accent-pink-ink: oklch(0.84 0.11 350);
 }
 
 @theme inline {
@@ -316,6 +376,19 @@
   --color-accent-cyan: var(--accent-cyan);
   --color-accent-cyan-fg: var(--accent-cyan-fg);
   --color-accent-cyan-ink: var(--accent-cyan-ink);
+  --color-accent-green-strong: var(--accent-green-strong);
+  --color-accent-orange: var(--accent-orange);
+  --color-accent-orange-fg: var(--accent-orange-fg);
+  --color-accent-orange-ink: var(--accent-orange-ink);
+  --color-accent-yellow: var(--accent-yellow);
+  --color-accent-yellow-fg: var(--accent-yellow-fg);
+  --color-accent-yellow-ink: var(--accent-yellow-ink);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-violet-fg: var(--accent-violet-fg);
+  --color-accent-violet-ink: var(--accent-violet-ink);
+  --color-accent-pink: var(--accent-pink);
+  --color-accent-pink-fg: var(--accent-pink-fg);
+  --color-accent-pink-ink: var(--accent-pink-ink);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -812,9 +885,9 @@
    * changing it meant seventeen edits and the one that got missed showed up as
    * a single page with its content tucked under the navigation.
    *
-   * The offset now comes from `--shell-header` alone: navigation moved into the
-   * top bar, so `--shell-sidebar` was deleted rather than left behind as a token
-   * nothing reads.
+   * The collapsible sidebar returned with the platform upgrade brief (Phase 9). Its
+   * width is ONE token, `--shell-sidebar`, read by both the sidebar and the offset
+   * below, so a page cannot end up tucked under the navigation again.
    */
   .app-shell {
     position: relative;
@@ -822,13 +895,16 @@
     max-width: 100vw;
     overflow-x: hidden;
     background-color: var(--background);
-    /* Clears the fixed header. THERE IS NO LEFT OFFSET — navigation lives in the
-     * top bar, so no page is indented for a sidebar any more. */
     padding-top: var(--shell-header-mobile);
+    transition: padding-left var(--duration-normal) var(--ease-out-soft);
   }
 
   @media (min-width: 640px) {
+    /* The sidebar width itself is set OUTSIDE any layer, beside its token (see
+     * "SIDEBAR WIDTH" below): unlayered rules beat layered ones, so overriding the
+     * unlayered `--shell-sidebar: 0px` from in here silently did nothing. */
     .app-shell {
+      padding-left: var(--shell-sidebar);
       padding-top: var(--shell-header);
     }
   }
@@ -977,5 +1053,131 @@
   .theme-purple-serenity {
     background-color: var(--background);
     background-image: radial-gradient(circle at 20% 10%, rgba(155, 76, 224, 0.04), transparent 45%);
+  }
+}
+
+/* =============================================================================
+ * TENANT PUBLIC WEBSITES (BMAD/02-product/WEBSITE-BUILDER-PRD.md)
+ * =============================================================================
+ * Eight palette presets and four font pairings. Templates read ONLY these `--site-*`
+ * variables, so one template renders correctly in any preset. Every primary/foreground
+ * pair is checked >= 4.5:1 (WCAG AA). A tenant's custom brand colour arrives as DATA and
+ * is set inline on the page root (`--site-primary`), with its foreground chosen by
+ * `brandColorUsage` — no colour literal enters src/ outside this file.
+ */
+@layer components {
+  .site {
+    --site-bg: oklch(0.995 0.005 160);
+    --site-surface: oklch(0.97 0.025 165);
+    --site-fg: oklch(0.22 0.02 160);
+    --site-muted: oklch(0.48 0.02 160);
+    --site-primary: oklch(0.52 0.17 140.8);
+    --site-primary-fg: oklch(0.99 0 0);
+    --site-accent: oklch(0.727 0.123 202.3);
+    --site-border: oklch(0.9 0.02 160);
+    /* Inks for a tenant custom colour; brandColorUsage picks one by contrast. */
+    --site-ink-light: oklch(1 0 0);
+    --site-ink-dark: oklch(0.18 0 0);
+    --site-display: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    --site-body: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    background-color: var(--site-bg);
+    color: var(--site-fg);
+    font-family: var(--site-body);
+  }
+  .site-palette-emerald {
+    --site-surface: oklch(0.96 0.03 170);
+    --site-primary: oklch(0.48 0.12 160);
+    --site-accent: oklch(0.727 0.123 202.3);
+  }
+  .site-palette-bold {
+    --site-bg: oklch(0.995 0 0);
+    --site-surface: oklch(0.96 0.03 236);
+    --site-accent: oklch(0.693 0.147 236.8);
+  }
+  .site-palette-lavender {
+    --site-bg: oklch(0.985 0.01 300);
+    --site-surface: oklch(0.955 0.03 300);
+    --site-fg: oklch(0.24 0.03 300);
+    --site-muted: oklch(0.48 0.03 300);
+    --site-primary: oklch(0.5 0.16 295);
+    --site-accent: oklch(0.85 0.08 165);
+    --site-border: oklch(0.9 0.025 300);
+  }
+  .site-palette-citrus {
+    --site-bg: oklch(0.99 0.015 85);
+    --site-surface: oklch(0.96 0.05 85);
+    --site-fg: oklch(0.24 0.03 60);
+    --site-muted: oklch(0.48 0.02 60);
+    --site-primary: oklch(0.53 0.15 50);
+    --site-accent: oklch(0.86 0.15 90);
+    --site-border: oklch(0.9 0.03 80);
+  }
+  .site-palette-navy {
+    --site-bg: oklch(0.2 0.04 255);
+    --site-surface: oklch(0.26 0.045 255);
+    --site-fg: oklch(0.96 0.01 255);
+    --site-muted: oklch(0.75 0.02 255);
+    --site-primary: oklch(0.72 0.15 160);
+    --site-primary-fg: oklch(0.18 0.04 160);
+    --site-accent: oklch(0.8 0.1 165);
+    --site-border: oklch(1 0 0 / 14%);
+  }
+  .site-palette-sunrise {
+    --site-bg: oklch(0.99 0.012 60);
+    --site-surface: oklch(0.96 0.035 40);
+    --site-fg: oklch(0.24 0.03 30);
+    --site-muted: oklch(0.48 0.02 40);
+    --site-primary: oklch(0.52 0.17 350);
+    --site-accent: oklch(0.72 0.17 50);
+    --site-border: oklch(0.9 0.03 40);
+  }
+  .site-palette-slate {
+    --site-bg: oklch(0.985 0.004 250);
+    --site-surface: oklch(0.955 0.01 250);
+    --site-fg: oklch(0.22 0.02 250);
+    --site-muted: oklch(0.48 0.02 250);
+    --site-primary: oklch(0.45 0.08 250);
+    --site-accent: oklch(0.693 0.147 236.8);
+    --site-border: oklch(0.9 0.01 250);
+  }
+
+  .site-font-editorial {
+    --site-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+  .site-font-friendly {
+    --site-display: ui-rounded, "SF Pro Rounded", "Nunito", var(--font-sans), system-ui, sans-serif;
+    --site-body: ui-rounded, var(--font-sans), system-ui, sans-serif;
+  }
+  .site-font-classic {
+    --site-display: Georgia, "Times New Roman", serif;
+  }
+}
+
+@theme inline {
+  --color-site-bg: var(--site-bg);
+  --color-site-surface: var(--site-surface);
+  --color-site-fg: var(--site-fg);
+  --color-site-muted: var(--site-muted);
+  --color-site-primary: var(--site-primary);
+  --color-site-primary-fg: var(--site-primary-fg);
+  --color-site-accent: var(--site-accent);
+  --color-site-border: var(--site-border);
+  --font-site-display: var(--site-display);
+}
+
+/* =============================================================================
+ * SIDEBAR WIDTH — deliberately unlayered
+ * =============================================================================
+ * `--shell-sidebar` is declared in the unlayered :root token block, so its overrides must
+ * also be unlayered: a rule inside any @layer loses to an unlayered one whatever its
+ * order or specificity. Inside `@layer utilities` this collapsed the sidebar to zero
+ * width on every desktop page (found by browser QA, 2026-11-10).
+ */
+@media (min-width: 640px) {
+  :root {
+    --shell-sidebar: var(--sidebar-width-rail);
+  }
+  html[data-sidebar="expanded"] {
+    --shell-sidebar: var(--sidebar-width-expanded);
   }
 }

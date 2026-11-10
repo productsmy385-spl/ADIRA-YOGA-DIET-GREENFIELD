@@ -9,7 +9,7 @@ import { query, queryOne } from "@/server/db/pool";
  * member who added it.
  */
 
-export type MediaPurpose = "exercise" | "meal" | "progress_photo" | "avatar";
+export type MediaPurpose = "exercise" | "meal" | "progress_photo" | "avatar" | "website";
 
 /**
  * Which purposes hold data about an identifiable person.

@@ -26,7 +26,15 @@
  *     still holds ORG_OWNER and CUSTOMER rows — without this file inventing any policy
  *     about what those roles may do.
  */
-export type NavRole = "ADMIN" | "TRAINER" | "STAFF" | "USER" | "ORG_OWNER" | "CUSTOMER";
+export type NavRole =
+  | "ADMIN"
+  | "TEAM_MANAGER"
+  | "TRAINER"
+  | "DIETITIAN"
+  | "STAFF"
+  | "USER"
+  | "ORG_OWNER"
+  | "CUSTOMER";
 
 export interface NavItem {
   href: string;
@@ -78,6 +86,7 @@ const TRAINER: NavItem[] = [
   { href: "/trainer", labelKey: "nav.caseload", label: "My customers" },
   { href: "/admin/programmes", labelKey: "nav.programmes", label: "Programmes" },
   { href: "/admin/yoga", labelKey: "nav.yoga", label: "Yoga" },
+  { href: "/admin/sessions", labelKey: "nav.sessions", label: "Sessions" },
   { href: "/admin/diet", labelKey: "nav.diet", label: "Diet" },
   { href: "/admin/reports", labelKey: "nav.reports", label: "Reports" },
   { href: "/notifications", labelKey: "nav.notifications", label: "Notifications" },
@@ -110,6 +119,46 @@ const STAFF: NavItem[] = [
 const STAFF_PRIMARY: NavItem[] = STAFF;
 
 /**
+ * TEAM_MANAGER (ADR-016) — the roster and the team, never settings, website or libraries.
+ * Each destination is one `canManageMembers` / `canManageTeam` admits.
+ */
+const TEAM_MANAGER: NavItem[] = [
+  { href: "/admin/team", labelKey: "nav.team", label: "Team" },
+  { href: "/admin/members", labelKey: "nav.members", label: "Members" },
+  { href: "/admin/access-requests", labelKey: "nav.requests", label: "Requests" },
+  { href: "/admin/reports", labelKey: "nav.reports", label: "Reports" },
+  { href: "/admin/analytics", labelKey: "nav.analytics", label: "Analytics" },
+  { href: "/notifications", labelKey: "nav.notifications", label: "Notifications" },
+  { href: "/profile", labelKey: "nav.profile", label: "Profile" },
+];
+
+const TEAM_MANAGER_PRIMARY: NavItem[] = [
+  { href: "/admin/team", labelKey: "nav.team", label: "Team" },
+  { href: "/admin/members", labelKey: "nav.members", label: "Members" },
+  { href: "/admin/access-requests", labelKey: "nav.requests", label: "Requests" },
+  { href: "/notifications", labelKey: "nav.notifications", label: "Alerts" },
+  { href: "/profile", labelKey: "nav.profile", label: "Profile" },
+];
+
+/** DIETITIAN (ADR-016) — an assigned caseload and the diet library. No yoga. */
+const DIETITIAN: NavItem[] = [
+  { href: "/trainer", labelKey: "nav.caseload", label: "My customers" },
+  { href: "/admin/programmes", labelKey: "nav.programmes", label: "Programmes" },
+  { href: "/admin/diet", labelKey: "nav.diet", label: "Diet" },
+  { href: "/admin/reports", labelKey: "nav.reports", label: "Reports" },
+  { href: "/notifications", labelKey: "nav.notifications", label: "Notifications" },
+  { href: "/profile", labelKey: "nav.profile", label: "Profile" },
+];
+
+const DIETITIAN_PRIMARY: NavItem[] = [
+  { href: "/trainer", labelKey: "nav.caseload", label: "Customers" },
+  { href: "/admin/programmes", labelKey: "nav.programmes", label: "Plans" },
+  { href: "/admin/diet", labelKey: "nav.diet", label: "Diet" },
+  { href: "/notifications", labelKey: "nav.notifications", label: "Alerts" },
+  { href: "/profile", labelKey: "nav.profile", label: "Profile" },
+];
+
+/**
  * One admin menu after the merge (ADR-013).
  *
  * Analytics and Members are ADMINISTRATIVE surfaces, so every admin gets them — that is
@@ -122,11 +171,13 @@ const ADMIN: NavItem[] = [
   { href: "/admin/access-requests", labelKey: "nav.requests", label: "Requests" },
   { href: "/admin/programmes", labelKey: "nav.programmes", label: "Programmes" },
   { href: "/admin/yoga", labelKey: "nav.yoga", label: "Yoga" },
+  { href: "/admin/sessions", labelKey: "nav.sessions", label: "Sessions" },
   { href: "/admin/diet", labelKey: "nav.diet", label: "Diet" },
   { href: "/admin/reports", labelKey: "nav.reports", label: "Reports" },
   { href: "/admin/analytics", labelKey: "nav.analytics", label: "Analytics" },
   { href: "/admin/members", labelKey: "nav.members", label: "Members" },
   { href: "/admin/team", labelKey: "nav.team", label: "Team" },
+  { href: "/admin/website", labelKey: "nav.website", label: "Website" },
   /*
    * Admins receive notifications too — `listNotifications` is keyed by recipient, not by
    * role, and `/notifications` is guarded by `requireTenantSession` rather than a member
@@ -144,11 +195,42 @@ export function navItemsForRole(role: NavRole): NavItem[] {
       return MEMBER;
     case "TRAINER":
       return TRAINER;
+    case "DIETITIAN":
+      return DIETITIAN;
+    case "TEAM_MANAGER":
+      return TEAM_MANAGER;
     case "STAFF":
       return STAFF;
     case "ADMIN":
     case "ORG_OWNER":
       return ADMIN;
+  }
+}
+
+/**
+ * Where the brand mark takes each role — its own landing page.
+ *
+ * The logo used to send every non-member to `/admin`, which TRAINER and STAFF cannot
+ * enter (`canManageOrganization` is false for both), so clicking the logo bounced them.
+ * Matches the server's `homePathForRole` for staff roles. Members differ on purpose: the
+ * server lands them on `/dashboard` after sign-in, while the member menu's home has always
+ * been `/today`, their daily practice — unchanged here.
+ */
+export function homeForRole(role: NavRole): string {
+  switch (role) {
+    case "USER":
+    case "CUSTOMER":
+      return "/today";
+    case "TRAINER":
+    case "DIETITIAN":
+      return "/trainer";
+    case "TEAM_MANAGER":
+      return "/admin/team";
+    case "STAFF":
+      return "/staff";
+    case "ADMIN":
+    case "ORG_OWNER":
+      return "/admin";
   }
 }
 
@@ -166,6 +248,10 @@ export function primaryNavForRole(role: NavRole): NavItem[] {
       return MEMBER_PRIMARY;
     case "TRAINER":
       return TRAINER_PRIMARY;
+    case "DIETITIAN":
+      return DIETITIAN_PRIMARY;
+    case "TEAM_MANAGER":
+      return TEAM_MANAGER_PRIMARY;
     case "STAFF":
       return STAFF_PRIMARY;
     case "ADMIN":

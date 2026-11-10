@@ -27,9 +27,9 @@ export async function createMealAction(
   _previous: LibraryState,
   formData: FormData,
 ): Promise<LibraryState> {
-  const session = await requireRole("ADMIN", "TRAINER");
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
 
-  const permitted = canManageProgrammes(actorFromSession(session));
+  const permitted = canManageProgrammes(actorFromSession(session), "diet");
   if (!permitted.allowed) {
     return { status: "ERROR", message: "You do not have permission to manage the library." };
   }
@@ -88,9 +88,9 @@ export async function archiveMealAction(
   _previous: LibraryState,
   formData: FormData,
 ): Promise<LibraryState> {
-  const session = await requireRole("ADMIN", "TRAINER");
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
 
-  const permitted = canManageProgrammes(actorFromSession(session));
+  const permitted = canManageProgrammes(actorFromSession(session), "diet");
   if (!permitted.allowed) {
     return { status: "ERROR", message: "You do not have permission to manage the library." };
   }

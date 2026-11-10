@@ -1,5 +1,13 @@
 # Roles and authorization
 
+> **Updated by [ADR-016](../decisions/ADR-016-team-manager-dietitian-and-permission-matrix.md)
+> (2026-11-10).** Six tenant roles: ADMIN 20 > TEAM_MANAGER 18 > TRAINER 15 = DIETITIAN 15 >
+> STAFF 12 > USER 10. What each may do is defined once, in
+> `src/server/authorization/permission-matrix.ts`; the `can*` functions read it. Member data
+> is still assignment-scoped for every role, and a DIETITIAN is limited to profile and diet
+> data (`canAccessMemberData(…, domain)`). Where this document names only ADMIN, TRAINER and
+> STAFF, read ADR-016 alongside it.
+
 ## The rule everything else serves
 
 > **Administrative reach is organization-wide. Member health and activity data access

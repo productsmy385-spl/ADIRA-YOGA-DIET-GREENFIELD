@@ -49,7 +49,7 @@ export async function createExerciseAction(
 ): Promise<LibraryState> {
   const session = await requireRole("ADMIN", "TRAINER");
 
-  const permitted = canManageProgrammes(actorFromSession(session));
+  const permitted = canManageProgrammes(actorFromSession(session), "yoga");
   if (!permitted.allowed) {
     return { status: "ERROR", message: "You do not have permission to manage the library." };
   }

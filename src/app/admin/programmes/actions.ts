@@ -13,6 +13,7 @@ import {
   addProgrammeItem,
   createProgramme,
   duplicateProgramme,
+  findProgramme,
   removeProgrammeItem,
   setProgrammeArchived,
   updateProgramme,
@@ -79,9 +80,35 @@ export interface ProgrammeState {
   fieldErrors?: Record<string, string>;
 }
 
-async function requireAdmin() {
-  const session = await requireRole("ADMIN", "TRAINER");
-  if (!canManageProgrammes(actorFromSession(session)).allowed) return null;
+/**
+ * ADR-016: programme authoring is per DOMAIN — a DIETITIAN builds diet programmes and is
+ * refused yoga ones. For a NEW programme the domain is the posted kind; for an existing
+ * one it is read from the stored row, never taken from the request.
+ */
+async function requireAuthor(kind: "YOGA" | "DIET") {
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
+  const domain = kind === "YOGA" ? "yoga" : "diet";
+  if (!canManageProgrammes(actorFromSession(session), domain).allowed) return null;
+  return session;
+}
+
+async function requireAuthorFor(programmeId: string) {
+  const session = await requireRole("ADMIN", "TRAINER", "DIETITIAN");
+  const actor = actorFromSession(session);
+  const programme = programmeId ? await findProgramme(session.organizationId, programmeId) : null;
+  if (!programme) {
+    /*
+     * Not in THIS organisation (absent, or another tenant's). There is no domain to check,
+     * and refusing here would answer "forbidden" where the action used to answer "gone" —
+     * a difference that tells a caller another tenant's id exists. So let the org-scoped
+     * repository report it as gone, as before, for any role that authors something.
+     */
+    const authorsAny =
+      canManageProgrammes(actor, "yoga").allowed || canManageProgrammes(actor, "diet").allowed;
+    return authorsAny ? session : null;
+  }
+  const domain = programme.kind === "YOGA" ? "yoga" : "diet";
+  if (!canManageProgrammes(actor, domain).allowed) return null;
   return session;
 }
 
@@ -91,7 +118,7 @@ export async function createProgrammeAction(
   _previous: ProgrammeState,
   formData: FormData,
 ): Promise<ProgrammeState> {
-  const session = await requireAdmin();
+  const session = await requireAuthor(formData.get("kind") === "DIET" ? "DIET" : "YOGA");
   if (!session) {
     return { status: "ERROR", message: "You do not have permission to build programmes." };
   }
@@ -154,7 +181,7 @@ export async function updateProgrammeAction(
   _previous: ProgrammeState,
   formData: FormData,
 ): Promise<ProgrammeState> {
-  const session = await requireAdmin();
+  const session = await requireAuthorFor(String(formData.get("programmeId") ?? ""));
   if (!session) return { status: "ERROR", message: "You do not have permission." };
 
   const programmeId = String(formData.get("programmeId") ?? "");
@@ -206,7 +233,7 @@ export async function updateProgrammeAction(
 }
 
 export async function duplicateProgrammeAction(formData: FormData): Promise<void> {
-  const session = await requireAdmin();
+  const session = await requireAuthorFor(String(formData.get("programmeId") ?? ""));
   if (!session) return;
 
   const programmeId = String(formData.get("programmeId") ?? "");
@@ -230,7 +257,7 @@ export async function duplicateProgrammeAction(formData: FormData): Promise<void
 }
 
 export async function archiveProgrammeAction(formData: FormData): Promise<void> {
-  const session = await requireAdmin();
+  const session = await requireAuthorFor(String(formData.get("programmeId") ?? ""));
   if (!session) return;
 
   const programmeId = String(formData.get("programmeId") ?? "");
@@ -265,7 +292,7 @@ export async function addProgrammeItemAction(
   _previous: ProgrammeState,
   formData: FormData,
 ): Promise<ProgrammeState> {
-  const session = await requireAdmin();
+  const session = await requireAuthorFor(String(formData.get("programmeId") ?? ""));
   if (!session) return { status: "ERROR", message: "You do not have permission." };
 
   const raw = Object.fromEntries(formData);
@@ -329,7 +356,7 @@ export async function addProgrammeItemAction(
 }
 
 export async function removeProgrammeItemAction(formData: FormData): Promise<void> {
-  const session = await requireAdmin();
+  const session = await requireAuthorFor(String(formData.get("programmeId") ?? ""));
   if (!session) return;
 
   const programmeId = String(formData.get("programmeId") ?? "");
@@ -365,10 +392,8 @@ export async function publishProgrammeAction(
   _previous: ProgrammeState,
   formData: FormData,
 ): Promise<ProgrammeState> {
-  const session = await requireRole("ADMIN", "TRAINER");
-
-  const permitted = canManageProgrammes(actorFromSession(session));
-  if (!permitted.allowed) {
+  const session = await requireAuthorFor(String(formData.get("id") ?? ""));
+  if (!session) {
     return { status: "ERROR", message: "You do not have permission to manage programmes." };
   }
 
@@ -412,10 +437,8 @@ export async function unpublishProgrammeAction(
   _previous: ProgrammeState,
   formData: FormData,
 ): Promise<ProgrammeState> {
-  const session = await requireRole("ADMIN", "TRAINER");
-
-  const permitted = canManageProgrammes(actorFromSession(session));
-  if (!permitted.allowed) {
+  const session = await requireAuthorFor(String(formData.get("id") ?? ""));
+  if (!session) {
     return { status: "ERROR", message: "You do not have permission to manage programmes." };
   }
 

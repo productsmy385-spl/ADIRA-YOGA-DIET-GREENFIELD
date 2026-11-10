@@ -70,6 +70,11 @@ function withSecurityHeaders(request: NextRequest) {
    * Its script still needs the nonce: 'strict-dynamic' ignores host allowlists in
    * script-src, so the hosts there only matter to browsers too old to know it.
    */
+  // The website editor's draft preview is framed by the editor itself (same origin) and by
+  // nothing else; every other route stays unframeable. Mirrors next.config.ts headers().
+  const frameAncestors =
+    request.nextUrl.pathname === "/admin/website/preview" ? "'self'" : "'none'";
+
   const clerkApi = clerkFrontendApiOrigin(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) ?? "";
   const turnstile = "https://challenges.cloudflare.com";
 
@@ -81,11 +86,11 @@ function withSecurityHeaders(request: NextRequest) {
     img-src 'self' blob: data: ${imagekit} https://img.clerk.com;
     font-src 'self' data:;
     connect-src 'self' ${imagekit} ${clerkApi};
-    frame-src ${turnstile};
+    frame-src 'self' ${turnstile};
     object-src 'none';
     base-uri 'self';
     form-action 'self';
-    frame-ancestors 'none';
+    frame-ancestors ${frameAncestors};
     upgrade-insecure-requests;
   `
     .replace(/\s{2,}/g, " ")

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireRole } from "@/server/auth/guards";
 import { inviteAndAudit } from "@/server/auth/invitations";
-import { canManageOrganization } from "@/server/authorization/permissions";
+import { canManageMembers, canManageOrganization } from "@/server/authorization/permissions";
 import { actorFromSession } from "@/server/authorization/member-access";
 import {
   approveAccessRequest,
@@ -39,11 +39,11 @@ export async function approveRequestAction(
   _previous: ReviewState,
   formData: FormData,
 ): Promise<ReviewState> {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
 
   // requireRole already proved the role; this states the capability explicitly so the
   // permission is visible at the call site rather than implied by the guard.
-  const permitted = canManageOrganization(actorFromSession(session));
+  const permitted = canManageMembers(actorFromSession(session));
   if (!permitted.allowed) {
     return { status: "ERROR", message: "You do not have permission to review requests." };
   }
@@ -148,9 +148,9 @@ export async function rejectRequestAction(
   _previous: ReviewState,
   formData: FormData,
 ): Promise<ReviewState> {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
 
-  const permitted = canManageOrganization(actorFromSession(session));
+  const permitted = canManageMembers(actorFromSession(session));
   if (!permitted.allowed) {
     return { status: "ERROR", message: "You do not have permission to review requests." };
   }

@@ -3,11 +3,16 @@ import Link from "next/link";
 import { CalendarPlus, ClipboardList, Salad } from "lucide-react";
 
 import { CaseloadList } from "@/components/caseload/caseload-list";
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { PageShell } from "@/components/ui/page-shell";
 import { Button } from "@/components/ui/button";
 import { requireRole } from "@/server/auth/guards";
 import { actorFromSession } from "@/server/authorization/member-access";
+import { canManageProgrammes, hasPermission } from "@/server/authorization/permissions";
+import { formatInZone, zonedToUtc } from "@/lib/zoned-time";
+import { organizationToday } from "@/server/repositories/activities";
+import { findOrganizationById } from "@/server/repositories/organizations";
+import { listSessions } from "@/server/repositories/yoga-sessions";
 import { listCaseload } from "@/server/repositories/caseload";
 import { listProgrammes } from "@/server/repositories/programmes";
 
@@ -40,7 +45,7 @@ export const dynamic = "force-dynamic";
  * a route is how "which page am I on" stops predicting "what am I allowed to do".
  */
 export default async function TrainerPage() {
-  const session = await requireRole("TRAINER");
+  const session = await requireRole("TRAINER", "DIETITIAN");
   const actor = actorFromSession(session);
 
   const [caseload, publishedProgrammes] = await Promise.all([
@@ -50,6 +55,20 @@ export default async function TrainerPage() {
     listProgrammes(session.organizationId, undefined, false, true),
   ]);
 
+  // ADR-016: what this role may author — a dietitian builds diet only.
+  const authorsYoga = canManageProgrammes(actor, "yoga").allowed;
+
+  // Today's classes this person leads, in the organisation's day (brief §7 instructor tools).
+  const runsSessions = hasPermission(actor, "yoga.manage_sessions").allowed;
+  const timeZone = (await findOrganizationById(session.organizationId))?.timezone ?? "Asia/Kolkata";
+  const dayStart = zonedToUtc(await organizationToday(session.organizationId), "00:00", timeZone)!;
+  const todaysSessions = runsSessions
+    ? await listSessions(session.organizationId, {
+        from: dayStart,
+        to: new Date(dayStart.getTime() + 864e5),
+        instructorId: session.userId,
+      })
+    : [];
   const yoga = publishedProgrammes.filter((p) => p.kind === "YOGA").length;
   const diet = publishedProgrammes.filter((p) => p.kind === "DIET").length;
 
@@ -67,6 +86,32 @@ export default async function TrainerPage() {
             : `${caseload.length} ${caseload.length === 1 ? "person" : "people"} assigned to you at ${session.organizationName}.`}
         </p>
 
+        {runsSessions ? (
+          <section aria-labelledby="today-sessions" className="mt-8">
+            <h2 id="today-sessions" className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+              Today&rsquo;s sessions
+            </h2>
+            {todaysSessions.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                No classes today. <Link href="/admin/sessions" className="underline">Schedule one</Link>
+              </p>
+            ) : (
+              <ul className="mt-3 divide-y divide-border rounded-2xl border border-border bg-surface">
+                {todaysSessions.map((t) => (
+                  <li key={t.id}>
+                    <Link href={`/admin/sessions/${t.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/40">
+                      <span className="font-medium text-foreground">{t.title}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {formatInZone(t.startsAt, timeZone, { hour: "2-digit", minute: "2-digit" })} · {t.participantCount} expected · take attendance
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
         <section aria-labelledby="library" className="mt-8">
           <h2
             id="library"
@@ -82,12 +127,14 @@ export default async function TrainerPage() {
                 Create programme
               </Link>
             </Button>
-            <Button asChild size="sm" variant="outline">
-              <Link href="/admin/yoga/new">
-                <ClipboardList aria-hidden />
-                Add exercise
-              </Link>
-            </Button>
+            {authorsYoga ? (
+              <Button asChild size="sm" variant="outline">
+                <Link href="/admin/yoga/new">
+                  <ClipboardList aria-hidden />
+                  Add exercise
+                </Link>
+              </Button>
+            ) : null}
             <Button asChild size="sm" variant="outline">
               <Link href="/admin/diet/new">
                 <Salad aria-hidden />
@@ -121,7 +168,6 @@ export default async function TrainerPage() {
         />
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/trainer" />
     </div>
   );
 }

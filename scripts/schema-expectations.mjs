@@ -30,7 +30,7 @@ export const PG_ENUM_EXPECTATIONS = {
    * why a migration must update this file in the same change: the test is the only thing
    * that notices, and it noticed this one.
    */
-  tenant_role: ["ORG_OWNER", "ADMIN", "CUSTOMER", "USER", "TRAINER", "STAFF"],
+  tenant_role: ["ORG_OWNER", "ADMIN", "CUSTOMER", "USER", "TRAINER", "STAFF", "TEAM_MANAGER", "DIETITIAN"],
   access_request_status: ["PENDING", "APPROVED", "REJECTED", "CANCELLED"],
   account_status: ["INVITED", "PENDING", "ACTIVE", "SUSPENDED", "LOCKED", "DISABLED"],
   organization_status: ["ACTIVE", "SUSPENDED", "CLOSED"],

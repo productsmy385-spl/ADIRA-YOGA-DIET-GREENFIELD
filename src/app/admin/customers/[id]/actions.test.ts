@@ -24,6 +24,8 @@ const createAssignment = vi.fn();
 const endAssignment = vi.fn();
 const organizationToday = vi.fn();
 const recordAudit = vi.fn();
+// ADR-016: prescribing reads the stored programme/assignment to learn its domain.
+const findProgramme = vi.fn();
 
 vi.mock("@/server/auth/guards", () => ({ requireRole }));
 vi.mock("@/server/authorization/member-access", async () => {
@@ -41,6 +43,7 @@ vi.mock("@/server/repositories/assignments", () => ({
 vi.mock("@/server/repositories/members", () => ({ createAssignment, endAssignment }));
 vi.mock("@/server/repositories/activities", () => ({ organizationToday }));
 vi.mock("@/server/repositories/audit-logs", () => ({ recordAudit }));
+vi.mock("@/server/repositories/programmes", () => ({ findProgramme }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 const {
@@ -91,7 +94,8 @@ beforeEach(() => {
     .mockResolvedValue({ id: ASSIGNMENT, kind: "YOGA", customerId: CUSTOMER });
   activateAssignment.mockReset().mockResolvedValue({ activitiesCreated: 28 });
   pauseAssignment.mockReset();
-  findAssignment.mockReset().mockResolvedValue({ id: ASSIGNMENT, customerId: CUSTOMER });
+  findAssignment.mockReset().mockResolvedValue({ id: ASSIGNMENT, customerId: CUSTOMER, kind: "YOGA" });
+  findProgramme.mockReset().mockResolvedValue({ id: "programme-1", kind: "YOGA" });
   createAssignment.mockReset();
   endAssignment.mockReset();
   organizationToday.mockReset().mockResolvedValue("2026-08-24");
@@ -188,6 +192,7 @@ describe("prescribing is DATA-SCOPED", () => {
       expect.objectContaining({ userId: "admin-1", organizationId: "org-1" }),
       CUSTOMER,
       "assignment.create",
+      "all", // ADR-016: a yoga programme needs full reach; a diet one would ask for "diet"
     );
   });
 });

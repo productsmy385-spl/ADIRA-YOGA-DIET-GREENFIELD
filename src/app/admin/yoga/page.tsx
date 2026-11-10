@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Archive, ArchiveRestore, Flower2 } from "lucide-react";
 
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -130,7 +130,6 @@ export default async function YogaLibraryPage() {
         )}
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/admin/yoga" />
     </div>
   );
 }

@@ -38,19 +38,27 @@ export function AuthShell({
   description,
   children,
   footer,
+  logo,
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  /** A studio's own logo, when the visitor arrived from its public site (FR-WEB-015). */
+  logo?: { url: string; alt: string } | null;
 }) {
   return (
     <ClerkProvider dynamic appearance={clerkAppearance}>
       <div className="flex min-h-dvh items-center justify-center bg-background px-6 py-12">
         <main className="w-full max-w-sm">
           <div className="mb-8 flex flex-col items-center text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static mark, nothing to optimise */}
-            <img src={branding.icons.mark} alt="" aria-hidden className="size-10 mix-blend-multiply" />
+            {logo ? (
+              // eslint-disable-next-line @next/next/no-img-element -- tenant logo from ImageKit
+              <img src={logo.url} alt={logo.alt} className="size-14 rounded-2xl object-contain" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element -- static mark, nothing to optimise
+              <img src={branding.icons.mark} alt="" aria-hidden className="size-10 mix-blend-multiply" />
+            )}
             <h1 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
             {description ? (
               <p className="mt-2 text-sm text-muted-foreground">{description}</p>

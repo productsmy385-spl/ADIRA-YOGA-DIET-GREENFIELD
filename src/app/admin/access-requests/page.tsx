@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { AppNav, MobileTabBar } from "@/components/nav/app-nav";
+import { AppNav } from "@/components/nav/app-nav";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageShell } from "@/components/ui/page-shell";
 import { OrganizationAccessKeyCard } from "@/components/ui/organization-access-key-card";
@@ -23,7 +23,7 @@ function formatDate(value: Date): string {
 }
 
 export default async function AccessRequestsPage() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
 
   const [requests, joinCode] = await Promise.all([
     listAccessRequests(session.organizationId),
@@ -100,7 +100,6 @@ export default async function AccessRequestsPage() {
         ) : null}
       </PageShell>
 
-      <MobileTabBar role={session.role} currentPath="/admin/access-requests" />
     </div>
   );
 }

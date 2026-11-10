@@ -295,15 +295,21 @@ describeIsolated("schedule materialisation", () => {
    * cannot return to a wall of failures they were never given a chance to avoid.
    */
   it("removes future pending activities when paused, and keeps the past", async () => {
-    const assignment = await assign("2026-09-01");
+    /*
+     * The start date must be in the FUTURE for "future pending activities" to exist. This
+     * test once hard-coded 2026-09-01, which was future when written and silently became
+     * past — after which nothing was future and the pause correctly removed nothing.
+     */
+    const start = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+    const assignment = await assign(start);
     await activateAssignment(f.orgId, assignment.id);
 
     // Backdate one activity and complete it, so there is a past to preserve.
     await query(
       `UPDATE daily_activities
           SET scheduled_for = current_date - 1, status = 'COMPLETED', completed_at = now()
-        WHERE assignment_id = $1 AND scheduled_for = '2026-09-01'`,
-      [assignment.id],
+        WHERE assignment_id = $1 AND scheduled_for = $2`,
+      [assignment.id, start],
     );
 
     await pauseAssignment(f.orgId, assignment.id);

@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  * the presence or absence of a link enforces nothing (see `nav-items.ts`).
  */
 export default async function AddMemberPage() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
 
   return (
     <div className="min-h-dvh bg-background">
@@ -42,7 +42,7 @@ export default async function AddMemberPage() {
         </header>
 
         <GlassPanel className="mt-8 p-6">
-          <AddMemberForm />
+          <AddMemberForm canGrantTeamManager={session.role === "ADMIN"} />
         </GlassPanel>
 
         <GlassPanel className="mt-6 p-5">

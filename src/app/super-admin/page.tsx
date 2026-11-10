@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2 } from "lucide-react";
+import { Building2, ListTodo, ShieldAlert, Skull, Users } from "lucide-react";
+
+import { MetricCard, MetricGrid } from "@/components/ui/metric";
 
 import { PlatformNav } from "@/components/nav/platform-nav";
 import { Button } from "@/components/ui/button";
@@ -31,29 +33,6 @@ export const dynamic = "force-dynamic";
  * Genuine support access to a tenant's data, when it is ever needed, must be a separate,
  * individually audited operation. Not a side effect of browsing.
  */
-
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: "warn";
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <p className="text-xs tracking-widest text-muted-foreground uppercase">{label}</p>
-      <p
-        className={`mt-1 text-2xl font-semibold ${
-          tone === "warn" ? "text-destructive" : "text-card-foreground"
-        }`}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
 
 export default async function OwnerPage() {
   await requirePlatformSession();
@@ -92,25 +71,47 @@ export default async function OwnerPage() {
           </Button>
         </div>
 
-        <section aria-label="Health" className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <Stat label="Organisations" value={String(health.organizations)} />
-          <Stat label="Customers" value={String(health.totalCustomers)} />
-          <Stat
+        <MetricGrid label="Platform health" columns={5} className="mt-6">
+          <MetricCard
+            label="Organisations"
+            value={health.organizations}
+            icon={<Building2 />}
+            tone="green"
+            href="/super-admin/organizations"
+          />
+          <MetricCard
+            label="Members"
+            value={health.totalCustomers}
+            icon={<Users />}
+            tone="blue"
+            description="Across all organisations"
+          />
+          <MetricCard
             label="Queued jobs"
-            value={String(health.queuedJobs)}
-            tone={queueStalled ? "warn" : undefined}
+            value={health.queuedJobs}
+            icon={<ListTodo />}
+            tone="turquoise"
+            description={queueStalled ? "Queue is stalled" : "Background work"}
+            attention={queueStalled}
           />
-          <Stat
+          <MetricCard
             label="Dead jobs"
-            value={String(health.deadJobs)}
-            tone={health.deadJobs > 0 ? "warn" : undefined}
+            value={health.deadJobs}
+            icon={<Skull />}
+            tone="orange"
+            description="Failed after retries"
+            attention={health.deadJobs > 0}
           />
-          <Stat
-            label="Denied · 24h"
-            value={String(denials)}
-            tone={denials > 0 ? "warn" : undefined}
+          <MetricCard
+            label="Denied requests"
+            value={denials}
+            icon={<ShieldAlert />}
+            tone="violet"
+            description="Last 24 hours"
+            attention={denials > 0}
+            href="/super-admin/audit"
           />
-        </section>
+        </MetricGrid>
 
         {queueStalled && (
           <p

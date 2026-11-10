@@ -4,6 +4,10 @@ import Link from "next/link";
 import { AppNav } from "@/components/nav/app-nav";
 import { requireRole } from "@/server/auth/guards";
 import { consultantLoads, organizationSummary } from "@/server/repositories/analytics";
+import { Activity, CalendarCheck, CalendarClock, Target, UserCog, Users } from "lucide-react";
+import { sessionStats } from "@/server/repositories/yoga-sessions";
+
+import { MetricCard, MetricGrid } from "@/components/ui/metric";
 import { PageShell } from "@/components/ui/page-shell";
 
 export const metadata: Metadata = { title: "Analytics" };
@@ -25,26 +29,19 @@ export const dynamic = "force-dynamic";
  * to misread needs its caveat on the same screen, not in a document.
  */
 
-function percent(value: number | null): string {
-  return value === null ? "—" : `${Math.round(value * 100)}%`;
-}
-
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <p className="text-xs tracking-widest text-muted-foreground uppercase">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-card-foreground">{value}</p>
-      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
-    </div>
-  );
+/** `null` stays `null`, so MetricCard renders "not available" rather than a fake 0%. */
+function percent(value: number | null): string | null {
+  return value === null ? null : `${Math.round(value * 100)}%`;
 }
 
 export default async function AnalyticsPage() {
-  const session = await requireRole("ADMIN");
+  const session = await requireRole("ADMIN", "TEAM_MANAGER");
 
-  const [summary, consultants] = await Promise.all([
+  const [summary, consultants, sessions] = await Promise.all([
     organizationSummary(session.organizationId),
     consultantLoads(session.organizationId),
+    // Counts only — nobody named (brief §7 yoga analytics).
+    sessionStats(session.organizationId, 30),
   ]);
 
   return (
@@ -63,25 +60,55 @@ export default async function AnalyticsPage() {
           Everything below is counted from records, over the last 7 days unless stated.
         </p>
 
-        <section aria-label="Organisation" className="mt-8 grid gap-3 sm:grid-cols-3">
-          <Stat
-            label="Customers"
-            value={String(summary.totalCustomers)}
-            hint={`${summary.newCustomers30d} joined in 30 days`}
+        <MetricGrid label="Organisation" columns={5} className="mt-8">
+          <MetricCard
+            label="Members"
+            value={summary.totalCustomers}
+            icon={<Users />}
+            tone="green"
+            description={`${summary.newCustomers30d} joined in 30 days`}
           />
-          <Stat
-            label="Active"
-            value={String(summary.activeCustomers)}
-            hint="a live plan and recent engagement"
+          <MetricCard
+            label="Active members"
+            value={summary.activeCustomers}
+            icon={<Activity />}
+            tone="blue"
+            description="A live plan and recent engagement"
           />
-          <Stat label="Consultants" value={String(summary.consultants)} />
-          <Stat
+          <MetricCard
+            label="Practitioners"
+            value={summary.consultants}
+            icon={<UserCog />}
+            tone="turquoise"
+            description="Team members who can hold a caseload"
+          />
+          <MetricCard
             label="Adherence"
             value={percent(summary.adherence7d)}
-            hint="self-reported"
+            icon={<Target />}
+            tone="violet"
+            description="Self-reported, 7 days"
           />
-          <Stat label="Check-ins" value={String(summary.checkIns7d)} />
-        </section>
+          <MetricCard
+            label="Check-ins"
+            value={summary.checkIns7d}
+            icon={<CalendarCheck />}
+            tone="orange"
+            description="Last 7 days"
+          />
+        </MetricGrid>
+
+        <MetricGrid label="Yoga sessions" columns={3} className="mt-5">
+          <MetricCard label="Sessions completed" value={sessions.completed} icon={<CalendarCheck />} tone="green" description="Last 30 days" />
+          <MetricCard label="Sessions scheduled" value={sessions.scheduled} icon={<CalendarClock />} tone="blue" description="Next 30 days" />
+          <MetricCard
+            label="Session attendance"
+            value={sessions.marked === 0 ? null : `${Math.round((sessions.attended / sessions.marked) * 100)}%`}
+            icon={<Users />}
+            tone="violet"
+            description="Of attendance marked, last 30 days"
+          />
+        </MetricGrid>
 
         <section aria-labelledby="consultants-heading" className="mt-12">
           <h2
@@ -122,7 +149,7 @@ export default async function AnalyticsPage() {
                         {consultant.caseload}
                       </td>
                       <td className="px-5 py-3 text-card-foreground">
-                        {percent(consultant.assignedAdherence7d)}
+                        {percent(consultant.assignedAdherence7d) ?? "—"}
                       </td>
                     </tr>
                   ))}
